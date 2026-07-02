@@ -1,0 +1,19 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  composer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: intl, mbstring, mysqli, pdo_mysql, pdo_pgsql, pgsql, zip, gd
+          coverage: none
+      - run: composer validate --strict
+      - run: composer install --no-dev --prefer-dist --no-interaction --no-progress
+      - run: vendor/bin/typo3 setup --help

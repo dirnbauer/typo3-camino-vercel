@@ -1,0 +1,16 @@
+base: /
+dependencies:
+  - typo3/theme-camino
+languages:
+  -
+    title: English
+    enabled: '1'
+    locale: en-US
+    hreflang: en-US
+    base: /
+    websiteTitle: Camino
+    navigationTitle: English
+    flag: global
+    languageId: '0'
+rootPageId: 1
+websiteTitle: Webconsulting TYPO3 Lab

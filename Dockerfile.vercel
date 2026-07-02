@@ -1,0 +1,61 @@
+FROM php:8.4-apache-bookworm
+
+ENV APACHE_DOCUMENT_ROOT=/var/www/html/public \
+    COMPOSER_ALLOW_SUPERUSER=1 \
+    TYPO3_CONTEXT=Production/Vercel
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        git \
+        graphicsmagick \
+        libfreetype6-dev \
+        libicu-dev \
+        libjpeg62-turbo-dev \
+        libonig-dev \
+        libpng-dev \
+        libpq-dev \
+        libwebp-dev \
+        libzip-dev \
+        unzip \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install -j"$(nproc)" \
+        exif \
+        gd \
+        intl \
+        mbstring \
+        mysqli \
+        opcache \
+        pdo_mysql \
+        pdo_pgsql \
+        pgsql \
+        zip \
+    && a2enmod deflate expires headers remoteip rewrite \
+    && sed -ri -e "s!/var/www/html!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/sites-available/*.conf \
+    && printf '%s\n' \
+        "<Directory ${APACHE_DOCUMENT_ROOT}>" \
+        "    AllowOverride All" \
+        "    Require all granted" \
+        "</Directory>" > /etc/apache2/conf-available/typo3.conf \
+    && a2enconf typo3 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+
+WORKDIR /var/www/html
+
+COPY composer.json composer.lock ./
+COPY packages ./packages
+RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
+
+COPY . .
+COPY docker/php.ini /usr/local/etc/php/conf.d/typo3.ini
+
+RUN chmod +x docker/entrypoint.sh scripts/bootstrap-typo3.php \
+    && mkdir -p var public/fileadmin/_temp_ public/fileadmin/user_upload public/typo3temp config/system \
+    && chown -R www-data:www-data var public/fileadmin public/typo3temp config
+
+EXPOSE 80
+
+ENTRYPOINT ["docker/entrypoint.sh"]
+CMD ["apache2-foreground"]
