@@ -9,6 +9,7 @@ This repository builds a PHP/Apache container from `Dockerfile.vercel`, installs
 - TYPO3 is pinned through Composer to the latest 14.3 patch in `composer.lock`.
 - The TYPO3 system extension list is copied from `typo3/cms-base-distribution` 14.x, with `typo3/theme-camino` added as the distribution.
 - Vercel containers are stateless. Keep persistent content in an external database and object storage; do not put a database inside the Vercel container.
+- The Docker image includes a pre-seeded Camino SQLite database only for dummy Vercel smoke deployments. Replace it with `DATABASE_URL` for real use.
 - The official `typo3/cms-introduction` package is not installable with TYPO3 14 at the moment. Its current Composer constraints allow TYPO3 12/13 only. For TYPO3 14 this starter uses the official `typo3/theme-camino` distribution.
 
 ## Required Vercel Env Vars

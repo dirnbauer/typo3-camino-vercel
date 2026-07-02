@@ -51,6 +51,23 @@ RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --opt
 COPY . .
 COPY docker/php.ini /usr/local/etc/php/conf.d/typo3.ini
 
+RUN set -eu; \
+    mkdir -p var/seed public/fileadmin/_temp_ public/fileadmin/user_upload public/typo3temp config/system; \
+    TYPO3_BUILD_ADMIN_PASSWORD="A!$(php -r 'echo bin2hex(random_bytes(24));')a"; \
+    TYPO3_CONTEXT=Production/Vercel \
+        TYPO3_DB_DRIVER=pdo_sqlite \
+        TYPO3_DB_DBNAME=/var/www/html/var/seed/camino.sqlite \
+        TYPO3_ENCRYPTION_KEY=000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 \
+        TYPO3_PROJECT_NAME="TYPO3 Camino" \
+        TYPO3_SETUP_ADMIN_USERNAME=admin \
+        TYPO3_SETUP_ADMIN_PASSWORD="${TYPO3_BUILD_ADMIN_PASSWORD}" \
+        TYPO3_SETUP_ADMIN_EMAIL=admin@example.com \
+        TYPO3_SETUP_DISTRIBUTION=theme_camino \
+        php scripts/bootstrap-typo3.php; \
+    mkdir -p /usr/local/share/typo3-seed; \
+    cp /var/www/html/var/seed/camino.sqlite /usr/local/share/typo3-seed/camino.sqlite; \
+    rm -rf var/* public/typo3temp/*
+
 RUN chmod +x docker/entrypoint.sh scripts/bootstrap-typo3.php \
     && mkdir -p var public/fileadmin/_temp_ public/fileadmin/user_upload public/typo3temp config/system \
     && chown -R www-data:www-data var public/fileadmin public/typo3temp config

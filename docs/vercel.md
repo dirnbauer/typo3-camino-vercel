@@ -6,6 +6,8 @@ Vercel container functions are stateless and can scale to zero. The container im
 
 Uploaded files in `public/fileadmin/user_upload` are still runtime filesystem writes. For production, add a TYPO3 FAL driver backed by S3-compatible object storage or Vercel Blob before accepting editor uploads. The Camino starter assets are committed into the image, so the demo frontend survives cold starts.
 
+For a dummy Vercel smoke deployment, the image also contains a pre-seeded Camino SQLite database. At boot, `docker/entrypoint.sh` copies that seed into `/tmp` when `TYPO3_DB_DRIVER=pdo_sqlite`. This is intentionally non-durable and only exists to make the Vercel container URL render without a Marketplace database; the generated seed backend account is not intended for editor login.
+
 ## First Deploy
 
 1. Create/link the Vercel project with the slug `typo3-camino-vercel`.
