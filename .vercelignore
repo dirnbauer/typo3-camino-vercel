@@ -1,0 +1,15 @@
+.git
+.github
+.ddev
+.idea
+.DS_Store
+.env
+.env.*
+.vercel
+node_modules
+vendor
+var
+dump.sql
+dump.sql.gz
+*.sqlite
+*.sqlite-*
