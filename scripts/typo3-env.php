@@ -238,7 +238,7 @@ function typo3_vercel_settings(): array
                 'frontend.cache.autoTagging' => true,
                 'security.system.enforceAllowedFileExtensions' => true,
             ],
-            'sitename' => typo3_vercel_env('TYPO3_PROJECT_NAME', 'Webconsulting TYPO3 Lab'),
+            'sitename' => typo3_vercel_env('TYPO3_PROJECT_NAME', 'TYPO3 Camino'),
             'systemMaintainers' => [1],
             'trustedHostsPattern' => typo3_vercel_env('TYPO3_TRUSTED_HOSTS_PATTERN', '(.+\\.)?vercel\\.app|localhost(:[0-9]+)?|127\\.0\\.0\\.1(:[0-9]+)?|0\\.0\\.0\\.0(:[0-9]+)?'),
         ],

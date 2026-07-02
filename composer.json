@@ -1,6 +1,6 @@
 {
-    "name": "webconsulting/typo3-vercel",
-    "description": "TYPO3 14.3 container starter for Vercel Functions",
+    "name": "dirnbauer/typo3-camino-vercel",
+    "description": "TYPO3 14.3 Camino container starter for Vercel Functions",
     "license": "GPL-2.0-or-later",
     "type": "project",
     "config": {

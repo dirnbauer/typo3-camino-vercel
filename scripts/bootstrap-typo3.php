@@ -50,7 +50,7 @@ $command = [
     '--driver=' . $env['TYPO3_DB_DRIVER'],
     '--admin-username=' . typo3_vercel_env('TYPO3_SETUP_ADMIN_USERNAME', 'admin'),
     '--admin-email=' . typo3_vercel_env('TYPO3_SETUP_ADMIN_EMAIL', 'admin@example.com'),
-    '--project-name=' . typo3_vercel_env('TYPO3_PROJECT_NAME', 'Webconsulting TYPO3 Lab'),
+    '--project-name=' . typo3_vercel_env('TYPO3_PROJECT_NAME', 'TYPO3 Camino'),
 ];
 
 if (($database['driver'] ?? '') === 'pdo_sqlite') {

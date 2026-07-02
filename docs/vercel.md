@@ -8,11 +8,11 @@ Uploaded files in `public/fileadmin/user_upload` are still runtime filesystem wr
 
 ## First Deploy
 
-1. Create/link the Vercel project with the slug `webconsulting-typo3-lab`.
+1. Create/link the Vercel project with the slug `typo3-camino-vercel`.
 2. Provision a database. For Vercel Marketplace Postgres:
 
    ```bash
-   vercel integration add neon --plan free_v3 --name webconsulting-typo3-lab-db -m region=fra1
+   vercel integration add neon --plan free_v3 --name typo3-camino-vercel-db -m region=fra1
    ```
 
 3. Set the required TYPO3 secrets:
