@@ -10,6 +10,25 @@ This is a lab/template starter, not a production recommendation for every
 TYPO3 project. It is useful for testing Vercel's container support with TYPO3
 and for learning what works well on a stateless platform.
 
+## Important: Free Demo Data Is Temporary
+
+The one-click free demo is usable, but it is not durable:
+
+- You can upload files in TYPO3.
+- You can edit pages and records.
+- Those uploaded files and content changes can disappear.
+
+Why: the free demo uses SQLite and runtime `fileadmin` storage inside the
+Vercel container. Vercel can replace that runtime container at any time.
+
+For non-temporary files and content, add both:
+
+- a durable database through `DATABASE_URL`
+- external object storage through a tested TYPO3 FAL adapter
+
+Until both are configured, use the free deploy only for testing the install,
+backend, and Camino package.
+
 ## What Works
 
 - Free one-click Vercel smoke deploy with a pre-seeded Camino SQLite demo
