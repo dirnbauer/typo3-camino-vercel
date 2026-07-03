@@ -38,6 +38,10 @@ $env['TYPO3_DB_PORT'] = (string)($database['port'] ?? '');
 $env['TYPO3_DB_DBNAME'] = (string)($database['dbname'] ?? ($database['path'] ?? ''));
 $env['TYPO3_DB_USERNAME'] = (string)($database['user'] ?? '');
 $env['TYPO3_DB_PASSWORD'] = (string)($database['password'] ?? '');
+if (isset($database['sslmode']) && is_string($database['sslmode']) && $database['sslmode'] !== '') {
+    $env['TYPO3_DB_SSLMODE'] = $database['sslmode'];
+    $env['PGSSLMODE'] = $database['sslmode'];
+}
 $env['TYPO3_SETUP_ADMIN_PASSWORD'] = $adminPassword;
 $env['TYPO3_CONTEXT'] = typo3_vercel_env('TYPO3_CONTEXT', 'Production/Vercel');
 

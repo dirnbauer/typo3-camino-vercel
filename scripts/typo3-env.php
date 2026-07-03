@@ -35,7 +35,7 @@ function typo3_vercel_database_config(): array
     }
 
     if (in_array($driver, ['pdo_pgsql', 'pgsql', 'postgres', 'postgresql'], true)) {
-        return [
+        $config = [
             'charset' => 'utf8',
             'dbname' => typo3_vercel_env('TYPO3_DB_DBNAME', 'verceldb'),
             'driver' => 'pdo_pgsql',
@@ -44,6 +44,11 @@ function typo3_vercel_database_config(): array
             'port' => (int)typo3_vercel_env('TYPO3_DB_PORT', '5432'),
             'user' => typo3_vercel_env('TYPO3_DB_USERNAME', 'postgres'),
         ];
+        $sslmode = typo3_vercel_env('TYPO3_DB_SSLMODE');
+        if ($sslmode !== null) {
+            $config['sslmode'] = $sslmode;
+        }
+        return $config;
     }
 
     return [
@@ -135,12 +140,7 @@ function typo3_vercel_pdo_dsn(array $database): string
 {
     return match ($database['driver'] ?? '') {
         'pdo_sqlite' => 'sqlite:' . $database['path'],
-        'pdo_pgsql' => sprintf(
-            'pgsql:host=%s;port=%d;dbname=%s',
-            $database['host'],
-            $database['port'],
-            $database['dbname'],
-        ),
+        'pdo_pgsql' => typo3_vercel_pgsql_dsn($database),
         default => sprintf(
             'mysql:host=%s;port=%d;dbname=%s;charset=%s',
             $database['host'],
@@ -149,6 +149,22 @@ function typo3_vercel_pdo_dsn(array $database): string
             $database['charset'] ?? 'utf8mb4',
         ),
     };
+}
+
+function typo3_vercel_pgsql_dsn(array $database): string
+{
+    $dsn = sprintf(
+        'pgsql:host=%s;port=%d;dbname=%s',
+        $database['host'],
+        $database['port'],
+        $database['dbname'],
+    );
+
+    if (isset($database['sslmode']) && is_string($database['sslmode']) && $database['sslmode'] !== '') {
+        $dsn .= ';sslmode=' . $database['sslmode'];
+    }
+
+    return $dsn;
 }
 
 function typo3_vercel_settings(): array
