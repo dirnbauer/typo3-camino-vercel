@@ -26,6 +26,11 @@ not durable and should not be used for content you care about.
 If `TYPO3_SETUP_ADMIN_PASSWORD` is set, the entrypoint updates the seeded
 `admin` backend user on every boot. This avoids a known-password seed image.
 
+The entrypoint also treats mutable TYPO3 paths as serverless runtime state:
+`var`, `public/fileadmin`, and `public/typo3temp` point into `/tmp`. Committed
+Camino demo assets are copied there at startup, but editor uploads are not
+durable. See [serverless runtime notes](serverless-runtime.md).
+
 ## Required Production Env Vars
 
 ```dotenv

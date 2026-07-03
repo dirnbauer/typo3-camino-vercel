@@ -15,6 +15,7 @@ and for learning what works well on a stateless platform.
 - One-click Vercel smoke deploy with a pre-seeded Camino SQLite demo database.
 - Backend login for the seeded demo when `TYPO3_SETUP_ADMIN_PASSWORD` is set.
 - TYPO3 14.3 Composer install with Camino and Scheduler included.
+- Serverless-style runtime paths: TYPO3 writes to `/tmp`, not durable image paths.
 - Durable external SQL database support through `DATABASE_URL` or TYPO3 DB env vars.
 - Vercel Cron compatible endpoint for running TYPO3 Scheduler tasks.
 - Vercel Firewall/WAF in front of the container.
@@ -87,6 +88,7 @@ See [docs/costs.md](docs/costs.md) for the current caveats.
 
 - [Quickstart](docs/quickstart.md)
 - [Database setup](docs/database.md)
+- [Serverless runtime notes](docs/serverless-runtime.md)
 - [Scheduler and cron](docs/scheduler.md)
 - [Security and firewall](docs/security.md)
 - [GDPR and privacy checklist](docs/gdpr.md)

@@ -36,6 +36,7 @@ RUN apt-get update \
     && sed -ri -e "s!/var/www/html!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/sites-available/*.conf \
     && printf '%s\n' \
         "<Directory ${APACHE_DOCUMENT_ROOT}>" \
+        "    Options FollowSymLinks" \
         "    AllowOverride All" \
         "    Require all granted" \
         "</Directory>" > /etc/apache2/conf-available/typo3.conf \

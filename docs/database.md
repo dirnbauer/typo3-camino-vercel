@@ -74,8 +74,13 @@ backup/restore feature and test restore before production.
 ## Uploaded Files
 
 TYPO3 stores editor uploads under `public/fileadmin` by default. On Vercel this
-is not durable runtime storage. Before production, add a TYPO3 FAL driver backed
-by S3-compatible object storage, Vercel Blob, or another durable object store.
+is not durable runtime storage. This starter copies `fileadmin` into `/tmp` at
+container start so Camino demo assets are available, but new uploads remain
+ephemeral.
+
+Before production, add a TYPO3 FAL driver backed by S3-compatible object
+storage, or build a Vercel Blob FAL driver. See
+[serverless runtime notes](serverless-runtime.md).
 
 ## Sources
 

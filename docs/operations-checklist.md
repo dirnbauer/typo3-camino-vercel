@@ -8,6 +8,7 @@
 - [ ] Add durable `DATABASE_URL`.
 - [ ] Confirm database backup/restore exists.
 - [ ] Decide where `fileadmin` uploads will live.
+- [ ] Keep Vercel runtime filesystem writes disposable.
 - [ ] Keep `TYPO3_AUTO_SETUP=1` only for initial setup.
 
 ## After First Deploy
@@ -32,6 +33,7 @@
 - [ ] Error display is disabled.
 - [ ] Install Tool is not publicly usable.
 - [ ] File uploads are durable and scanned/limited by policy.
+- [ ] Vercel Blob/S3/object-storage integration is tested before editors upload files.
 - [ ] Security updates are planned.
 
 ## Monthly
