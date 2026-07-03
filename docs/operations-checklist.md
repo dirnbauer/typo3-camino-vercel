@@ -8,6 +8,7 @@
 - [ ] Add durable `DATABASE_URL`.
 - [ ] Confirm database backup/restore exists.
 - [ ] Decide where `fileadmin` uploads will live.
+- [ ] Configure `TYPO3_OBJECT_STORAGE_ENABLED=1` and `TYPO3_S3_*` before editors upload files.
 - [ ] Keep Vercel runtime filesystem writes disposable.
 - [ ] Keep `TYPO3_AUTO_SETUP=1` only for initial setup.
 
@@ -33,7 +34,7 @@
 - [ ] Error display is disabled.
 - [ ] Install Tool is not publicly usable.
 - [ ] File uploads are durable and scanned/limited by policy.
-- [ ] Vercel Blob/S3/object-storage integration is tested before editors upload files.
+- [ ] S3-compatible object-storage integration is tested before editors upload files.
 - [ ] Security updates are planned.
 
 ## Monthly

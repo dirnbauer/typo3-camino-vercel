@@ -31,8 +31,8 @@ openssl rand -base64 32
 TYPO3 validates the initial admin password. If setup rejects it, generate a new
 one that includes uppercase, lowercase, numbers, and a symbol.
 
-This mode is free-demo mode: seeded SQLite, no external database, no Blob
-store, no stable backend login, and no durable edits. See
+This mode is free-demo mode: seeded SQLite, no external database, no object
+storage, no stable backend login, and no durable edits. See
 [Free demo mode](free-demo.md).
 
 ## Secure Enough For A Real Trial
@@ -51,6 +51,24 @@ TYPO3_AUTO_SETUP=0
 ```
 
 Then redeploy.
+
+## Durable Uploads
+
+Add S3-compatible object storage before editors upload files:
+
+```dotenv
+TYPO3_OBJECT_STORAGE_ENABLED=1
+TYPO3_S3_BUCKET=<bucket>
+TYPO3_S3_REGION=auto
+TYPO3_S3_ENDPOINT=<s3-compatible-endpoint>
+TYPO3_S3_ACCESS_KEY_ID=<access-key>
+TYPO3_S3_SECRET_ACCESS_KEY=<secret-key>
+TYPO3_S3_PUBLIC_BASE_URL=<public-bucket-or-cdn-url>
+```
+
+Cloudflare R2 works well for a free durable trial because it exposes an
+S3-compatible API. Vercel Blob is not supported by this driver. See
+[Object storage and durable uploads](object-storage.md).
 
 ## Backend Login
 
@@ -84,7 +102,7 @@ seeded SQLite, the backend can log out after a few seconds because the
 - Use a stable `TYPO3_ENCRYPTION_KEY`.
 - Use `TYPO3_TRUSTED_HOSTS_PATTERN` for the exact domain before production.
 - Add a real database before backend editing or content you want to keep.
-- Add object storage before accepting editor uploads.
+- Add S3-compatible object storage before accepting editor uploads.
 - Enable MFA for backend admin users after first login.
 
 ## Do Not

@@ -11,8 +11,8 @@ Impact:
 - TYPO3 backend login is not stable with SQLite in `/tmp`, because backend
   sessions are database-backed and Vercel can run parallel requests on separate
   instances.
-- `fileadmin` is copied to `/tmp` at container start and uploads need external
-  storage.
+- `fileadmin` is copied to `/tmp` at container start. Uploads are durable only
+  when the included S3-compatible FAL driver is configured.
 - generated cache files should be treated as disposable.
 - logs should go to Vercel logs or an external log drain for retention.
 
@@ -36,9 +36,9 @@ production deployment.
 ## Vercel Blob
 
 Vercel Blob is not wired into TYPO3 FAL in this starter. A production Blob
-integration needs a TYPO3 FAL driver or bridge service. Until then, use
-S3-compatible object storage with a compatible TYPO3 storage driver, or keep the
-demo read-only.
+integration needs a TYPO3 FAL driver or bridge service. Until then, use the
+included S3-compatible FAL driver with Cloudflare R2, AWS S3, MinIO, Spaces, or
+another S3-compatible provider.
 
 ## Marketplace Status
 

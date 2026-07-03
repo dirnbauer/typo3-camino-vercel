@@ -28,6 +28,11 @@ The image contains the code and Camino demo assets. Runtime writes are
 disposable. Use a real database and object storage for anything that must
 survive redeploys, cold starts, or scaling.
 
+This starter includes a local TYPO3 14 FAL driver named `vercel_s3` for
+S3-compatible object storage. When `TYPO3_OBJECT_STORAGE_ENABLED=1` and the
+`TYPO3_S3_*` variables are set, the entrypoint creates a default TYPO3 storage
+record for durable uploads.
+
 To disable this behavior for debugging:
 
 ```dotenv
@@ -48,8 +53,8 @@ request.
 
 Practical options:
 
-- use an S3-compatible TYPO3 FAL driver with S3, Cloudflare R2, or another
-  provider that supports the required TYPO3 version
+- use the included `vercel_s3` FAL driver with S3, Cloudflare R2, MinIO,
+  DigitalOcean Spaces, or another S3-compatible provider
 - build a small TYPO3 FAL driver for Vercel Blob
 - keep this as a read-only demo and do not accept editor uploads
 

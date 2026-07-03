@@ -39,6 +39,10 @@ should_bootstrap_typo3() {
   return 1
 }
 
+apply_object_storage() {
+  php scripts/apply-object-storage.php
+}
+
 mkdir -p /tmp/typo3/var /tmp/typo3/fileadmin /tmp/typo3/typo3temp config/system
 
 if [ -z "${TYPO3_ENCRYPTION_KEY:-}" ]; then
@@ -64,6 +68,8 @@ if [ -n "${TYPO3_SETUP_ADMIN_PASSWORD:-}" ]; then
   php scripts/apply-admin-password.php
 fi
 
+apply_object_storage
+
 chown -R www-data:www-data /tmp/typo3 public/fileadmin public/typo3temp config || true
 
 if should_bootstrap_typo3; then
@@ -71,6 +77,7 @@ if should_bootstrap_typo3; then
   if [ -n "${TYPO3_SETUP_ADMIN_PASSWORD:-}" ]; then
     php scripts/apply-admin-password.php
   fi
+  apply_object_storage
   chown -R www-data:www-data /tmp/typo3 public/fileadmin public/typo3temp config || true
 fi
 

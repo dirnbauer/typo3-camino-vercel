@@ -43,7 +43,8 @@ If `TYPO3_SETUP_ADMIN_PASSWORD` is set, the entrypoint updates the seeded
 The entrypoint also treats mutable TYPO3 paths as serverless runtime state:
 `var`, `public/fileadmin`, and `public/typo3temp` point into `/tmp`. Committed
 Camino demo assets are copied there at startup, but editor uploads are not
-durable. See [serverless runtime notes](serverless-runtime.md).
+durable unless `TYPO3_OBJECT_STORAGE_ENABLED=1` and the `TYPO3_S3_*` variables
+are configured. See [object storage and durable uploads](object-storage.md).
 
 ## Required Production Env Vars
 

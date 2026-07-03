@@ -89,9 +89,9 @@ is not durable runtime storage. This starter copies `fileadmin` into `/tmp` at
 container start so Camino demo assets are available, but new uploads remain
 ephemeral.
 
-Before production, add a TYPO3 FAL driver backed by S3-compatible object
-storage, or build a Vercel Blob FAL driver. See
-[serverless runtime notes](serverless-runtime.md).
+Before production, enable the included S3-compatible TYPO3 FAL driver with
+`TYPO3_OBJECT_STORAGE_ENABLED=1` and the `TYPO3_S3_*` variables. See
+[object storage and durable uploads](object-storage.md).
 
 ## Sources
 

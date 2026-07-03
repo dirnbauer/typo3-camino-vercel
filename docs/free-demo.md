@@ -12,7 +12,6 @@ The free demo path uses:
 - A pre-seeded Camino SQLite database copied into `/tmp`.
 - The Camino files committed in `public/fileadmin`.
 - No external database.
-- No Blob store.
 - No S3 bucket.
 
 The Deploy Button only asks for:
@@ -68,15 +67,16 @@ Best practical stack:
 - Vercel Hobby for the container, personal/non-commercial use only.
 - TiDB Cloud for MySQL-compatible free database testing, or Neon/Supabase for
   Postgres.
-- Cloudflare R2 or Vercel Blob for object storage.
-- A tested TYPO3 FAL driver or adapter for that object storage.
+- Cloudflare R2 for free S3-compatible object storage testing.
+- The included `vercel_s3` TYPO3 FAL driver.
 
 What this means today:
 
 - The current one-click demo is free, but uploaded files are temporary.
 - One-click free demo with durable uploaded files is not possible yet.
 - A durable free demo needs setup steps for database and object storage.
-- TYPO3 needs Blob/R2 support wired through FAL before uploads can be durable.
+- Cloudflare R2 can be wired through the included FAL driver.
+- Vercel Blob still needs a separate TYPO3 FAL driver because Blob is not S3-compatible.
 - It stays free only while usage remains inside all free-tier limits.
 
 Recommended first-boot flow:
@@ -92,10 +92,10 @@ option checked for this starter. It exposes database variables to Vercel and
 advertises free starter quota. For Postgres, Neon and Supabase are usually the
 smoother Vercel Marketplace path.
 
-Durable editor uploads still need object storage. Vercel Blob has a free Hobby
-allowance, but this starter does not yet include a TYPO3 14 FAL driver for
-Blob. Do not promise durable uploads until that adapter is implemented and
-tested.
+Durable editor uploads still need object storage. This starter includes a
+TYPO3 14 S3-compatible FAL driver, so Cloudflare R2 or another S3-compatible
+provider can be used. Vercel Blob has a free Hobby allowance, but Blob is not
+S3-compatible and is not supported by the included driver.
 
 ## Sources
 

@@ -1,0 +1,21 @@
+{
+    "name": "webconsulting/typo3-vercel-storage",
+    "description": "TYPO3 FAL storage driver helpers for Vercel container deployments",
+    "license": "GPL-2.0-or-later",
+    "type": "typo3-cms-extension",
+    "require": {
+        "aws/aws-sdk-php": "^3.369",
+        "php": "^8.4",
+        "typo3/cms-core": "^14.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "Webconsulting\\Typo3VercelStorage\\": "Classes/"
+        }
+    },
+    "extra": {
+        "typo3/cms": {
+            "extension-key": "typo3_vercel_storage"
+        }
+    }
+}

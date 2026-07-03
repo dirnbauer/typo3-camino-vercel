@@ -30,7 +30,8 @@ the database.
 
 For production TYPO3 usage, users should set a stable `TYPO3_ENCRYPTION_KEY`,
 connect a durable SQL database via `DATABASE_URL`, and add persistent object
-storage for editor uploads.
+storage for editor uploads. Durable uploads are supported through the included
+S3-compatible FAL driver, but the user must provide a bucket and credentials.
 
 ## Publish Checklist
 

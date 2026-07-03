@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<T3DataStructure>
+    <ROOT>
+        <type>array</type>
+        <el>
+            <bucket>
+                <label>Bucket</label>
+                <config>
+                    <type>input</type>
+                    <required>1</required>
+                    <size>40</size>
+                </config>
+            </bucket>
+            <region>
+                <label>Region</label>
+                <config>
+                    <type>input</type>
+                    <default>auto</default>
+                    <size>20</size>
+                </config>
+            </region>
+            <endpoint>
+                <label>Endpoint URL</label>
+                <description>Required for Cloudflare R2, MinIO, Spaces, and other S3-compatible providers. Leave empty for AWS S3.</description>
+                <config>
+                    <type>input</type>
+                    <size>50</size>
+                </config>
+            </endpoint>
+            <accessKey>
+                <label>Access key id</label>
+                <config>
+                    <type>input</type>
+                    <size>40</size>
+                </config>
+            </accessKey>
+            <secretKey>
+                <label>Secret access key</label>
+                <config>
+                    <type>password</type>
+                    <size>40</size>
+                </config>
+            </secretKey>
+            <prefix>
+                <label>Object key prefix</label>
+                <description>Optional folder prefix inside the bucket, for example typo3/.</description>
+                <config>
+                    <type>input</type>
+                    <size>30</size>
+                </config>
+            </prefix>
+            <publicBaseUrl>
+                <label>Public base URL</label>
+                <description>Public bucket or CDN URL. Required for stable frontend asset URLs unless signed URLs are enabled.</description>
+                <config>
+                    <type>input</type>
+                    <size>50</size>
+                </config>
+            </publicBaseUrl>
+            <signedUrlTtl>
+                <label>Signed URL TTL in seconds</label>
+                <description>Optional fallback for private buckets. Use 0 for no signed URLs.</description>
+                <config>
+                    <type>number</type>
+                    <default>0</default>
+                    <size>10</size>
+                </config>
+            </signedUrlTtl>
+            <pathStyleEndpoint>
+                <label>Use path-style endpoint</label>
+                <config>
+                    <type>check</type>
+                    <default>1</default>
+                </config>
+            </pathStyleEndpoint>
+            <defaultFolder>
+                <label>Default upload folder</label>
+                <config>
+                    <type>input</type>
+                    <default>user_upload</default>
+                    <size>30</size>
+                </config>
+            </defaultFolder>
+            <cacheControl>
+                <label>Cache-Control header for new objects</label>
+                <config>
+                    <type>input</type>
+                    <default>public, max-age=31536000, immutable</default>
+                    <size>40</size>
+                </config>
+            </cacheControl>
+            <caseSensitive>
+                <label>Case-sensitive identifiers</label>
+                <config>
+                    <type>check</type>
+                    <default>1</default>
+                </config>
+            </caseSensitive>
+        </el>
+    </ROOT>
+</T3DataStructure>

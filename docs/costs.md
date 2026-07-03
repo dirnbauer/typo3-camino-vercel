@@ -51,7 +51,7 @@ For the cheapest test:
 1. use Vercel Hobby
 2. use the seeded SQLite demo
 3. do not add `DATABASE_URL`
-4. do not create a Blob store
+4. do not create an object storage bucket
 5. do not use it for backend editing or content you need to keep
 
 For a more realistic free/low-cost test:
@@ -65,12 +65,13 @@ For a durable free demo with persistent uploads:
 
 1. use Vercel Hobby for personal/non-commercial testing
 2. use a free database quota, for example TiDB Cloud, Neon, or Supabase
-3. use free object storage quota, for example Cloudflare R2 or Vercel Blob
-4. wire TYPO3 uploads through a tested FAL driver or adapter
+3. use free object storage quota, for example Cloudflare R2
+4. wire TYPO3 uploads through the included S3-compatible FAL driver
 5. keep usage inside every provider's free limits
 
 This is not one-click yet. The current one-click demo does not include durable
-uploaded files.
+uploaded files. Vercel Blob is not supported by the included driver because it
+does not expose an S3-compatible API.
 
 ## Sources
 
