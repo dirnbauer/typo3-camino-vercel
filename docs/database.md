@@ -4,6 +4,7 @@
 
 The default Vercel smoke deployment uses a seeded SQLite file copied to `/tmp`.
 That is enough to test the container and Camino frontend, but it is not durable.
+It is the intended free first deploy path.
 
 Use a real external database for any real trial.
 
@@ -41,8 +42,9 @@ verification at setup time, test the first deploy carefully.
 
 ### MySQL
 
-Aiven offers a free MySQL plan outside the Vercel Marketplace. Add the database
-URL manually in Vercel Project Settings.
+For classic MySQL, add a provider connection URL manually in Vercel Project
+Settings. Confirm the provider's current free tier, TLS requirements, backups,
+and connection limits before calling it a zero-cost option.
 
 Example shape:
 

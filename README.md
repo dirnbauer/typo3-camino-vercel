@@ -12,7 +12,8 @@ and for learning what works well on a stateless platform.
 
 ## What Works
 
-- One-click Vercel smoke deploy with a pre-seeded Camino SQLite demo database.
+- Free one-click Vercel smoke deploy with a pre-seeded Camino SQLite demo
+  database and no external storage requirement.
 - Backend login for the seeded demo when `TYPO3_SETUP_ADMIN_PASSWORD` is set.
 - TYPO3 14.3 Composer install with Camino and Scheduler included.
 - Serverless-style runtime paths: TYPO3 writes to `/tmp`, not durable image paths.
@@ -51,6 +52,10 @@ The first deploy uses the seeded SQLite demo database unless you add a real
 database. For a real database, read [docs/database.md](docs/database.md) before
 deploying.
 
+For the free demo, do not add `DATABASE_URL` and do not create a Blob store.
+The demo will reset when Vercel replaces the runtime container, so use it only
+for testing the package and Camino backend.
+
 ## Production Shape
 
 For anything beyond a short test, use:
@@ -73,13 +78,13 @@ After the first successful setup, set `TYPO3_AUTO_SETUP=0`.
 ## Costs For Testing
 
 Vercel Hobby is free for personal/non-commercial testing within the plan limits.
-The seeded SQLite demo can run without a paid database, but it is non-durable.
+The seeded SQLite demo can run without a paid database or Blob store, but it is
+non-durable.
 
-For a free durable database test:
+For a free or low-cost durable database test:
 
 - **Postgres:** Neon or Supabase are the easiest Vercel Marketplace options.
 - **MySQL-compatible:** TiDB Cloud has a Vercel integration and free starter quota.
-- **MySQL:** Aiven offers a free MySQL plan outside Vercel Marketplace.
 - **PlanetScale:** MySQL-compatible and integrated with Vercel, but no free plan.
 
 See [docs/costs.md](docs/costs.md) for the current caveats.
@@ -87,6 +92,7 @@ See [docs/costs.md](docs/costs.md) for the current caveats.
 ## Documentation
 
 - [Quickstart](docs/quickstart.md)
+- [Free demo mode](docs/free-demo.md)
 - [Database setup](docs/database.md)
 - [Serverless runtime notes](docs/serverless-runtime.md)
 - [Scheduler and cron](docs/scheduler.md)

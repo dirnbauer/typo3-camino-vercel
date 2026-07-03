@@ -5,8 +5,7 @@
 1. Open the Deploy Button from the README.
 2. Use a generated admin password.
 3. Use a stable generated `TYPO3_ENCRYPTION_KEY`.
-4. Do not add a database for the first smoke test if you only want to see the
-   Camino frontend.
+4. Do not add `DATABASE_URL` for the free smoke test.
 5. Deploy.
 6. Open `/typo3` and sign in.
 
@@ -27,6 +26,9 @@ Generate a password:
 ```bash
 openssl rand -base64 32
 ```
+
+This mode is free-demo mode: seeded SQLite, no external database, no Blob
+store, and no durable edits. See [Free demo mode](free-demo.md).
 
 ## Secure Enough For A Real Trial
 
