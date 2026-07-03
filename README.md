@@ -29,6 +29,26 @@ For non-temporary files and content, add both:
 Until both are configured, use the free deploy only for testing the install,
 backend, and Camino package.
 
+## Durable Free Demo: Still Free, But Not One-Click Yet
+
+Yes, a truly durable demo can still be free, but only if every part stays inside
+its provider's free quota.
+
+Best practical zero-cost shape:
+
+- Vercel Hobby for the container, personal/non-commercial use only.
+- Free database: TiDB Cloud MySQL-compatible, Neon Postgres, or Supabase Postgres.
+- Free object storage: Cloudflare R2 or Vercel Blob.
+- TYPO3 storage integration: a tested FAL driver/adapter for that object storage.
+
+What this means today:
+
+- The current one-click demo is free, but uploaded files are temporary.
+- One-click free demo with durable uploaded files is not possible yet.
+- A durable free demo needs setup steps for the database and object storage.
+- TYPO3 needs Blob/R2 support wired through FAL before uploads can be durable.
+- It stays free only while usage remains inside all free-tier limits.
+
 ## What Works
 
 - Free one-click Vercel smoke deploy with a pre-seeded Camino SQLite demo

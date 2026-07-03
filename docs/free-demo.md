@@ -58,7 +58,26 @@ usable. It is not fine for client work, production, or content you need to keep.
 
 ## Free Durable Upgrade Path
 
-If users want a more realistic free test:
+If users want a more realistic free test, it can still be zero-cost, but only
+while every service stays inside its provider's free quota.
+
+Best practical stack:
+
+- Vercel Hobby for the container, personal/non-commercial use only.
+- TiDB Cloud for MySQL-compatible free database testing, or Neon/Supabase for
+  Postgres.
+- Cloudflare R2 or Vercel Blob for object storage.
+- A tested TYPO3 FAL driver or adapter for that object storage.
+
+What this means today:
+
+- The current one-click demo is free, but uploaded files are temporary.
+- One-click free demo with durable uploaded files is not possible yet.
+- A durable free demo needs setup steps for database and object storage.
+- TYPO3 needs Blob/R2 support wired through FAL before uploads can be durable.
+- It stays free only while usage remains inside all free-tier limits.
+
+Recommended first-boot flow:
 
 1. Keep Vercel Hobby, if the project is personal/non-commercial.
 2. Add a free/start database provider before first deploy.

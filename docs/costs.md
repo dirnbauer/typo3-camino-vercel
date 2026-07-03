@@ -61,6 +61,17 @@ For a more realistic free/low-cost test:
 3. set spend limits in the database provider
 4. delete test resources when finished
 
+For a durable free demo with persistent uploads:
+
+1. use Vercel Hobby for personal/non-commercial testing
+2. use a free database quota, for example TiDB Cloud, Neon, or Supabase
+3. use free object storage quota, for example Cloudflare R2 or Vercel Blob
+4. wire TYPO3 uploads through a tested FAL driver or adapter
+5. keep usage inside every provider's free limits
+
+This is not one-click yet. The current one-click demo does not include durable
+uploaded files.
+
 ## Sources
 
 - Vercel pricing: https://vercel.com/pricing
@@ -69,4 +80,8 @@ For a more realistic free/low-cost test:
 - Vercel Functions limits: https://vercel.com/docs/functions/limitations
 - Vercel Cron pricing: https://vercel.com/docs/cron-jobs/usage-and-pricing
 - TiDB Cloud for Vercel: https://vercel.com/marketplace/tidb-cloud
+- TiDB Cloud pricing: https://www.pingcap.com/pricing/
+- Neon pricing: https://neon.com/pricing
+- Supabase pricing: https://supabase.com/pricing
+- Cloudflare R2 pricing: https://developers.cloudflare.com/r2/pricing/
 - PlanetScale plans: https://planetscale.com/docs/planetscale-plans
