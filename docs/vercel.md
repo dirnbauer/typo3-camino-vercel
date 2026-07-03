@@ -10,6 +10,20 @@ frontend/backend routes. Real files in `public/` can still be called directly,
 which is why the secured scheduler endpoint lives at
 `/api/cron/typo3-scheduler.php`.
 
+On Vercel, TLS terminates before the request reaches Apache. The runtime config
+therefore trusts Vercel's proxy for scheme detection so TYPO3 generates HTTPS
+backend URLs and the backend referrer check keeps working after login. The
+default is:
+
+```dotenv
+TYPO3_REVERSE_PROXY_IP=*
+TYPO3_REVERSE_PROXY_HEADER_MULTI_VALUE=none
+```
+
+Do not use `TYPO3_REVERSE_PROXY_IP=*` for a container that is directly exposed
+to the public internet. It is intended for Vercel's private container runtime,
+where the app is only reached through Vercel's proxy.
+
 ## Demo Mode
 
 Without `DATABASE_URL`, the image defaults to:

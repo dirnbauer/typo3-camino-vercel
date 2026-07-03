@@ -8,6 +8,12 @@ function typo3_vercel_env(string $name, ?string $default = null): ?string
     return $value === false || $value === '' ? $default : $value;
 }
 
+function typo3_vercel_is_vercel_runtime(): bool
+{
+    return typo3_vercel_env('VERCEL') === '1'
+        || typo3_vercel_env('VERCEL_URL') !== null;
+}
+
 function typo3_vercel_database_config(): array
 {
     $url = typo3_vercel_env('DATABASE_URL')
@@ -149,6 +155,7 @@ function typo3_vercel_settings(): array
 {
     $database = typo3_vercel_database_config();
     $debug = typo3_vercel_env('TYPO3_DEBUG', '0') === '1';
+    $isVercelRuntime = typo3_vercel_is_vercel_runtime();
 
     return [
         'BE' => [
@@ -241,6 +248,9 @@ function typo3_vercel_settings(): array
             'sitename' => typo3_vercel_env('TYPO3_PROJECT_NAME', 'TYPO3 Camino'),
             'systemMaintainers' => [1],
             'trustedHostsPattern' => typo3_vercel_env('TYPO3_TRUSTED_HOSTS_PATTERN', '(.+\\.)?vercel\\.app|localhost(:[0-9]+)?|127\\.0\\.0\\.1(:[0-9]+)?|0\\.0\\.0\\.0(:[0-9]+)?'),
+            'reverseProxyIP' => typo3_vercel_env('TYPO3_REVERSE_PROXY_IP', $isVercelRuntime ? '*' : ''),
+            'reverseProxyHeaderMultiValue' => typo3_vercel_env('TYPO3_REVERSE_PROXY_HEADER_MULTI_VALUE', 'none'),
+            'reverseProxySSL' => typo3_vercel_env('TYPO3_REVERSE_PROXY_SSL', ''),
         ],
     ];
 }
