@@ -32,6 +32,7 @@
         "typo3/cms-reactions": "^14.3",
         "typo3/cms-recycler": "^14.3",
         "typo3/cms-rte-ckeditor": "^14.3",
+        "typo3/cms-scheduler": "^14.3",
         "typo3/cms-seo": "^14.3",
         "typo3/cms-setup": "^14.3",
         "typo3/cms-sys-note": "^14.3",

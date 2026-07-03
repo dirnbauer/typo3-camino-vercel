@@ -8,7 +8,11 @@ nbproject
 /vendor
 /public/*
 !/public/.htaccess
+!/public/api
+!/public/api/**
 !/public/index.php
+!/public/template-preview.png
+!/public/template-preview.svg
 !/public/fileadmin
 !/public/fileadmin/.htaccess
 !/public/fileadmin/_temp_

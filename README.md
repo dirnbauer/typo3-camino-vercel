@@ -1,35 +1,97 @@
 # TYPO3 Camino on Vercel
 
-TYPO3 14.3 container starter for Vercel's Dockerfile-backed Functions.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fdirnbauer%2Ftypo3-camino-vercel&project-name=typo3-camino-vercel&repository-name=typo3-camino-vercel&demo-title=TYPO3+Camino+on+Vercel&demo-description=TYPO3+14.3+with+the+official+Camino+distribution+running+on+Vercel+Container+Images.&demo-url=https%3A%2F%2Ftypo3-camino-vercel.vercel.app&demo-image=https%3A%2F%2Ftypo3-camino-vercel.vercel.app%2Ftemplate-preview.png&from=templates&teamSlug=webconsulting&env=TYPO3_SETUP_ADMIN_USERNAME,TYPO3_SETUP_ADMIN_PASSWORD,TYPO3_ENCRYPTION_KEY&envDescription=Set+a+backend+admin+username%2C+a+long+random+backend+password%2C+and+a+stable+96-character+hex+TYPO3+encryption+key.+Do+not+put+secrets+in+the+URL.&envLink=https%3A%2F%2Fgithub.com%2Fdirnbauer%2Ftypo3-camino-vercel%2Fblob%2Fmain%2Fdocs%2Fquickstart.md)
 
-This repository builds a PHP/Apache container from `Dockerfile.vercel`, installs TYPO3 with Composer, and can initialize an empty external database with TYPO3's v14 Camino starter distribution.
+TYPO3 14.3 with the official Camino distribution, packaged as a PHP 8.4
+Apache container for Vercel Container Images.
 
-## Current Compatibility
+This is a lab/template starter, not a production recommendation for every
+TYPO3 project. It is useful for testing Vercel's container support with TYPO3
+and for learning what works well on a stateless platform.
 
-- TYPO3 is pinned through Composer to the latest 14.3 patch in `composer.lock`.
-- The TYPO3 system extension list is copied from `typo3/cms-base-distribution` 14.x, with `typo3/theme-camino` added as the distribution.
-- Vercel containers are stateless. Keep persistent content in an external database and object storage; do not put a database inside the Vercel container.
-- The Docker image includes a pre-seeded Camino SQLite database only for dummy Vercel smoke deployments. Replace it with `DATABASE_URL` for real use.
-- The official `typo3/cms-introduction` package is not installable with TYPO3 14 at the moment. Its current Composer constraints allow TYPO3 12/13 only. For TYPO3 14 this starter uses the official `typo3/theme-camino` distribution.
+## What Works
 
-## Required Vercel Env Vars
+- One-click Vercel smoke deploy with a pre-seeded Camino SQLite demo database.
+- Backend login for the seeded demo when `TYPO3_SETUP_ADMIN_PASSWORD` is set.
+- TYPO3 14.3 Composer install with Camino and Scheduler included.
+- Durable external SQL database support through `DATABASE_URL` or TYPO3 DB env vars.
+- Vercel Cron compatible endpoint for running TYPO3 Scheduler tasks.
+- Vercel Firewall/WAF in front of the container.
 
-Set these in the Vercel project before the first production deploy:
+## What Does Not Work
+
+- No Linux daemon cron inside the container. Use Vercel Cron or an external cron service.
+- No durable local filesystem. Runtime writes in `/tmp`, `var/`, or `fileadmin/` can disappear.
+- SQLite is demo-only on Vercel. Use a real database for anything you want to keep.
+- Editor uploads need external object storage before production use.
+- This starter is not a GDPR/legal compliance guarantee.
+
+## Quick Demo
+
+1. Click **Deploy with Vercel**.
+2. Enter these required values in the Vercel form:
+
+```dotenv
+TYPO3_SETUP_ADMIN_USERNAME=admin
+TYPO3_SETUP_ADMIN_PASSWORD=<long-random-password>
+TYPO3_ENCRYPTION_KEY=<96-random-hex-chars>
+```
+
+Generate the encryption key locally:
 
 ```bash
+openssl rand -hex 48
+```
+
+3. Deploy and open `/typo3`.
+
+The first deploy uses the seeded SQLite demo database unless you add a real
+database. For a real database, read [docs/database.md](docs/database.md) before
+deploying.
+
+## Production Shape
+
+For anything beyond a short test, use:
+
+```dotenv
 TYPO3_CONTEXT=Production/Vercel
 TYPO3_AUTO_SETUP=1
 TYPO3_SETUP_DISTRIBUTION=theme_camino
 TYPO3_SETUP_ADMIN_USERNAME=admin
-TYPO3_SETUP_ADMIN_PASSWORD=<generate-a-long-password>
+TYPO3_SETUP_ADMIN_PASSWORD=<long-random-password>
 TYPO3_SETUP_ADMIN_EMAIL=admin@example.com
 TYPO3_PROJECT_NAME=TYPO3 Camino
 TYPO3_ENCRYPTION_KEY=<96-random-hex-chars>
 TYPO3_TRUSTED_HOSTS_PATTERN=(.+\.)?vercel\.app
-DATABASE_URL=<postgres-or-mysql-url>
+DATABASE_URL=<durable-postgres-or-mysql-url>
 ```
 
-After the first successful setup you can set `TYPO3_AUTO_SETUP=0`. The bootstrap script also checks the database for existing TYPO3 tables, so leaving it enabled is idempotent for an already initialized database.
+After the first successful setup, set `TYPO3_AUTO_SETUP=0`.
+
+## Costs For Testing
+
+Vercel Hobby is free for personal/non-commercial testing within the plan limits.
+The seeded SQLite demo can run without a paid database, but it is non-durable.
+
+For a free durable database test:
+
+- **Postgres:** Neon or Supabase are the easiest Vercel Marketplace options.
+- **MySQL-compatible:** TiDB Cloud has a Vercel integration and free starter quota.
+- **MySQL:** Aiven offers a free MySQL plan outside Vercel Marketplace.
+- **PlanetScale:** MySQL-compatible and integrated with Vercel, but no free plan.
+
+See [docs/costs.md](docs/costs.md) for the current caveats.
+
+## Documentation
+
+- [Quickstart](docs/quickstart.md)
+- [Database setup](docs/database.md)
+- [Scheduler and cron](docs/scheduler.md)
+- [Security and firewall](docs/security.md)
+- [GDPR and privacy checklist](docs/gdpr.md)
+- [Operations checklist](docs/operations-checklist.md)
+- [Limitations](docs/limitations.md)
+- [Vercel deployment notes](docs/vercel.md)
 
 ## Local Smoke Test
 
@@ -39,17 +101,3 @@ open http://localhost:8080
 ```
 
 The local Compose setup uses MariaDB and initializes TYPO3 automatically.
-
-## Deploy
-
-```bash
-vercel link --project typo3-camino-vercel
-vercel integration add neon --plan free_v3 --name typo3-camino-vercel-db -m region=fra1
-vercel env add TYPO3_ENCRYPTION_KEY production
-vercel env add TYPO3_SETUP_ADMIN_PASSWORD production
-vercel deploy --prod
-```
-
-Vercel will assign a `*.vercel.app` domain to the project. Use `typo3-camino-vercel.vercel.app` as the intended project slug if it is available.
-
-More detail: [docs/vercel.md](docs/vercel.md).

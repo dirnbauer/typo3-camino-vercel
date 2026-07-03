@@ -1,55 +1,79 @@
 # Vercel Deployment Notes
 
-## Why This Uses an External Database
+## How This Project Runs
 
-Vercel container functions are stateless and can scale to zero. The container image is durable, but runtime writes are not a database volume. TYPO3 therefore needs an external SQL database. PostgreSQL via Neon, Supabase, Prisma Postgres, or AWS Aurora works with this image because the PHP container includes `pdo_pgsql`. MySQL/MariaDB also works when provided by an external service because the image includes `mysqli` and `pdo_mysql`.
+Vercel builds `Dockerfile.vercel` as a Container Image service and routes all
+traffic to that service through `vercel.json`.
 
-Uploaded files in `public/fileadmin/user_upload` are still runtime filesystem writes. For production, add a TYPO3 FAL driver backed by S3-compatible object storage or Vercel Blob before accepting editor uploads. The Camino starter assets are committed into the image, so the demo frontend survives cold starts.
+The container starts Apache, serves `public/`, and lets TYPO3 handle normal
+frontend/backend routes. Real files in `public/` can still be called directly,
+which is why the secured scheduler endpoint lives at
+`/api/cron/typo3-scheduler.php`.
 
-For a dummy Vercel smoke deployment, the image also contains a pre-seeded Camino SQLite database. At boot, `docker/entrypoint.sh` copies that seed into `/tmp` when `TYPO3_DB_DRIVER=pdo_sqlite`. This is intentionally non-durable and only exists to make the Vercel container URL render without a Marketplace database; the generated seed backend account is not intended for editor login.
+## Demo Mode
+
+Without `DATABASE_URL`, the image defaults to:
+
+```dotenv
+TYPO3_DB_DRIVER=pdo_sqlite
+TYPO3_DB_DBNAME=/tmp/typo3/camino.sqlite
+```
+
+On boot, `docker/entrypoint.sh` copies a pre-seeded Camino SQLite database into
+`/tmp`. This makes the frontend render immediately for Vercel smoke tests. It is
+not durable and should not be used for content you care about.
+
+If `TYPO3_SETUP_ADMIN_PASSWORD` is set, the entrypoint updates the seeded
+`admin` backend user on every boot. This avoids a known-password seed image.
+
+## Required Production Env Vars
+
+```dotenv
+TYPO3_CONTEXT=Production/Vercel
+TYPO3_AUTO_SETUP=1
+TYPO3_SETUP_DISTRIBUTION=theme_camino
+TYPO3_SETUP_ADMIN_USERNAME=admin
+TYPO3_SETUP_ADMIN_PASSWORD=<long-random-password>
+TYPO3_SETUP_ADMIN_EMAIL=admin@example.com
+TYPO3_PROJECT_NAME=TYPO3 Camino
+TYPO3_ENCRYPTION_KEY=<96-random-hex-chars>
+TYPO3_TRUSTED_HOSTS_PATTERN=(.+\.)?vercel\.app
+DATABASE_URL=<durable-postgres-or-mysql-url>
+```
+
+Generate secrets locally:
+
+```bash
+openssl rand -hex 48
+openssl rand -base64 32
+```
+
+Do not put generated secret values in the Deploy Button URL. Vercel documents
+that Deploy Button env values must be entered by the user because URLs land in
+browser history.
 
 ## First Deploy
 
-1. Create/link the Vercel project with the slug `typo3-camino-vercel`.
-2. Provision a database. For Vercel Marketplace Postgres:
+1. Create the Vercel project from the Deploy Button or import this repository.
+2. Add the production environment variables above.
+3. Add a durable database if this is not a disposable test.
+4. Deploy.
+5. Confirm the frontend loads.
+6. Open `/typo3` and sign in with the configured admin credentials.
+7. Set `TYPO3_AUTO_SETUP=0` after successful database initialization.
+8. Redeploy so the new env value is applied.
 
-   ```bash
-   vercel integration add neon --plan free_v3 --name typo3-camino-vercel-db -m region=fra1
-   ```
-
-3. Set the required TYPO3 secrets:
-
-   ```bash
-   openssl rand -hex 48
-   vercel env add TYPO3_ENCRYPTION_KEY production
-   vercel env add TYPO3_SETUP_ADMIN_PASSWORD production
-   ```
-
-4. Set non-secret setup values:
-
-   ```bash
-   vercel env add TYPO3_AUTO_SETUP production
-   vercel env add TYPO3_SETUP_DISTRIBUTION production
-   vercel env add TYPO3_SETUP_ADMIN_USERNAME production
-   vercel env add TYPO3_SETUP_ADMIN_EMAIL production
-   vercel env add TYPO3_PROJECT_NAME production
-   vercel env add TYPO3_TRUSTED_HOSTS_PATTERN production
-   ```
-
-5. Deploy:
-
-   ```bash
-   vercel deploy --prod
-   ```
-
-On first start, `scripts/bootstrap-typo3.php` checks the database for `be_users`. If the table is missing, it runs `vendor/bin/typo3 setup` with `theme_camino`. If the table exists, setup is skipped.
-
-## Introduction Package Status
-
-The official Introduction Package is `typo3/cms-introduction`, but its current release only allows TYPO3 12/13. This starter keeps TYPO3 on 14.3 and uses `typo3/theme-camino`, the TYPO3 14 default distribution. If the Introduction Package adds TYPO3 14 support later, add it with:
+## Useful Commands
 
 ```bash
-composer require typo3/cms-introduction
+vercel env ls --scope webconsulting
+vercel env add TYPO3_ENCRYPTION_KEY production --scope webconsulting
+vercel env add TYPO3_SETUP_ADMIN_PASSWORD production --scope webconsulting
+vercel deploy --prod --scope webconsulting
 ```
 
-Then replace `TYPO3_SETUP_DISTRIBUTION=theme_camino` with the distribution key provided by that package.
+## Sources
+
+- Vercel Deploy Button env vars: https://vercel.com/docs/deploy-button/environment-variables
+- Vercel Deploy Button demo card: https://vercel.com/docs/deploy-button/demo
+- Vercel project configuration: https://vercel.com/docs/project-configuration
