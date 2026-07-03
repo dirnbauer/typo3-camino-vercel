@@ -24,6 +24,8 @@ TYPO3_ENCRYPTION_KEY=<96-random-hex-chars>
 ```
 
 Leave `DATABASE_URL` unset for this mode.
+Choose your personal Hobby account during Vercel import. Do not choose a paid
+team unless you want the project billed under that team.
 
 ## What It Costs
 
