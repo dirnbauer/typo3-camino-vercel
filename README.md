@@ -81,7 +81,7 @@ What this means today:
 
 ```dotenv
 TYPO3_SETUP_ADMIN_USERNAME=admin
-TYPO3_SETUP_ADMIN_PASSWORD=<long-random-password>
+TYPO3_SETUP_ADMIN_PASSWORD=<strong-random-password>
 TYPO3_ENCRYPTION_KEY=<96-random-hex-chars>
 ```
 
@@ -112,13 +112,16 @@ TYPO3_AUTO_SETUP=1
 TYPO3_BOOTSTRAP_EMPTY_DATABASE=1
 TYPO3_SETUP_DISTRIBUTION=theme_camino
 TYPO3_SETUP_ADMIN_USERNAME=admin
-TYPO3_SETUP_ADMIN_PASSWORD=<long-random-password>
+TYPO3_SETUP_ADMIN_PASSWORD=<strong-random-password>
 TYPO3_SETUP_ADMIN_EMAIL=admin@example.com
 TYPO3_PROJECT_NAME=TYPO3 Camino
 TYPO3_ENCRYPTION_KEY=<96-random-hex-chars>
 TYPO3_TRUSTED_HOSTS_PATTERN=(.+\.)?vercel\.app
 DATABASE_URL=<durable-postgres-or-mysql-url>
 ```
+
+The admin password must satisfy TYPO3's password policy: use uppercase,
+lowercase, numbers, and a symbol.
 
 After the first successful setup, set `TYPO3_AUTO_SETUP=0`. For stricter
 production startup, also set `TYPO3_BOOTSTRAP_EMPTY_DATABASE=0` after the

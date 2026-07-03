@@ -14,8 +14,8 @@ $siteConfigPath = $root . '/config/sites/camino/config.yaml';
 $settingsTemplate = is_file($settingsPath) ? file_get_contents($settingsPath) : null;
 $siteConfigTemplate = is_file($siteConfigPath) ? file_get_contents($siteConfigPath) : null;
 
-if (typo3_vercel_has_be_users_table($database)) {
-    fwrite(STDOUT, "TYPO3 database already contains be_users; skipping setup.\n");
+if (typo3_vercel_has_backend_admin_user($database)) {
+    fwrite(STDOUT, "TYPO3 database already contains a backend admin user; skipping setup.\n");
     exit(0);
 }
 
@@ -42,6 +42,10 @@ if (isset($database['sslmode']) && is_string($database['sslmode']) && $database[
     $env['TYPO3_DB_SSLMODE'] = $database['sslmode'];
     $env['PGSSLMODE'] = $database['sslmode'];
 }
+if (($database['driver'] ?? '') === 'pdo_pgsql' && $env['TYPO3_DB_DBNAME'] !== '') {
+    // TYPO3 setup unsets dbname while listing databases; libpq otherwise defaults to dbname=user.
+    $env['PGDATABASE'] = $env['TYPO3_DB_DBNAME'];
+}
 $env['TYPO3_SETUP_ADMIN_PASSWORD'] = $adminPassword;
 $env['TYPO3_CONTEXT'] = typo3_vercel_env('TYPO3_CONTEXT', 'Production/Vercel');
 
@@ -64,6 +68,9 @@ if (($database['driver'] ?? '') === 'pdo_sqlite') {
     $command[] = '--port=' . $env['TYPO3_DB_PORT'];
     $command[] = '--dbname=' . $env['TYPO3_DB_DBNAME'];
     $command[] = '--username=' . $env['TYPO3_DB_USERNAME'];
+    if ($env['TYPO3_DB_PASSWORD'] !== '') {
+        $command[] = '--password=' . $env['TYPO3_DB_PASSWORD'];
+    }
 }
 
 $distribution = typo3_vercel_env('TYPO3_SETUP_DISTRIBUTION', 'theme_camino');
@@ -89,7 +96,7 @@ if ($siteConfigTemplate !== null) {
 
 exit($exitCode);
 
-function typo3_vercel_has_be_users_table(array $database): bool
+function typo3_vercel_has_backend_admin_user(array $database): bool
 {
     $retries = (int)typo3_vercel_env('TYPO3_DB_CONNECT_RETRIES', '20');
     $delay = (int)typo3_vercel_env('TYPO3_DB_CONNECT_RETRY_DELAY', '2');
@@ -108,8 +115,8 @@ function typo3_vercel_has_be_users_table(array $database): bool
                 (string)($database['password'] ?? null),
                 [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION],
             );
-            $pdo->query('SELECT 1 FROM be_users LIMIT 1');
-            return true;
+            $result = $pdo->query("SELECT 1 FROM be_users WHERE username <> '_cli_' AND admin = 1 AND deleted = 0 LIMIT 1");
+            return $result !== false && $result->fetchColumn() !== false;
         } catch (PDOException $exception) {
             $message = $exception->getMessage();
             if (str_contains($message, 'no such table') || str_contains($message, 'does not exist') || str_contains($message, "doesn't exist")) {

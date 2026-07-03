@@ -131,7 +131,7 @@ function typo3_vercel_setup_driver(array $database): string
 {
     return match ($database['driver'] ?? '') {
         'pdo_sqlite' => 'sqlite',
-        'pgsql', 'postgres', 'postgresql' => 'pdo_pgsql',
+        'pdo_pgsql', 'pgsql', 'postgres', 'postgresql' => 'postgres',
         default => (string)($database['driver'] ?? 'mysqli'),
     };
 }

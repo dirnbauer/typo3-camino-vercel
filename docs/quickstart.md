@@ -3,7 +3,8 @@
 ## Fastest Safe Test
 
 1. Open the Deploy Button from the README.
-2. Use a generated admin password.
+2. Use a generated admin password with upper/lowercase letters, a number, and
+   a symbol.
 3. Use a stable generated `TYPO3_ENCRYPTION_KEY`.
 4. Do not add `DATABASE_URL` for the free smoke test.
 5. Deploy.
@@ -11,7 +12,7 @@
 
 ```dotenv
 TYPO3_SETUP_ADMIN_USERNAME=admin
-TYPO3_SETUP_ADMIN_PASSWORD=<long-random-password>
+TYPO3_SETUP_ADMIN_PASSWORD=<strong-random-password>
 TYPO3_ENCRYPTION_KEY=<96-random-hex-chars>
 ```
 
@@ -21,11 +22,14 @@ Generate the encryption key:
 openssl rand -hex 48
 ```
 
-Generate a password:
+Generate a password with a password manager, or use a command such as:
 
 ```bash
 openssl rand -base64 32
 ```
+
+TYPO3 validates the initial admin password. If setup rejects it, generate a new
+one that includes uppercase, lowercase, numbers, and a symbol.
 
 This mode is free-demo mode: seeded SQLite, no external database, no Blob
 store, no stable backend login, and no durable edits. See
@@ -75,7 +79,8 @@ seeded SQLite, the backend can log out after a few seconds because the
 
 ## Do
 
-- Use a generated password for every clone.
+- Use a generated password for every clone; include uppercase, lowercase,
+  numbers, and a symbol.
 - Use a stable `TYPO3_ENCRYPTION_KEY`.
 - Use `TYPO3_TRUSTED_HOSTS_PATTERN` for the exact domain before production.
 - Add a real database before backend editing or content you want to keep.
