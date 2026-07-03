@@ -68,11 +68,14 @@ TYPO3_AUTO_SETUP=1
 4. Wait for TYPO3 setup to create tables and import Camino.
 5. Log in at `/typo3`.
 6. Change `TYPO3_AUTO_SETUP=0`.
-7. Redeploy.
+7. Optionally set `TYPO3_BOOTSTRAP_EMPTY_DATABASE=0`.
+8. Redeploy.
 
 The bootstrap checks for TYPO3's `be_users` table and skips setup when it
 already exists, but disabling auto setup after first boot avoids unnecessary
-startup work.
+startup work. `TYPO3_BOOTSTRAP_EMPTY_DATABASE` defaults to `1` and allows a
+fresh durable database plus `TYPO3_SETUP_ADMIN_PASSWORD` to initialize even when
+the provider stores `TYPO3_AUTO_SETUP` as a protected value.
 
 ## Backups
 

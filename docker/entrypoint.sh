@@ -23,6 +23,22 @@ prepare_runtime_directory() {
   fi
 }
 
+should_bootstrap_typo3() {
+  case "${TYPO3_AUTO_SETUP:-0}" in
+    1|true|TRUE|yes|YES|on|ON)
+      return 0
+      ;;
+  esac
+
+  if [ "${TYPO3_BOOTSTRAP_EMPTY_DATABASE:-1}" = "1" ] && [ -n "${TYPO3_SETUP_ADMIN_PASSWORD:-}" ]; then
+    if [ -n "${DATABASE_URL:-}" ] || [ -n "${POSTGRES_URL:-}" ] || [ -n "${MYSQL_URL:-}" ]; then
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
 mkdir -p /tmp/typo3/var /tmp/typo3/fileadmin /tmp/typo3/typo3temp config/system
 
 if [ -z "${TYPO3_ENCRYPTION_KEY:-}" ]; then
@@ -50,7 +66,7 @@ fi
 
 chown -R www-data:www-data /tmp/typo3 public/fileadmin public/typo3temp config || true
 
-if [ "${TYPO3_AUTO_SETUP:-0}" = "1" ]; then
+if should_bootstrap_typo3; then
   php scripts/bootstrap-typo3.php
   if [ -n "${TYPO3_SETUP_ADMIN_PASSWORD:-}" ]; then
     php scripts/apply-admin-password.php

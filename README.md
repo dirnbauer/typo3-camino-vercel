@@ -109,6 +109,7 @@ For anything beyond a short test, use:
 ```dotenv
 TYPO3_CONTEXT=Production/Vercel
 TYPO3_AUTO_SETUP=1
+TYPO3_BOOTSTRAP_EMPTY_DATABASE=1
 TYPO3_SETUP_DISTRIBUTION=theme_camino
 TYPO3_SETUP_ADMIN_USERNAME=admin
 TYPO3_SETUP_ADMIN_PASSWORD=<long-random-password>
@@ -119,7 +120,9 @@ TYPO3_TRUSTED_HOSTS_PATTERN=(.+\.)?vercel\.app
 DATABASE_URL=<durable-postgres-or-mysql-url>
 ```
 
-After the first successful setup, set `TYPO3_AUTO_SETUP=0`.
+After the first successful setup, set `TYPO3_AUTO_SETUP=0`. For stricter
+production startup, also set `TYPO3_BOOTSTRAP_EMPTY_DATABASE=0` after the
+database has been initialized.
 
 ## Costs For Testing
 
