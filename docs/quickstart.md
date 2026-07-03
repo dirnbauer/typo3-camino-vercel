@@ -7,7 +7,7 @@
 3. Use a stable generated `TYPO3_ENCRYPTION_KEY`.
 4. Do not add `DATABASE_URL` for the free smoke test.
 5. Deploy.
-6. Open `/typo3` and sign in.
+6. Open the frontend and confirm Camino renders.
 
 ```dotenv
 TYPO3_SETUP_ADMIN_USERNAME=admin
@@ -28,7 +28,8 @@ openssl rand -base64 32
 ```
 
 This mode is free-demo mode: seeded SQLite, no external database, no Blob
-store, and no durable edits. See [Free demo mode](free-demo.md).
+store, no stable backend login, and no durable edits. See
+[Free demo mode](free-demo.md).
 
 ## Secure Enough For A Real Trial
 
@@ -67,18 +68,23 @@ Password:
 the value of TYPO3_SETUP_ADMIN_PASSWORD
 ```
 
+Backend login on Vercel requires a durable database. If the project still uses
+seeded SQLite, the backend can log out after a few seconds because the
+`be_sessions` table is not shared across runtime instances. See
+[Backend login and sessions](backend-login.md).
+
 ## Do
 
 - Use a generated password for every clone.
 - Use a stable `TYPO3_ENCRYPTION_KEY`.
 - Use `TYPO3_TRUSTED_HOSTS_PATTERN` for the exact domain before production.
-- Add a real database before editing content you want to keep.
+- Add a real database before backend editing or content you want to keep.
 - Add object storage before accepting editor uploads.
 - Enable MFA for backend admin users after first login.
 
 ## Do Not
 
-- Do not use the seeded SQLite database for production.
+- Do not use the seeded SQLite database for backend sessions or production.
 - Do not commit passwords or `.env` files.
 - Do not put secret values into a Deploy Button URL.
 - Do not rely on Linux cron inside the Vercel container.

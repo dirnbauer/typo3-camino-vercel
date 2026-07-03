@@ -8,6 +8,9 @@ at runtime can disappear across cold starts, redeploys, or scaling events.
 Impact:
 
 - SQLite is demo-only.
+- TYPO3 backend login is not stable with SQLite in `/tmp`, because backend
+  sessions are database-backed and Vercel can run parallel requests on separate
+  instances.
 - `fileadmin` is copied to `/tmp` at container start and uploads need external
   storage.
 - generated cache files should be treated as disposable.

@@ -1,7 +1,7 @@
 # Free Demo Mode
 
 This starter is intentionally usable without paid infrastructure for the first
-test deploy.
+frontend/container smoke test.
 
 ## What It Uses
 
@@ -46,15 +46,17 @@ personal/non-commercial use.
 
 ## What Is Not Free-Durable
 
-The demo database and runtime uploads are not durable:
+The demo database, backend sessions, and runtime uploads are not durable:
 
 - SQLite is copied to `/tmp` at container start.
+- TYPO3 backend sessions live in the database table `be_sessions`.
 - Editor uploads under `fileadmin` are also runtime files.
 - Vercel may replace the runtime container at any time.
 - Changes can disappear.
 
-This is fine for checking whether TYPO3 boots, Camino works, and the backend is
-usable. It is not fine for client work, production, or content you need to keep.
+This is fine for checking whether TYPO3 boots and Camino renders. It is not fine
+for backend editing, client work, production, or content you need to keep. If
+the backend logs out after a few seconds, add a durable database.
 
 ## Free Durable Upgrade Path
 

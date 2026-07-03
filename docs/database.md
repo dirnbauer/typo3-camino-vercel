@@ -6,7 +6,13 @@ The default Vercel smoke deployment uses a seeded SQLite file copied to `/tmp`.
 That is enough to test the container and Camino frontend, but it is not durable.
 It is the intended free first deploy path.
 
-Use a real external database for any real trial.
+Use a real external database for any backend trial. TYPO3 backend sessions are
+stored in the database, so a real database is required for stable backend login
+on Vercel.
+
+If `/typo3/main` loads and then logs out after a few seconds, the project is
+still using the SQLite smoke database. Add `DATABASE_URL` before debugging
+passwords or browser cookies.
 
 ## Recommended Test Options
 
@@ -91,3 +97,4 @@ storage, or build a Vercel Blob FAL driver. See
 - Neon for Vercel: https://vercel.com/marketplace/neon
 - TiDB Cloud for Vercel: https://vercel.com/marketplace/tidb-cloud
 - PlanetScale for Vercel: https://vercel.com/marketplace/planetscale
+- Vercel SQLite note: https://vercel.com/kb/guide/is-sqlite-supported-in-vercel

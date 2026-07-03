@@ -52,7 +52,7 @@ For the cheapest test:
 2. use the seeded SQLite demo
 3. do not add `DATABASE_URL`
 4. do not create a Blob store
-5. do not edit content you need to keep
+5. do not use it for backend editing or content you need to keep
 
 For a more realistic free/low-cost test:
 

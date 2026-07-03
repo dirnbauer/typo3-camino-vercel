@@ -10,24 +10,29 @@ This is a lab/template starter, not a production recommendation for every
 TYPO3 project. It is useful for testing Vercel's container support with TYPO3
 and for learning what works well on a stateless platform.
 
-## Important: Free Demo Data Is Temporary
+## Important: Free Demo Data And Login Are Temporary
 
-The one-click free demo is usable, but it is not durable:
+The one-click free demo is usable as a frontend/container smoke test, but it is
+not durable and the TYPO3 backend login is not stable:
 
 - You can upload files in TYPO3.
 - You can edit pages and records.
 - Those uploaded files and content changes can disappear.
+- The backend can log you out after a few seconds.
 
 Why: the free demo uses SQLite and runtime `fileadmin` storage inside the
-Vercel container. Vercel can replace that runtime container at any time.
+Vercel container. TYPO3 stores backend sessions in the database table
+`be_sessions`. Vercel can start more than one runtime instance, and those
+instances do not share the SQLite file in `/tmp`.
 
 For non-temporary files and content, add both:
 
 - a durable database through `DATABASE_URL`
 - external object storage through a tested TYPO3 FAL adapter
 
-Until both are configured, use the free deploy only for testing the install,
-backend, and Camino package.
+For a stable backend login, the durable database is required. For durable
+editor uploads, object storage is also required. Until both are configured, use
+the free deploy only for checking that the container, TYPO3, and Camino boot.
 
 ## Durable Free Demo: Still Free, But Not One-Click Yet
 
@@ -53,7 +58,7 @@ What this means today:
 
 - Free one-click Vercel smoke deploy with a pre-seeded Camino SQLite demo
   database and no external storage requirement.
-- Backend login for the seeded demo when `TYPO3_SETUP_ADMIN_PASSWORD` is set.
+- Stable backend login when a durable SQL database is configured.
 - TYPO3 14.3 Composer install with Camino and Scheduler included.
 - Serverless-style runtime paths: TYPO3 writes to `/tmp`, not durable image paths.
 - Durable external SQL database support through `DATABASE_URL` or TYPO3 DB env vars.
@@ -64,7 +69,7 @@ What this means today:
 
 - No Linux daemon cron inside the container. Use Vercel Cron or an external cron service.
 - No durable local filesystem. Runtime writes in `/tmp`, `var/`, or `fileadmin/` can disappear.
-- SQLite is demo-only on Vercel. Use a real database for anything you want to keep.
+- SQLite is demo-only on Vercel. It is not reliable for TYPO3 backend sessions.
 - Editor uploads need external object storage before production use.
 - This starter is not a GDPR/legal compliance guarantee.
 
@@ -86,7 +91,7 @@ Generate the encryption key locally:
 openssl rand -hex 48
 ```
 
-3. Deploy and open `/typo3`.
+3. Deploy and open the frontend.
 
 The first deploy uses the seeded SQLite demo database unless you add a real
 database. For a real database, read [docs/database.md](docs/database.md) before
@@ -94,7 +99,8 @@ deploying.
 
 For the free demo, do not add `DATABASE_URL` and do not create a Blob store.
 The demo will reset when Vercel replaces the runtime container, so use it only
-for testing the package and Camino backend.
+for testing the package and Camino frontend. Backend login needs a durable
+database.
 
 ## Production Shape
 
@@ -134,6 +140,7 @@ See [docs/costs.md](docs/costs.md) for the current caveats.
 - [Quickstart](docs/quickstart.md)
 - [Free demo mode](docs/free-demo.md)
 - [Database setup](docs/database.md)
+- [Backend login and sessions](docs/backend-login.md)
 - [Serverless runtime notes](docs/serverless-runtime.md)
 - [Scheduler and cron](docs/scheduler.md)
 - [Security and firewall](docs/security.md)

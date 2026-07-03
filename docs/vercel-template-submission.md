@@ -17,14 +17,20 @@ https://vercel.com/templates/submit
 - Framework: Container Images
 - Language/runtime: PHP 8.4, Apache
 - Use cases: CMS, Starter, Backend
-- Database: SQLite for demo, PostgreSQL/MySQL for production
+- Database: SQLite for frontend smoke demo, PostgreSQL/MySQL for stable backend use
 - License: GPL-2.0-or-later
 
 ## Reviewer Notes
 
-The template deploys without required environment variables for a first visual smoke test. The container uses a pre-seeded Camino SQLite database and generates an ephemeral TYPO3 encryption key when no key is configured.
+The template deploys without required environment variables for a first visual
+smoke test. The container uses a pre-seeded Camino SQLite database and
+generates an ephemeral TYPO3 encryption key when no key is configured. Backend
+login is not stable in this SQLite mode because TYPO3 sessions are stored in
+the database.
 
-For production TYPO3 usage, users should set a stable `TYPO3_ENCRYPTION_KEY`, connect a durable SQL database via `DATABASE_URL`, and add persistent object storage for editor uploads.
+For production TYPO3 usage, users should set a stable `TYPO3_ENCRYPTION_KEY`,
+connect a durable SQL database via `DATABASE_URL`, and add persistent object
+storage for editor uploads.
 
 ## Publish Checklist
 

@@ -78,7 +78,8 @@ browser history.
 3. Add a durable database if this is not a disposable test.
 4. Deploy.
 5. Confirm the frontend loads.
-6. Open `/typo3` and sign in with the configured admin credentials.
+6. Open `/typo3` and sign in with the configured admin credentials only after
+   `DATABASE_URL` points to a durable database.
 7. Set `TYPO3_AUTO_SETUP=0` after successful database initialization.
 8. Redeploy so the new env value is applied.
 
