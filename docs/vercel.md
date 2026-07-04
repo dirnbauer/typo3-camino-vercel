@@ -5,6 +5,12 @@
 Vercel builds `Dockerfile.vercel` as a Container Image service and routes all
 traffic to that service through `vercel.json`.
 
+The template pins Functions/Container Images to `fra1` in `vercel.json`. That
+is a good default for this European demo and for a Neon database created in
+Frankfurt. If your database lives elsewhere, change `regions` to the database
+region before deploying. The function should be close to the database first,
+then close to users.
+
 The container starts Apache, serves `public/`, and lets TYPO3 handle normal
 frontend/backend routes. Real files in `public/` can still be called directly,
 which is why the secured scheduler endpoint lives at
@@ -59,6 +65,7 @@ TYPO3_PROJECT_NAME=TYPO3 Camino
 TYPO3_ENCRYPTION_KEY=<96-random-hex-chars>
 TYPO3_TRUSTED_HOSTS_PATTERN=(.+\.)?vercel\.app
 DATABASE_URL=<durable-postgres-or-mysql-url>
+TYPO3_CACHE_BACKEND=file
 ```
 
 Generate secrets locally:
@@ -82,7 +89,50 @@ browser history.
 6. Open `/typo3` and sign in with the configured admin credentials only after
    `DATABASE_URL` points to a durable database.
 7. Set `TYPO3_AUTO_SETUP=0` after successful database initialization.
-8. Redeploy so the new env value is applied.
+8. Set `TYPO3_BOOTSTRAP_EMPTY_DATABASE=0` for stricter production startup.
+9. If extensions were added after the database was created, set
+   `TYPO3_EXTENSION_SETUP_ON_BOOT=1` for one deploy.
+10. Redeploy so the new env values are applied.
+11. After extension setup has run, set `TYPO3_EXTENSION_SETUP_ON_BOOT=0` and
+    redeploy.
+
+## If Neon Marketplace Provisioning Fails
+
+The Vercel Marketplace Neon flow can fail during provider setup, for example
+when the Neon organization, Vercel team, free-plan quota, or authorization state
+does not match. Use an existing Neon project instead:
+
+1. Open Neon and create or choose a project in the same region as Vercel
+   `regions` in `vercel.json` (`fra1` by default here).
+2. Copy the pooled connection string.
+3. Add it to Vercel as production `DATABASE_URL`.
+4. Set `TYPO3_AUTO_SETUP=1` for the first deploy.
+5. Deploy once, confirm TYPO3 works, then set `TYPO3_AUTO_SETUP=0` and
+   `TYPO3_BOOTSTRAP_EMPTY_DATABASE=0`.
+
+CLI shape:
+
+```bash
+vercel env add DATABASE_URL production --sensitive --force
+vercel env add TYPO3_AUTO_SETUP production --value 1 --force --yes
+vercel deploy --prod --regions fra1
+vercel env add TYPO3_AUTO_SETUP production --value 0 --force --yes
+vercel env add TYPO3_BOOTSTRAP_EMPTY_DATABASE production --value 0 --force --yes
+vercel deploy --prod --regions fra1
+```
+
+Do not paste the database URL into GitHub, docs, screenshots, or chat. Add it
+through Vercel's encrypted environment variable flow.
+
+If you later add TYPO3 packages to an existing database, run the extension setup
+once:
+
+```bash
+vercel env add TYPO3_EXTENSION_SETUP_ON_BOOT production --value 1 --force --yes
+vercel deploy --prod --regions fra1
+vercel env add TYPO3_EXTENSION_SETUP_ON_BOOT production --value 0 --force --yes
+vercel deploy --prod --regions fra1
+```
 
 ## Useful Commands
 
@@ -90,7 +140,7 @@ browser history.
 vercel env ls --scope webconsulting
 vercel env add TYPO3_ENCRYPTION_KEY production --scope webconsulting
 vercel env add TYPO3_SETUP_ADMIN_PASSWORD production --scope webconsulting
-vercel deploy --prod --scope webconsulting
+vercel deploy --prod --scope webconsulting --regions fra1
 ```
 
 ## Sources

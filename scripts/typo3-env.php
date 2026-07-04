@@ -167,6 +167,55 @@ function typo3_vercel_pgsql_dsn(array $database): string
     return $dsn;
 }
 
+function typo3_vercel_cache_backend(): string
+{
+    $default = typo3_vercel_is_vercel_runtime() ? 'file' : 'database';
+    $backend = strtolower((string)typo3_vercel_env('TYPO3_CACHE_BACKEND', $default));
+
+    return match ($backend) {
+        'file', 'filesystem', 'local' => 'file',
+        default => 'database',
+    };
+}
+
+function typo3_vercel_cache_configurations(): array
+{
+    if (typo3_vercel_cache_backend() === 'file') {
+        return [
+            'hash' => [
+                'backend' => 'Webconsulting\\Typo3VercelStorage\\Cache\\Backend\\RuntimeFileBackend',
+            ],
+            'pages' => [
+                'backend' => 'Webconsulting\\Typo3VercelStorage\\Cache\\Backend\\RuntimeFileBackend',
+            ],
+            'rootline' => [
+                'backend' => 'Webconsulting\\Typo3VercelStorage\\Cache\\Backend\\RuntimeFileBackend',
+                'options' => [
+                    'defaultLifetime' => 2592000,
+                ],
+            ],
+        ];
+    }
+
+    return [
+        'hash' => [
+            'backend' => 'TYPO3\\CMS\\Core\\Cache\\Backend\\Typo3DatabaseBackend',
+        ],
+        'pages' => [
+            'backend' => 'TYPO3\\CMS\\Core\\Cache\\Backend\\Typo3DatabaseBackend',
+            'options' => [
+                'compression' => true,
+            ],
+        ],
+        'rootline' => [
+            'backend' => 'TYPO3\\CMS\\Core\\Cache\\Backend\\Typo3DatabaseBackend',
+            'options' => [
+                'compression' => true,
+            ],
+        ],
+    ];
+}
+
 function typo3_vercel_settings(): array
 {
     $database = typo3_vercel_database_config();
@@ -235,23 +284,7 @@ function typo3_vercel_settings(): array
         'SYS' => [
             'UTF8filesystem' => true,
             'caching' => [
-                'cacheConfigurations' => [
-                    'hash' => [
-                        'backend' => 'TYPO3\\CMS\\Core\\Cache\\Backend\\Typo3DatabaseBackend',
-                    ],
-                    'pages' => [
-                        'backend' => 'TYPO3\\CMS\\Core\\Cache\\Backend\\Typo3DatabaseBackend',
-                        'options' => [
-                            'compression' => true,
-                        ],
-                    ],
-                    'rootline' => [
-                        'backend' => 'TYPO3\\CMS\\Core\\Cache\\Backend\\Typo3DatabaseBackend',
-                        'options' => [
-                            'compression' => true,
-                        ],
-                    ],
-                ],
+                'cacheConfigurations' => typo3_vercel_cache_configurations(),
             ],
             'devIPmask' => '',
             'displayErrors' => $debug ? 1 : 0,

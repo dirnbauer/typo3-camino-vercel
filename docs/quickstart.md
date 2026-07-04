@@ -42,6 +42,7 @@ Add a real database before first deploy:
 ```dotenv
 DATABASE_URL=<provider-connection-url>
 TYPO3_AUTO_SETUP=1
+TYPO3_CACHE_BACKEND=file
 ```
 
 After TYPO3 creates the schema and admin user, set:
@@ -51,6 +52,10 @@ TYPO3_AUTO_SETUP=0
 ```
 
 Then redeploy.
+
+If Vercel Marketplace database provisioning fails, create the database in the
+provider console and add the connection URL manually with `vercel env add
+DATABASE_URL production --sensitive --force`.
 
 ## Durable Uploads
 
@@ -103,6 +108,7 @@ seeded SQLite, the backend can log out after a few seconds because the
 - Use `TYPO3_TRUSTED_HOSTS_PATTERN` for the exact domain before production.
 - Add a real database before backend editing or content you want to keep.
 - Add S3-compatible object storage before accepting editor uploads.
+- Keep Vercel Functions close to the database region.
 - Enable MFA for backend admin users after first login.
 
 ## Do Not
@@ -111,4 +117,6 @@ seeded SQLite, the backend can log out after a few seconds because the
 - Do not commit passwords or `.env` files.
 - Do not put secret values into a Deploy Button URL.
 - Do not rely on Linux cron inside the Vercel container.
+- Do not enable edge HTML caching for personalized pages, forms, or frontend
+  user login without testing.
 - Do not assume GDPR compliance because TYPO3 and Vercel have privacy features.

@@ -64,12 +64,15 @@ What this means today:
 - Free one-click Vercel smoke deploy with a pre-seeded Camino SQLite demo
   database and no external storage requirement.
 - Stable backend login when a durable SQL database is configured.
-- TYPO3 14.3 Composer install with Camino and Scheduler included.
+- TYPO3 14.3 Composer install with Camino and the current TYPO3 CMS system
+  package set included.
 - Serverless-style runtime paths: TYPO3 writes to `/tmp`, not durable image paths.
 - Durable external SQL database support through `DATABASE_URL` or TYPO3 DB env vars.
 - Durable editor uploads through the included S3-compatible TYPO3 FAL driver.
 - Vercel Cron compatible endpoint for running TYPO3 Scheduler tasks.
 - Vercel Firewall/WAF in front of the container.
+- Vercel region pinning and runtime-local TYPO3 caches for faster warm requests.
+- Optional Vercel CDN caching for anonymous public frontend HTML.
 
 ## What Does Not Work
 
@@ -126,6 +129,7 @@ TYPO3_PROJECT_NAME=TYPO3 Camino
 TYPO3_ENCRYPTION_KEY=<96-random-hex-chars>
 TYPO3_TRUSTED_HOSTS_PATTERN=(.+\.)?vercel\.app
 DATABASE_URL=<durable-postgres-or-mysql-url>
+TYPO3_CACHE_BACKEND=file
 ```
 
 For durable uploads, add S3-compatible object storage too:
@@ -147,6 +151,18 @@ After the first successful setup, set `TYPO3_AUTO_SETUP=0`. For stricter
 production startup, also set `TYPO3_BOOTSTRAP_EMPTY_DATABASE=0` after the
 database has been initialized.
 
+For faster anonymous frontend pages on Vercel, you may enable the opt-in CDN
+HTML cache:
+
+```dotenv
+TYPO3_VERCEL_EDGE_CACHE_TTL=60
+TYPO3_VERCEL_EDGE_CACHE_STALE_WHILE_REVALIDATE=300
+```
+
+This only targets anonymous `GET`/`HEAD` HTML requests without cookies, query
+strings, `Set-Cookie`, `/typo3`, or `/api`. Keep it disabled while testing
+forms, frontend user login, personalization, or uncached plugins.
+
 ## Costs For Testing
 
 Vercel Hobby is free for personal/non-commercial testing within the plan limits.
@@ -167,7 +183,9 @@ See [docs/costs.md](docs/costs.md) for the current caveats.
 - [Free demo mode](docs/free-demo.md)
 - [Database setup](docs/database.md)
 - [Object storage and durable uploads](docs/object-storage.md)
+- [Included TYPO3 packages](docs/typo3-packages.md)
 - [Backend login and sessions](docs/backend-login.md)
+- [Performance notes](docs/performance.md)
 - [Serverless runtime notes](docs/serverless-runtime.md)
 - [Scheduler and cron](docs/scheduler.md)
 - [Security and firewall](docs/security.md)

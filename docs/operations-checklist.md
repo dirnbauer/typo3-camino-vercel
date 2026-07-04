@@ -6,11 +6,13 @@
 - [ ] Generate `TYPO3_SETUP_ADMIN_PASSWORD`.
 - [ ] Set `TYPO3_TRUSTED_HOSTS_PATTERN` for the real domain.
 - [ ] Add durable `DATABASE_URL`.
+- [ ] Keep Vercel `regions` close to the database region.
 - [ ] Confirm database backup/restore exists.
 - [ ] Decide where `fileadmin` uploads will live.
 - [ ] Configure `TYPO3_OBJECT_STORAGE_ENABLED=1` and `TYPO3_S3_*` before editors upload files.
 - [ ] Keep Vercel runtime filesystem writes disposable.
 - [ ] Keep `TYPO3_AUTO_SETUP=1` only for initial setup.
+- [ ] Use `TYPO3_EXTENSION_SETUP_ON_BOOT=1` for one deploy after extension package changes.
 
 ## After First Deploy
 
@@ -19,6 +21,8 @@
 - [ ] Change shared/demo credentials if needed.
 - [ ] Enable MFA for admin users.
 - [ ] Set `TYPO3_AUTO_SETUP=0`.
+- [ ] Set `TYPO3_BOOTSTRAP_EMPTY_DATABASE=0`.
+- [ ] Set `TYPO3_EXTENSION_SETUP_ON_BOOT=0` after extension setup has run.
 - [ ] Redeploy.
 - [ ] Check Vercel runtime logs.
 - [ ] Check TYPO3 system reports.
@@ -36,6 +40,7 @@
 - [ ] File uploads are durable and scanned/limited by policy.
 - [ ] S3-compatible object-storage integration is tested before editors upload files.
 - [ ] Security updates are planned.
+- [ ] Optional edge HTML caching is enabled only for anonymous cache-safe pages.
 
 ## Monthly
 

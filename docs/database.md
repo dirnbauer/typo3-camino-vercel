@@ -28,6 +28,22 @@ DATABASE_URL=postgres://user:password@host:5432/dbname?sslmode=require
 TYPO3_AUTO_SETUP=1
 ```
 
+If the Vercel Marketplace Neon flow shows an error while creating the database,
+use your existing Neon account manually:
+
+1. Create or choose a Neon project.
+2. Prefer the same region as the Vercel function region (`fra1` in this
+   template).
+3. Copy the pooled connection string.
+4. Add it as Vercel production `DATABASE_URL`.
+
+```bash
+vercel env add DATABASE_URL production --sensitive --force
+```
+
+Then deploy with `TYPO3_AUTO_SETUP=1` once. After setup, set
+`TYPO3_AUTO_SETUP=0` and `TYPO3_BOOTSTRAP_EMPTY_DATABASE=0` and redeploy.
+
 ### MySQL-Compatible
 
 TiDB Cloud is MySQL-compatible and has a Vercel Marketplace integration. It is
@@ -76,6 +92,25 @@ already exists, but disabling auto setup after first boot avoids unnecessary
 startup work. `TYPO3_BOOTSTRAP_EMPTY_DATABASE` defaults to `1` and allows a
 fresh durable database plus `TYPO3_SETUP_ADMIN_PASSWORD` to initialize even when
 the provider stores `TYPO3_AUTO_SETUP` as a protected value.
+
+## Existing Database After Package Changes
+
+When TYPO3 extensions are added or removed after a durable database already
+exists, run TYPO3's extension setup once so new tables and columns are created:
+
+```dotenv
+TYPO3_EXTENSION_SETUP_ON_BOOT=1
+```
+
+Deploy once, confirm the frontend and backend work, then set it back to `0` and
+redeploy. This switch runs:
+
+```bash
+vendor/bin/typo3 extension:setup --no-interaction
+```
+
+Leave it off for normal operation to avoid extra startup work on every cold
+container start.
 
 ## Backups
 

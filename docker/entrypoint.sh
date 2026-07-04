@@ -39,8 +39,22 @@ should_bootstrap_typo3() {
   return 1
 }
 
+should_run_extension_setup() {
+  case "${TYPO3_EXTENSION_SETUP_ON_BOOT:-0}" in
+    1|true|TRUE|yes|YES|on|ON)
+      return 0
+      ;;
+  esac
+
+  return 1
+}
+
 apply_object_storage() {
   php scripts/apply-object-storage.php
+}
+
+run_extension_setup() {
+  vendor/bin/typo3 extension:setup --no-interaction
 }
 
 mkdir -p /tmp/typo3/var /tmp/typo3/fileadmin /tmp/typo3/typo3temp config/system
@@ -74,6 +88,15 @@ chown -R www-data:www-data /tmp/typo3 public/fileadmin public/typo3temp config |
 
 if should_bootstrap_typo3; then
   php scripts/bootstrap-typo3.php
+  if [ -n "${TYPO3_SETUP_ADMIN_PASSWORD:-}" ]; then
+    php scripts/apply-admin-password.php
+  fi
+  apply_object_storage
+  chown -R www-data:www-data /tmp/typo3 public/fileadmin public/typo3temp config || true
+fi
+
+if should_run_extension_setup; then
+  run_extension_setup
   if [ -n "${TYPO3_SETUP_ADMIN_PASSWORD:-}" ]; then
     php scripts/apply-admin-password.php
   fi

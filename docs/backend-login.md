@@ -39,31 +39,35 @@ TYPO3_AUTO_SETUP=0
 
 Redeploy with auto setup disabled.
 
-## Vercel CLI Attempt
+## Vercel CLI / Neon Marketplace Attempt
 
-The Vercel CLI can discover Neon and shows a free plan:
-
-```bash
-vercel integration discover neon --scope webconsulting
-vercel integration add neon --plan free_v3 -m region=iad1 -m auth=false -e production --name typo3-camino-vercel-db --scope webconsulting
-```
-
-In this account the install flow stops at provider setup and opens a browser.
-Complete the browser step in Vercel/Neon, then confirm that `DATABASE_URL` is
-present in the production environment:
+The Vercel CLI can provision Neon from the Marketplace:
 
 ```bash
-vercel env ls production --scope webconsulting
+vercel install neon --plan free_v3 --name typo3-camino-neon -e production -m region=fra1 -m auth=false
 ```
 
-After `DATABASE_URL` exists, deploy:
+If the browser flow says the database could not be created, use an existing
+Neon database manually. This is usually faster than retrying the Marketplace
+flow:
 
 ```bash
-vercel env update TYPO3_AUTO_SETUP production --scope webconsulting
-vercel deploy --prod --scope webconsulting --archive=tgz
+vercel env add DATABASE_URL production --sensitive --force
+vercel env add TYPO3_AUTO_SETUP production --value 1 --force --yes
+vercel deploy --prod --regions fra1
 ```
 
-Set `TYPO3_AUTO_SETUP=0` after the first successful setup and deploy again.
+After TYPO3 setup succeeds:
+
+```bash
+vercel env add TYPO3_AUTO_SETUP production --value 0 --force --yes
+vercel env add TYPO3_BOOTSTRAP_EMPTY_DATABASE production --value 0 --force --yes
+vercel deploy --prod --regions fra1
+```
+
+Vercel sensitive environment variables cannot be read back in plain text by the
+CLI. `vercel env ls production` should list `DATABASE_URL`; do not try to print
+the secret value.
 
 ## MySQL-Compatible Option
 

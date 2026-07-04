@@ -28,6 +28,13 @@ The image contains the code and Camino demo assets. Runtime writes are
 disposable. Use a real database and object storage for anything that must
 survive redeploys, cold starts, or scaling.
 
+TYPO3 page, hash, and rootline caches default to the runtime-local file backend
+on Vercel (`TYPO3_CACHE_BACKEND=file`). These caches are intentionally
+disposable and rebuilt per runtime instance. They avoid making every warm page
+request round-trip to the database for cache reads. Set
+`TYPO3_CACHE_BACKEND=database` if you prefer shared cache state over warm
+request speed.
+
 This starter includes a local TYPO3 14 FAL driver named `vercel_s3` for
 S3-compatible object storage. When `TYPO3_OBJECT_STORAGE_ENABLED=1` and the
 `TYPO3_S3_*` variables are set, the entrypoint creates a default TYPO3 storage
