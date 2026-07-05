@@ -65,13 +65,13 @@ For a durable free demo with persistent uploads:
 
 1. use Vercel Hobby for personal/non-commercial testing
 2. use a free database quota, for example TiDB Cloud, Neon, or Supabase
-3. use free object storage quota, for example Cloudflare R2
-4. wire TYPO3 uploads through the included S3-compatible FAL driver
+3. use free object storage quota, for example Vercel Blob or Cloudflare R2
+4. wire TYPO3 uploads through the included Blob or S3-compatible FAL driver
 5. keep usage inside every provider's free limits
 
 This is not one-click yet. The current one-click demo does not include durable
-uploaded files. Vercel Blob is not supported by the included driver because it
-does not expose an S3-compatible API.
+uploaded files until a Blob/S3 store is created and object storage env vars are
+enabled.
 
 ## Sources
 

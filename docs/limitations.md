@@ -12,7 +12,7 @@ Impact:
   sessions are database-backed and Vercel can run parallel requests on separate
   instances.
 - `fileadmin` is copied to `/tmp` at container start. Uploads are durable only
-  when the included S3-compatible FAL driver is configured.
+  when Vercel Blob or S3-compatible object storage is configured.
 - generated cache files should be treated as disposable.
 - logs should go to Vercel logs or an external log drain for retention.
 
@@ -35,10 +35,10 @@ production deployment.
 
 ## Vercel Blob
 
-Vercel Blob is not wired into TYPO3 FAL in this starter. A production Blob
-integration needs a TYPO3 FAL driver or bridge service. Until then, use the
-included S3-compatible FAL driver with Cloudflare R2, AWS S3, MinIO, Spaces, or
-another S3-compatible provider.
+Vercel Blob is wired into TYPO3 FAL through the `vercel_blob` driver. Use a
+public Blob store for normal frontend images and downloads. Private Blob stores
+need a custom delivery/proxy strategy and are not the default for TYPO3 public
+assets.
 
 ## Marketplace Status
 

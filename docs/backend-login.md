@@ -94,9 +94,9 @@ team, so that path may need provider/dashboard setup.
 ## What Still Needs Object Storage
 
 A durable database fixes login, records, pages, and backend sessions. It does
-not make uploaded files durable. TYPO3 editor uploads still need the included
-S3-compatible FAL driver configured with Cloudflare R2, AWS S3, MinIO, Spaces,
-or another S3-compatible provider. Vercel Blob needs a separate driver.
+not make uploaded files durable. TYPO3 editor uploads still need object storage:
+use `vercel_blob` with Vercel Blob, or `vercel_s3` with Cloudflare R2, AWS S3,
+MinIO, Spaces, or another S3-compatible provider.
 
 ## Sources
 

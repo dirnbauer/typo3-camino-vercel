@@ -9,7 +9,7 @@
 - [ ] Keep Vercel `regions` close to the database region.
 - [ ] Confirm database backup/restore exists.
 - [ ] Decide where `fileadmin` uploads will live.
-- [ ] Configure `TYPO3_OBJECT_STORAGE_ENABLED=1` and `TYPO3_S3_*` before editors upload files.
+- [ ] Configure `TYPO3_OBJECT_STORAGE_ENABLED=1` with `vercel_blob` or `vercel_s3` before editors upload files.
 - [ ] Keep Vercel runtime filesystem writes disposable.
 - [ ] Keep `TYPO3_AUTO_SETUP=1` only for initial setup.
 - [ ] Use `TYPO3_EXTENSION_SETUP_ON_BOOT=1` for one deploy after extension package changes.

@@ -35,10 +35,11 @@ request round-trip to the database for cache reads. Set
 `TYPO3_CACHE_BACKEND=database` if you prefer shared cache state over warm
 request speed.
 
-This starter includes a local TYPO3 14 FAL driver named `vercel_s3` for
-S3-compatible object storage. When `TYPO3_OBJECT_STORAGE_ENABLED=1` and the
-`TYPO3_S3_*` variables are set, the entrypoint creates a default TYPO3 storage
-record for durable uploads and verifies the bucket unless
+This starter includes TYPO3 14 FAL drivers named `vercel_blob` for Vercel Blob
+and `vercel_s3` for S3-compatible object storage. When
+`TYPO3_OBJECT_STORAGE_ENABLED=1` and a driver is configured, the entrypoint
+creates a default TYPO3 storage record for durable uploads and verifies storage
+unless
 `TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=0`.
 
 To disable this behavior for debugging:
@@ -49,11 +50,8 @@ TYPO3_SERVERLESS_FILESYSTEM=0
 
 ## Vercel Blob
 
-Vercel Blob is the natural Vercel-native object storage candidate for editor
-uploads. Vercel's SDK examples use `@vercel/blob` for TypeScript/JavaScript and
-Python. TYPO3, however, writes uploads through FAL, so a production integration
-needs a TYPO3 FAL driver for Vercel Blob or a bridge service that TYPO3 can use
-as a storage backend.
+Vercel Blob is the Vercel-native object storage path for editor uploads in this
+starter. It uses the included `vercel_blob` FAL driver and the Vercel Blob API.
 
 Do not solve this by writing editor uploads to `public/fileadmin` on Vercel.
 That only works until the container restarts or a second instance handles a
@@ -61,9 +59,9 @@ request.
 
 Practical options:
 
+- use the included `vercel_blob` FAL driver with a public Vercel Blob store
 - use the included `vercel_s3` FAL driver with S3, Cloudflare R2, MinIO,
   DigitalOcean Spaces, or another S3-compatible provider
-- build a small TYPO3 FAL driver for Vercel Blob
 - keep this as a read-only demo and do not accept editor uploads
 
 ## Database

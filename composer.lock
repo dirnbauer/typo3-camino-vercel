@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d8b4ef0f14f965785fc6683cf6ecc6c3",
+    "content-hash": "cc7bd2b02c9e0540727eb75bbe34f0a1",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -8456,12 +8456,44 @@
             "time": "2026-04-16T17:09:54+00:00"
         },
         {
+            "name": "webconsulting/typo3-vercel-blob-storage",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "./packages/typo3-vercel-blob-storage",
+                "reference": "ccd225b8c824af575b3e17cdaccb6005d611aa37"
+            },
+            "require": {
+                "guzzlehttp/guzzle": "^7.4",
+                "php": "^8.4",
+                "typo3/cms-core": "^14.3"
+            },
+            "type": "typo3-cms-extension",
+            "extra": {
+                "typo3/cms": {
+                    "extension-key": "typo3_vercel_blob_storage"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Webconsulting\\Typo3VercelBlobStorage\\": "Classes/"
+                }
+            },
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "description": "TYPO3 FAL driver for Vercel Blob storage",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
             "name": "webconsulting/typo3-vercel-storage",
             "version": "1.0.0",
             "dist": {
                 "type": "path",
                 "url": "./packages/typo3-vercel-storage",
-                "reference": "a77574af6dbb2a96e92a43bf743a8e329355f39f"
+                "reference": "7385026ef42e5f6fb172fd5cadc4d1bb057be3ec"
             },
             "require": {
                 "aws/aws-sdk-php": "^3.369",

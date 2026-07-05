@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<T3DataStructure>
+    <ROOT>
+        <type>array</type>
+        <el>
+            <storeId>
+                <label>Blob store id</label>
+                <description>Optional when BLOB_READ_WRITE_TOKEN contains the store id. Vercel also exposes BLOB_STORE_ID when OIDC is used.</description>
+                <config>
+                    <type>input</type>
+                    <size>40</size>
+                </config>
+            </storeId>
+            <access>
+                <label>Access mode</label>
+                <description>Use public for TYPO3 frontend assets. Private blobs are not returned as public FAL URLs.</description>
+                <config>
+                    <type>select</type>
+                    <renderType>selectSingle</renderType>
+                    <items>
+                        <numIndex index="0">
+                            <label>Public</label>
+                            <value>public</value>
+                        </numIndex>
+                        <numIndex index="1">
+                            <label>Private</label>
+                            <value>private</value>
+                        </numIndex>
+                    </items>
+                    <default>public</default>
+                </config>
+            </access>
+            <tokenEnvName>
+                <label>Read/write token environment variable</label>
+                <description>Defaults to BLOB_READ_WRITE_TOKEN. The token itself is read from the environment and is not stored in the TYPO3 database.</description>
+                <config>
+                    <type>input</type>
+                    <default>BLOB_READ_WRITE_TOKEN</default>
+                    <size>40</size>
+                </config>
+            </tokenEnvName>
+            <prefix>
+                <label>Blob pathname prefix</label>
+                <description>Optional folder prefix inside the Blob store, for example typo3/.</description>
+                <config>
+                    <type>input</type>
+                    <default>typo3/</default>
+                    <size>30</size>
+                </config>
+            </prefix>
+            <publicBaseUrl>
+                <label>Public base URL</label>
+                <description>Optional custom CDN URL. Leave empty to use the native public Blob URL.</description>
+                <config>
+                    <type>input</type>
+                    <size>50</size>
+                </config>
+            </publicBaseUrl>
+            <apiUrl>
+                <label>Blob API URL</label>
+                <config>
+                    <type>input</type>
+                    <default>https://vercel.com/api/blob</default>
+                    <size>50</size>
+                </config>
+            </apiUrl>
+            <defaultFolder>
+                <label>Default upload folder</label>
+                <config>
+                    <type>input</type>
+                    <default>user_upload</default>
+                    <size>30</size>
+                </config>
+            </defaultFolder>
+            <cacheControlMaxAge>
+                <label>Cache-Control max-age for new blobs</label>
+                <description>Seconds. 31536000 is one year.</description>
+                <config>
+                    <type>number</type>
+                    <default>31536000</default>
+                    <size>10</size>
+                </config>
+            </cacheControlMaxAge>
+            <caseSensitive>
+                <label>Case-sensitive identifiers</label>
+                <config>
+                    <type>check</type>
+                    <default>1</default>
+                </config>
+            </caseSensitive>
+        </el>
+    </ROOT>
+</T3DataStructure>

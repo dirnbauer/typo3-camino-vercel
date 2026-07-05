@@ -67,16 +67,16 @@ Best practical stack:
 - Vercel Hobby for the container, personal/non-commercial use only.
 - TiDB Cloud for MySQL-compatible free database testing, or Neon/Supabase for
   Postgres.
-- Cloudflare R2 for free S3-compatible object storage testing.
-- The included `vercel_s3` TYPO3 FAL driver.
+- Vercel Blob on Hobby within limits, or Cloudflare R2 for free object storage testing.
+- The included `vercel_blob` and `vercel_s3` TYPO3 FAL drivers.
 
 What this means today:
 
 - The current one-click demo is free, but uploaded files are temporary.
-- One-click free demo with durable uploaded files is not possible yet.
+- One-click free demo with durable uploaded files still needs setup steps.
 - A durable free demo needs setup steps for database and object storage.
 - Cloudflare R2 can be wired through the included FAL driver.
-- Vercel Blob still needs a separate TYPO3 FAL driver because Blob is not S3-compatible.
+- Vercel Blob can be wired through the included Blob FAL driver.
 - It stays free only while usage remains inside all free-tier limits.
 
 Recommended first-boot flow:
@@ -92,10 +92,9 @@ option checked for this starter. It exposes database variables to Vercel and
 advertises free starter quota. For Postgres, Neon and Supabase are usually the
 smoother Vercel Marketplace path.
 
-Durable editor uploads still need object storage. This starter includes a
-TYPO3 14 S3-compatible FAL driver, so Cloudflare R2 or another S3-compatible
-provider can be used. Vercel Blob has a free Hobby allowance, but Blob is not
-S3-compatible and is not supported by the included driver.
+Durable editor uploads still need object storage. This starter includes
+`vercel_blob` for Vercel Blob and `vercel_s3` for Cloudflare R2 or another
+S3-compatible provider.
 
 ## Sources
 

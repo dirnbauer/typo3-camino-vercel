@@ -75,8 +75,8 @@ TYPO3_S3_SECRET_ACCESS_KEY=<secret-key>
 TYPO3_S3_PUBLIC_BASE_URL=<public-bucket-or-cdn-url>
 ```
 
-Cloudflare R2 works well for a free durable trial because it exposes an
-S3-compatible API. Vercel Blob is not supported by this driver. See
+Vercel Blob works well for an all-Vercel durable trial; Cloudflare R2 is still
+available through the S3-compatible driver. See
 [Object storage and durable uploads](object-storage.md).
 
 When these variables are present, the Vercel container verifies the bucket at

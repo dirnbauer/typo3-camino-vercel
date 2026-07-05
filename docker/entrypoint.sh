@@ -80,6 +80,10 @@ should_apply_object_storage() {
     return 0
   fi
 
+  if [ -n "${TYPO3_OBJECT_STORAGE_DRIVER:-}" ] || [ -n "${BLOB_READ_WRITE_TOKEN:-}" ] || [ -n "${BLOB_STORE_ID:-}" ]; then
+    return 0
+  fi
+
   return 1
 }
 

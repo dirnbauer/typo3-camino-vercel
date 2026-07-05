@@ -52,8 +52,9 @@ and writes the password on every new container.
 The entrypoint also treats mutable TYPO3 paths as serverless runtime state:
 `var`, `public/fileadmin`, and `public/typo3temp` point into `/tmp`. Committed
 Camino demo assets are copied there at startup, but editor uploads are not
-durable unless `TYPO3_OBJECT_STORAGE_ENABLED=1` and the `TYPO3_S3_*` variables
-are configured. See [object storage and durable uploads](object-storage.md).
+durable unless `TYPO3_OBJECT_STORAGE_ENABLED=1` and either `vercel_blob` or
+`vercel_s3` object storage is configured. See
+[object storage and durable uploads](object-storage.md).
 
 ## Required Production Env Vars
 
