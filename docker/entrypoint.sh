@@ -4,6 +4,12 @@ set -euo pipefail
 PORT="${PORT:-80}"
 TYPO3_SERVERLESS_FILESYSTEM="${TYPO3_SERVERLESS_FILESYSTEM:-1}"
 
+export TMPDIR="${TMPDIR:-/tmp/typo3/tmp}"
+export TMP="${TMP:-$TMPDIR}"
+export TEMP="${TEMP:-$TMPDIR}"
+export MAGICK_TEMPORARY_PATH="${MAGICK_TEMPORARY_PATH:-/tmp/typo3/gm}"
+export GRAPHICSMAGICK_TMPDIR="${GRAPHICSMAGICK_TMPDIR:-$MAGICK_TEMPORARY_PATH}"
+
 sed -ri "s/^Listen .*/Listen ${PORT}/" /etc/apache2/ports.conf
 sed -ri "s/<VirtualHost \*:[0-9]+>/<VirtualHost *:${PORT}>/" /etc/apache2/sites-available/*.conf
 
@@ -49,15 +55,76 @@ should_run_extension_setup() {
   return 1
 }
 
+should_apply_admin_password() {
+  if [ -z "${TYPO3_SETUP_ADMIN_PASSWORD:-}" ]; then
+    return 1
+  fi
+
+  case "${TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT:-0}" in
+    1|true|TRUE|yes|YES|on|ON)
+      return 0
+      ;;
+  esac
+
+  return 1
+}
+
+should_apply_object_storage() {
+  case "${TYPO3_OBJECT_STORAGE_ENABLED:-0}" in
+    1|true|TRUE|yes|YES|on|ON)
+      return 0
+      ;;
+  esac
+
+  if [ -n "${TYPO3_S3_BUCKET:-}" ]; then
+    return 0
+  fi
+
+  return 1
+}
+
 apply_object_storage() {
-  php scripts/apply-object-storage.php
+  if should_apply_object_storage; then
+    php scripts/apply-object-storage.php
+  fi
 }
 
 run_extension_setup() {
   vendor/bin/typo3 extension:setup --no-interaction
 }
 
-mkdir -p /tmp/typo3/var /tmp/typo3/fileadmin /tmp/typo3/typo3temp config/system
+fix_runtime_permissions() {
+  chown www-data:www-data \
+    /tmp/typo3 \
+    /tmp/typo3/var \
+    /tmp/typo3/fileadmin \
+    /tmp/typo3/typo3temp \
+    /tmp/typo3/tmp \
+    /tmp/typo3/gm \
+    /tmp/typo3/php-sessions \
+    config \
+    config/system 2>/dev/null || true
+  chown -h www-data:www-data var public/fileadmin public/typo3temp 2>/dev/null || true
+
+  if [ "${TYPO3_DB_DRIVER:-}" = "pdo_sqlite" ] && [ -n "${TYPO3_DB_DBNAME:-}" ]; then
+    chown www-data:www-data "$(dirname "${TYPO3_DB_DBNAME}")" "${TYPO3_DB_DBNAME}" 2>/dev/null || true
+    chmod 0660 "${TYPO3_DB_DBNAME}" 2>/dev/null || true
+  fi
+}
+
+fix_runtime_permissions_recursive() {
+  chown -R www-data:www-data /tmp/typo3 config || true
+  chown -h www-data:www-data var public/fileadmin public/typo3temp 2>/dev/null || true
+}
+
+mkdir -p \
+  /tmp/typo3/var \
+  /tmp/typo3/fileadmin \
+  /tmp/typo3/typo3temp \
+  /tmp/typo3/tmp \
+  /tmp/typo3/gm \
+  /tmp/typo3/php-sessions \
+  config/system
 
 if [ -z "${TYPO3_ENCRYPTION_KEY:-}" ]; then
   export TYPO3_ENCRYPTION_KEY="$(php -r 'echo bin2hex(random_bytes(48));')"
@@ -76,15 +143,17 @@ fi
 if [ "${TYPO3_DB_DRIVER:-}" = "pdo_sqlite" ] && [ -n "${TYPO3_DB_DBNAME:-}" ] && [ -f /usr/local/share/typo3-seed/camino.sqlite ] && [ ! -f "${TYPO3_DB_DBNAME}" ]; then
   mkdir -p "$(dirname "${TYPO3_DB_DBNAME}")"
   cp /usr/local/share/typo3-seed/camino.sqlite "${TYPO3_DB_DBNAME}"
+  chown www-data:www-data "${TYPO3_DB_DBNAME}" 2>/dev/null || true
+  chmod 0660 "${TYPO3_DB_DBNAME}" 2>/dev/null || true
 fi
 
-if [ -n "${TYPO3_SETUP_ADMIN_PASSWORD:-}" ]; then
+if should_apply_admin_password; then
   php scripts/apply-admin-password.php
 fi
 
 apply_object_storage
 
-chown -R www-data:www-data /tmp/typo3 public/fileadmin public/typo3temp config || true
+fix_runtime_permissions
 
 if should_bootstrap_typo3; then
   php scripts/bootstrap-typo3.php
@@ -92,16 +161,16 @@ if should_bootstrap_typo3; then
     php scripts/apply-admin-password.php
   fi
   apply_object_storage
-  chown -R www-data:www-data /tmp/typo3 public/fileadmin public/typo3temp config || true
+  fix_runtime_permissions_recursive
 fi
 
 if should_run_extension_setup; then
   run_extension_setup
-  if [ -n "${TYPO3_SETUP_ADMIN_PASSWORD:-}" ]; then
+  if should_apply_admin_password; then
     php scripts/apply-admin-password.php
   fi
   apply_object_storage
-  chown -R www-data:www-data /tmp/typo3 public/fileadmin public/typo3temp config || true
+  fix_runtime_permissions_recursive
 fi
 
 exec "$@"

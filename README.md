@@ -130,6 +130,8 @@ TYPO3_ENCRYPTION_KEY=<96-random-hex-chars>
 TYPO3_TRUSTED_HOSTS_PATTERN=(.+\.)?vercel\.app
 DATABASE_URL=<durable-postgres-or-mysql-url>
 TYPO3_CACHE_BACKEND=file
+TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=0
+TYPO3_EXTENSION_SETUP_ON_BOOT=0
 ```
 
 For durable uploads, add S3-compatible object storage too:
@@ -147,21 +149,33 @@ TYPO3_S3_PUBLIC_BASE_URL=<public-bucket-or-cdn-url>
 The admin password must satisfy TYPO3's password policy: use uppercase,
 lowercase, numbers, and a symbol.
 
-After the first successful setup, set `TYPO3_AUTO_SETUP=0`. For stricter
-production startup, also set `TYPO3_BOOTSTRAP_EMPTY_DATABASE=0` after the
-database has been initialized.
+After the first successful setup, set `TYPO3_AUTO_SETUP=0`. For stricter and
+faster production startup, also set `TYPO3_BOOTSTRAP_EMPTY_DATABASE=0`,
+`TYPO3_EXTENSION_SETUP_ON_BOOT=0`, and `TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=0`
+after the database has been initialized.
 
 For faster anonymous frontend pages on Vercel, you may enable the opt-in CDN
 HTML cache:
 
 ```dotenv
-TYPO3_VERCEL_EDGE_CACHE_TTL=60
-TYPO3_VERCEL_EDGE_CACHE_STALE_WHILE_REVALIDATE=300
+TYPO3_VERCEL_EDGE_CACHE_TTL=600
+TYPO3_VERCEL_EDGE_CACHE_STALE_WHILE_REVALIDATE=3600
 ```
 
 This only targets anonymous `GET`/`HEAD` HTML requests without cookies, query
 strings, `Set-Cookie`, `/typo3`, or `/api`. Keep it disabled while testing
 forms, frontend user login, personalization, or uncached plugins.
+
+For shared TYPO3 caches, Redis is supported when you provide a real Redis TCP
+or TLS URL close to the Vercel region:
+
+```dotenv
+TYPO3_CACHE_BACKEND=redis
+TYPO3_REDIS_URL=rediss://default:<password>@<host>:6379/0
+```
+
+For small demos, `TYPO3_CACHE_BACKEND=file` plus Vercel edge caching is usually
+faster than a remote Redis hop.
 
 ## Costs For Testing
 

@@ -43,8 +43,11 @@ On boot, `docker/entrypoint.sh` copies a pre-seeded Camino SQLite database into
 `/tmp`. This makes the frontend render immediately for Vercel smoke tests. It is
 not durable and should not be used for content you care about.
 
-If `TYPO3_SETUP_ADMIN_PASSWORD` is set, the entrypoint updates the seeded
-`admin` backend user on every boot. This avoids a known-password seed image.
+If `TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=1` and
+`TYPO3_SETUP_ADMIN_PASSWORD` is set, the entrypoint updates the `admin` backend
+user during startup. Use this for one deploy after rotating the password, then
+set it back to `0`. Keeping it enabled slows cold starts because TYPO3 hashes
+and writes the password on every new container.
 
 The entrypoint also treats mutable TYPO3 paths as serverless runtime state:
 `var`, `public/fileadmin`, and `public/typo3temp` point into `/tmp`. Committed
@@ -66,6 +69,8 @@ TYPO3_ENCRYPTION_KEY=<96-random-hex-chars>
 TYPO3_TRUSTED_HOSTS_PATTERN=(.+\.)?vercel\.app
 DATABASE_URL=<durable-postgres-or-mysql-url>
 TYPO3_CACHE_BACKEND=file
+TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=0
+TYPO3_EXTENSION_SETUP_ON_BOOT=0
 ```
 
 Generate secrets locally:
@@ -95,6 +100,9 @@ browser history.
 10. Redeploy so the new env values are applied.
 11. After extension setup has run, set `TYPO3_EXTENSION_SETUP_ON_BOOT=0` and
     redeploy.
+12. If the backend password is rotated later, set
+    `TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=1` for one deploy, then set it back to
+    `0` and redeploy.
 
 ## If Neon Marketplace Provisioning Fails
 
@@ -131,6 +139,16 @@ once:
 vercel env add TYPO3_EXTENSION_SETUP_ON_BOOT production --value 1 --force --yes
 vercel deploy --prod --regions fra1
 vercel env add TYPO3_EXTENSION_SETUP_ON_BOOT production --value 0 --force --yes
+vercel deploy --prod --regions fra1
+```
+
+If you rotate the admin password:
+
+```bash
+vercel env add TYPO3_SETUP_ADMIN_PASSWORD production --sensitive --force
+vercel env add TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT production --value 1 --force --yes
+vercel deploy --prod --regions fra1
+vercel env add TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT production --value 0 --force --yes
 vercel deploy --prod --regions fra1
 ```
 

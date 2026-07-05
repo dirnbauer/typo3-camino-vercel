@@ -49,6 +49,9 @@ After TYPO3 creates the schema and admin user, set:
 
 ```dotenv
 TYPO3_AUTO_SETUP=0
+TYPO3_BOOTSTRAP_EMPTY_DATABASE=0
+TYPO3_EXTENSION_SETUP_ON_BOOT=0
+TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=0
 ```
 
 Then redeploy.
@@ -109,6 +112,7 @@ seeded SQLite, the backend can log out after a few seconds because the
 - Add a real database before backend editing or content you want to keep.
 - Add S3-compatible object storage before accepting editor uploads.
 - Keep Vercel Functions close to the database region.
+- Keep setup/password rotation flags disabled after their one deploy.
 - Enable MFA for backend admin users after first login.
 
 ## Do Not

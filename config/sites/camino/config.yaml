@@ -5,7 +5,7 @@ languages:
   -
     title: English
     enabled: '1'
-    locale: en-US
+    locale: en_US.UTF-8
     hreflang: en-US
     base: /
     websiteTitle: Camino

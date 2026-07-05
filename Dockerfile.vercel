@@ -2,6 +2,8 @@ FROM php:8.4-apache-bookworm
 
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public \
     COMPOSER_ALLOW_SUPERUSER=1 \
+    LANG=en_US.UTF-8 \
+    LC_ALL=en_US.UTF-8 \
     TYPO3_CONTEXT=Production/Vercel \
     TYPO3_DB_DRIVER=pdo_sqlite \
     TYPO3_DB_DBNAME=/tmp/typo3/camino.sqlite
@@ -10,6 +12,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
         git \
+        ghostscript \
         graphicsmagick \
         libfreetype6-dev \
         libicu-dev \
@@ -19,7 +22,10 @@ RUN apt-get update \
         libpq-dev \
         libwebp-dev \
         libzip-dev \
+        locales \
         unzip \
+    && sed -i 's/^# *\(en_US.UTF-8 UTF-8\)/\1/' /etc/locale.gen \
+    && locale-gen \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j"$(nproc)" \
         exif \
@@ -32,15 +38,31 @@ RUN apt-get update \
         pdo_pgsql \
         pgsql \
         zip \
+    && yes '' | pecl install redis \
+    && docker-php-ext-enable redis \
     && a2enmod deflate expires headers remoteip rewrite \
     && sed -ri -e "s!/var/www/html!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/sites-available/*.conf \
     && printf '%s\n' \
+        "ServerName localhost" \
+        "KeepAlive On" \
+        "MaxKeepAliveRequests 100" \
+        "KeepAliveTimeout 2" \
         "<Directory ${APACHE_DOCUMENT_ROOT}>" \
         "    Options FollowSymLinks" \
-        "    AllowOverride All" \
+        "    AllowOverride None" \
         "    Require all granted" \
+        "    Include /var/www/html/public/.htaccess" \
         "</Directory>" > /etc/apache2/conf-available/typo3.conf \
+    && printf '%s\n' \
+        "<IfModule mpm_prefork_module>" \
+        "    StartServers 2" \
+        "    MinSpareServers 2" \
+        "    MaxSpareServers 5" \
+        "    MaxRequestWorkers 16" \
+        "    MaxConnectionsPerChild 500" \
+        "</IfModule>" > /etc/apache2/conf-available/typo3-mpm.conf \
     && a2enconf typo3 \
+    && a2enconf typo3-mpm \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer

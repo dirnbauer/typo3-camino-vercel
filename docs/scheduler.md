@@ -96,6 +96,21 @@ Do not:
 - Leave the cron endpoint without `CRON_SECRET`.
 - Use frontend page requests to trigger maintenance tasks.
 
+## Optional Keepalive
+
+The project also includes a lightweight endpoint:
+
+```text
+/_vercel_keepalive.php
+```
+
+It does not run TYPO3 Scheduler and does not touch the database. It only keeps
+the PHP/Apache container path warm when called by Vercel Cron on Pro or by an
+external uptime scheduler.
+
+Do not add a frequent keepalive cron to the public template. Vercel Hobby cron
+jobs can run only once per day, so `*/5 * * * *` would fail for free deploys.
+
 ## Sources
 
 - Vercel Cron usage/pricing: https://vercel.com/docs/cron-jobs/usage-and-pricing

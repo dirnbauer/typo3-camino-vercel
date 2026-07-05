@@ -35,9 +35,17 @@ successful setup:
 
 ```dotenv
 TYPO3_AUTO_SETUP=0
+TYPO3_BOOTSTRAP_EMPTY_DATABASE=0
+TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=0
 ```
 
 Redeploy with auto setup disabled.
+
+When rotating the admin password later, set the new
+`TYPO3_SETUP_ADMIN_PASSWORD`, set `TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=1`, and
+deploy once. After the logs show the password was applied, set
+`TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=0` and redeploy. Leaving it enabled slows
+every cold start.
 
 ## Vercel CLI / Neon Marketplace Attempt
 

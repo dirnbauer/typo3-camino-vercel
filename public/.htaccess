@@ -158,7 +158,7 @@
 
 	ExpiresByType text/x-cross-domain-policy            "access plus 1 week"
 
-	<FilesMatch "^index\.php$">
+	<FilesMatch "^(index|_vercel_keepalive)\.php$">
 		ExpiresActive Off
 	</FilesMatch>
 

@@ -8,6 +8,26 @@ function typo3_vercel_env(string $name, ?string $default = null): ?string
     return $value === false || $value === '' ? $default : $value;
 }
 
+function typo3_vercel_bool_env(string $name, bool $default): bool
+{
+    $value = typo3_vercel_env($name);
+    if ($value === null) {
+        return $default;
+    }
+
+    return in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
+}
+
+function typo3_vercel_int_env(string $name, int $default, int $min, int $max): int
+{
+    $value = typo3_vercel_env($name);
+    if ($value === null || !is_numeric($value)) {
+        return $default;
+    }
+
+    return max($min, min($max, (int)$value));
+}
+
 function typo3_vercel_is_vercel_runtime(): bool
 {
     return typo3_vercel_env('VERCEL') === '1'
@@ -173,13 +193,90 @@ function typo3_vercel_cache_backend(): string
     $backend = strtolower((string)typo3_vercel_env('TYPO3_CACHE_BACKEND', $default));
 
     return match ($backend) {
+        'redis' => typo3_vercel_redis_cache_base_options() !== null && extension_loaded('redis') ? 'redis' : 'file',
         'file', 'filesystem', 'local' => 'file',
         default => 'database',
     };
 }
 
+function typo3_vercel_redis_url(): ?string
+{
+    return typo3_vercel_env('TYPO3_REDIS_URL')
+        ?? typo3_vercel_env('REDIS_URL')
+        ?? typo3_vercel_env('UPSTASH_REDIS_URL')
+        ?? typo3_vercel_env('KV_URL');
+}
+
+function typo3_vercel_redis_cache_base_options(): ?array
+{
+    $url = typo3_vercel_redis_url();
+    if ($url === null) {
+        return null;
+    }
+
+    $parts = parse_url($url);
+    if ($parts === false || !isset($parts['scheme'], $parts['host'])) {
+        return null;
+    }
+
+    $scheme = strtolower((string)$parts['scheme']);
+    if (!in_array($scheme, ['redis', 'rediss'], true)) {
+        return null;
+    }
+
+    $database = 0;
+    if (isset($parts['path']) && trim((string)$parts['path'], '/') !== '') {
+        $database = (int)trim((string)$parts['path'], '/');
+    }
+
+    $hostname = rawurldecode((string)$parts['host']);
+    if ($scheme === 'rediss') {
+        $hostname = 'tls://' . $hostname;
+    }
+
+    $options = [
+        'hostname' => $hostname,
+        'port' => (int)($parts['port'] ?? ($scheme === 'rediss' ? 6380 : 6379)),
+        'database' => $database,
+        'connectionTimeout' => typo3_vercel_int_env('TYPO3_REDIS_CONNECTION_TIMEOUT', 1, 0, 10),
+        'persistentConnection' => typo3_vercel_bool_env('TYPO3_REDIS_PERSISTENT_CONNECTION', true),
+    ];
+
+    if (isset($parts['user']) && $parts['user'] !== '') {
+        $options['username'] = rawurldecode((string)$parts['user']);
+    }
+    if (isset($parts['pass']) && $parts['pass'] !== '') {
+        $options['password'] = rawurldecode((string)$parts['pass']);
+    }
+
+    return $options;
+}
+
+function typo3_vercel_redis_cache_configuration(string $cacheName, bool $compression = false, array $extraOptions = []): array
+{
+    $options = typo3_vercel_redis_cache_base_options() ?? [];
+    $prefix = typo3_vercel_env('TYPO3_REDIS_PREFIX', 'typo3-camino-vercel:') ?? 'typo3-camino-vercel:';
+    $options['keyPrefix'] = $prefix . $cacheName . ':';
+    $options['compression'] = $compression;
+
+    return [
+        'backend' => 'TYPO3\\CMS\\Core\\Cache\\Backend\\RedisBackend',
+        'options' => array_replace($options, $extraOptions),
+    ];
+}
+
 function typo3_vercel_cache_configurations(): array
 {
+    if (typo3_vercel_cache_backend() === 'redis') {
+        return [
+            'hash' => typo3_vercel_redis_cache_configuration('hash'),
+            'pages' => typo3_vercel_redis_cache_configuration('pages', true),
+            'rootline' => typo3_vercel_redis_cache_configuration('rootline', true, [
+                'defaultLifetime' => 2592000,
+            ]),
+        ];
+    }
+
     if (typo3_vercel_cache_backend() === 'file') {
         return [
             'hash' => [
@@ -257,6 +354,18 @@ function typo3_vercel_settings(): array
                 'className' => 'TYPO3\\CMS\\Core\\Crypto\\PasswordHashing\\Argon2iPasswordHash',
                 'options' => [],
             ],
+        ],
+        'GFX' => [
+            'processor_enabled' => typo3_vercel_bool_env('TYPO3_GFX_PROCESSOR_ENABLED', true),
+            'processor_path' => typo3_vercel_env('TYPO3_GFX_PROCESSOR_PATH', '/usr/bin/'),
+            'processor' => typo3_vercel_env('TYPO3_GFX_PROCESSOR', 'GraphicsMagick'),
+            'processor_effects' => typo3_vercel_bool_env('TYPO3_GFX_PROCESSOR_EFFECTS', false),
+            'processor_colorspace' => typo3_vercel_env('TYPO3_GFX_PROCESSOR_COLORSPACE', ''),
+            'processor_stripColorProfileByDefault' => true,
+            'processor_stripColorProfileParameters' => ['+profile', '*'],
+            'jpg_quality' => typo3_vercel_int_env('TYPO3_GFX_JPG_QUALITY', 85, 1, 100),
+            'webp_quality' => typo3_vercel_int_env('TYPO3_GFX_WEBP_QUALITY', 85, 1, 100),
+            'avif_quality' => typo3_vercel_int_env('TYPO3_GFX_AVIF_QUALITY', 75, 1, 100),
         ],
         'LOG' => [
             'TYPO3' => [

@@ -13,6 +13,7 @@
 - [ ] Keep Vercel runtime filesystem writes disposable.
 - [ ] Keep `TYPO3_AUTO_SETUP=1` only for initial setup.
 - [ ] Use `TYPO3_EXTENSION_SETUP_ON_BOOT=1` for one deploy after extension package changes.
+- [ ] Use `TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=1` for one deploy after password rotation only.
 
 ## After First Deploy
 
@@ -23,6 +24,7 @@
 - [ ] Set `TYPO3_AUTO_SETUP=0`.
 - [ ] Set `TYPO3_BOOTSTRAP_EMPTY_DATABASE=0`.
 - [ ] Set `TYPO3_EXTENSION_SETUP_ON_BOOT=0` after extension setup has run.
+- [ ] Set `TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=0` after password rotation has run.
 - [ ] Redeploy.
 - [ ] Check Vercel runtime logs.
 - [ ] Check TYPO3 system reports.

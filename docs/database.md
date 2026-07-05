@@ -42,7 +42,9 @@ vercel env add DATABASE_URL production --sensitive --force
 ```
 
 Then deploy with `TYPO3_AUTO_SETUP=1` once. After setup, set
-`TYPO3_AUTO_SETUP=0` and `TYPO3_BOOTSTRAP_EMPTY_DATABASE=0` and redeploy.
+`TYPO3_AUTO_SETUP=0`, `TYPO3_BOOTSTRAP_EMPTY_DATABASE=0`,
+`TYPO3_EXTENSION_SETUP_ON_BOOT=0`, and `TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=0`
+and redeploy.
 
 ### MySQL-Compatible
 
@@ -85,7 +87,9 @@ TYPO3_AUTO_SETUP=1
 5. Log in at `/typo3`.
 6. Change `TYPO3_AUTO_SETUP=0`.
 7. Optionally set `TYPO3_BOOTSTRAP_EMPTY_DATABASE=0`.
-8. Redeploy.
+8. Set `TYPO3_EXTENSION_SETUP_ON_BOOT=0` and
+   `TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=0`.
+9. Redeploy.
 
 The bootstrap checks for TYPO3's `be_users` table and skips setup when it
 already exists, but disabling auto setup after first boot avoids unnecessary

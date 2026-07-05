@@ -25,11 +25,12 @@ final class VercelFrontendCacheHeaders implements MiddlewareInterface
             min($ttl * 5, 300),
         );
 
+        $cdnCacheControl = sprintf('s-maxage=%d, stale-while-revalidate=%d', $ttl, $staleWhileRevalidate);
+
         return $response
-            ->withHeader(
-                'Cache-Control',
-                sprintf('public, max-age=0, s-maxage=%d, stale-while-revalidate=%d', $ttl, $staleWhileRevalidate),
-            )
+            ->withHeader('Cache-Control', 'public, max-age=0')
+            ->withHeader('CDN-Cache-Control', $cdnCacheControl)
+            ->withHeader('Vercel-CDN-Cache-Control', $cdnCacheControl)
             ->withHeader('Pragma', 'public');
     }
 
