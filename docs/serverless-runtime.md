@@ -38,7 +38,8 @@ request speed.
 This starter includes a local TYPO3 14 FAL driver named `vercel_s3` for
 S3-compatible object storage. When `TYPO3_OBJECT_STORAGE_ENABLED=1` and the
 `TYPO3_S3_*` variables are set, the entrypoint creates a default TYPO3 storage
-record for durable uploads.
+record for durable uploads and verifies the bucket unless
+`TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=0`.
 
 To disable this behavior for debugging:
 

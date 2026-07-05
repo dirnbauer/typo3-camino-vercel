@@ -66,6 +66,7 @@ Add S3-compatible object storage before editors upload files:
 
 ```dotenv
 TYPO3_OBJECT_STORAGE_ENABLED=1
+TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=1
 TYPO3_S3_BUCKET=<bucket>
 TYPO3_S3_REGION=auto
 TYPO3_S3_ENDPOINT=<s3-compatible-endpoint>
@@ -77,6 +78,10 @@ TYPO3_S3_PUBLIC_BASE_URL=<public-bucket-or-cdn-url>
 Cloudflare R2 works well for a free durable trial because it exposes an
 S3-compatible API. Vercel Blob is not supported by this driver. See
 [Object storage and durable uploads](object-storage.md).
+
+When these variables are present, the Vercel container verifies the bucket at
+startup and creates the TYPO3 upload and processed-file folders in object
+storage. Bad credentials fail the deployment loudly.
 
 ## Backend Login
 

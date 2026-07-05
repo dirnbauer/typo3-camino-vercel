@@ -8,6 +8,7 @@ use Aws\Exception\AwsException;
 use Aws\Result;
 use Aws\S3\S3Client;
 use Psr\Http\Message\ResponseInterface;
+use Symfony\Component\Mime\MimeTypes;
 use TYPO3\CMS\Core\Charset\CharsetConverter;
 use TYPO3\CMS\Core\Http\Response;
 use TYPO3\CMS\Core\Http\SelfEmittableLazyOpenStream;
@@ -96,6 +97,14 @@ final class S3Driver extends AbstractHierarchicalFilesystemDriver implements Str
     }
 
     public function initialize(): void {}
+
+    public function isCaseSensitiveFileSystem(): bool
+    {
+        if (array_key_exists('caseSensitive', $this->configuration)) {
+            return $this->asBool($this->configuration['caseSensitive']);
+        }
+        return true;
+    }
 
     public function getRootLevelFolder(): string
     {
@@ -394,13 +403,16 @@ final class S3Driver extends AbstractHierarchicalFilesystemDriver implements Str
 
     public function isWithin(string $folderIdentifier, string $identifier): bool
     {
-        $folderIdentifier = $this->canonicalizeAndCheckFileIdentifier($folderIdentifier);
-        $entryIdentifier = $this->canonicalizeAndCheckFileIdentifier($identifier);
-        if ($folderIdentifier === $entryIdentifier) {
+        $folderIdentifier = $this->canonicalizeAndCheckFolderIdentifier($folderIdentifier);
+        $entryIdentifier = str_ends_with($identifier, '/')
+            ? $this->canonicalizeAndCheckFolderIdentifier($identifier)
+            : $this->canonicalizeAndCheckFileIdentifier($identifier);
+
+        if ($folderIdentifier === '/' || $folderIdentifier === $entryIdentifier) {
             return true;
         }
-        if ($folderIdentifier !== '/') {
-            $folderIdentifier .= '/';
+        if ($entryIdentifier === rtrim($folderIdentifier, '/')) {
+            return true;
         }
         return str_starts_with($entryIdentifier, $folderIdentifier);
     }
@@ -775,7 +787,7 @@ final class S3Driver extends AbstractHierarchicalFilesystemDriver implements Str
             'Bucket' => $this->bucket,
             'Key' => $this->keyFromFileIdentifier($fileIdentifier),
             'SourceFile' => $localFilePath,
-            'ContentType' => mime_content_type($localFilePath) ?: 'application/octet-stream',
+            'ContentType' => $this->detectContentType($fileIdentifier, $localFilePath),
         ];
         if ($this->cacheControl !== null) {
             $args['CacheControl'] = $this->cacheControl;
@@ -789,7 +801,7 @@ final class S3Driver extends AbstractHierarchicalFilesystemDriver implements Str
             'Bucket' => $this->bucket,
             'Key' => $this->keyFromFileIdentifier($fileIdentifier),
             'Body' => $contents,
-            'ContentType' => 'application/octet-stream',
+            'ContentType' => $this->detectContentType($fileIdentifier),
         ];
         if ($this->cacheControl !== null) {
             $args['CacheControl'] = $this->cacheControl;
@@ -944,6 +956,26 @@ final class S3Driver extends AbstractHierarchicalFilesystemDriver implements Str
     private function copySource(string $key): string
     {
         return $this->bucket . '/' . $this->encodeKeyForUrl($key);
+    }
+
+    private function detectContentType(string $fileIdentifier, ?string $localFilePath = null): string
+    {
+        if ($localFilePath !== null && is_file($localFilePath)) {
+            $detectedType = mime_content_type($localFilePath);
+            if (is_string($detectedType) && $detectedType !== '' && $detectedType !== 'application/octet-stream') {
+                return $detectedType;
+            }
+        }
+
+        $extension = strtolower((string)PathUtility::pathinfo($fileIdentifier, PATHINFO_EXTENSION));
+        if ($extension !== '') {
+            $mimeTypes = MimeTypes::getDefault()->getMimeTypes($extension);
+            if ($mimeTypes !== []) {
+                return $mimeTypes[0];
+            }
+        }
+
+        return 'application/octet-stream';
     }
 
     private function encodeKeyForUrl(string $key): string

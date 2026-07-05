@@ -6,6 +6,7 @@
     "require": {
         "aws/aws-sdk-php": "^3.369",
         "php": "^8.4",
+        "symfony/mime": "^7.4 || ^8.0",
         "typo3/cms-core": "^14.3"
     },
     "autoload": {

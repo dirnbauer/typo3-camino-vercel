@@ -8461,11 +8461,12 @@
             "dist": {
                 "type": "path",
                 "url": "./packages/typo3-vercel-storage",
-                "reference": "8a14af94b48785587bcd036bddc37f1f40000f4d"
+                "reference": "a77574af6dbb2a96e92a43bf743a8e329355f39f"
             },
             "require": {
                 "aws/aws-sdk-php": "^3.369",
                 "php": "^8.4",
+                "symfony/mime": "^7.4 || ^8.0",
                 "typo3/cms-core": "^14.3"
             },
             "type": "typo3-cms-extension",

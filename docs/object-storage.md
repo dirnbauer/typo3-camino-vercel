@@ -18,6 +18,22 @@ S3-compatible object storage:
 Vercel Blob is not supported by this driver because Vercel Blob does not expose
 an S3-compatible API. Blob needs a separate TYPO3 FAL driver.
 
+## Implementation Status
+
+Durable TYPO3 uploads are implemented for S3-compatible storage:
+
+- TYPO3 driver: `vercel_s3`
+- PHP namespace: `Webconsulting\Typo3VercelStorage`
+- Composer package: `webconsulting/typo3-vercel-storage`
+- Boot script: `scripts/apply-object-storage.php`
+- Storage record: `sys_file_storage` uid `2` by default
+
+When `TYPO3_OBJECT_STORAGE_ENABLED=1`, the Vercel container creates or updates
+the TYPO3 storage record on boot. By default it also verifies the bucket and
+creates required folders. If verification fails, the container exits with a
+clear error so uploads do not silently fall back to Vercel's temporary
+filesystem.
+
 ## What The Entrypoint Does
 
 When object storage is enabled, `docker/entrypoint.sh` runs
@@ -28,6 +44,8 @@ When object storage is enabled, `docker/entrypoint.sh` runs
 - sets the driver to `vercel_s3`
 - stores the bucket settings in TYPO3's FlexForm configuration
 - makes uid `2` the default writable upload storage
+- verifies the configured bucket unless `TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=0`
+- creates `user_upload/`, `_processed_/`, and `_temp_/` in the bucket
 - leaves the committed Camino seed files on the local storage uid `1`
 
 Keeping the Camino seed assets on uid `1` avoids breaking the demo records that
@@ -39,6 +57,7 @@ Set these in Vercel for Production, Preview, and Development as needed:
 
 ```dotenv
 TYPO3_OBJECT_STORAGE_ENABLED=1
+TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=1
 TYPO3_S3_BUCKET=<bucket>
 TYPO3_S3_REGION=auto
 TYPO3_S3_ENDPOINT=<s3-compatible-endpoint>
@@ -58,6 +77,7 @@ TYPO3_S3_DEFAULT_FOLDER=user_upload
 TYPO3_S3_CACHE_CONTROL=public, max-age=31536000, immutable
 TYPO3_S3_MAKE_DEFAULT=1
 TYPO3_S3_SIGNED_URL_TTL=0
+TYPO3_S3_PROCESSING_FOLDER=_processed_
 ```
 
 Use a public base URL for normal TYPO3 images and downloads. Signed URLs are
@@ -85,6 +105,28 @@ TYPO3_S3_PATH_STYLE_ENDPOINT=1
 
 Then redeploy. On boot, the container creates the TYPO3 storage record. New
 backend uploads should go to storage uid `2`.
+
+## Add The Variables With Vercel CLI
+
+Run these from the repository root. Use interactive prompts for secrets so they
+do not land in shell history:
+
+```bash
+vercel env add TYPO3_OBJECT_STORAGE_ENABLED production --value 1 --yes
+vercel env add TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT production --value 1 --yes
+vercel env add TYPO3_S3_BUCKET production --value "<bucket>" --yes
+vercel env add TYPO3_S3_REGION production --value "auto" --yes
+vercel env add TYPO3_S3_ENDPOINT production --value "https://<account-id>.r2.cloudflarestorage.com" --yes
+vercel env add TYPO3_S3_PUBLIC_BASE_URL production --value "https://<public-r2-domain>/" --yes
+vercel env add TYPO3_S3_PREFIX production --value "typo3/" --yes
+vercel env add TYPO3_S3_PATH_STYLE_ENDPOINT production --value 1 --yes
+vercel env add TYPO3_S3_ACCESS_KEY_ID production
+vercel env add TYPO3_S3_SECRET_ACCESS_KEY production
+vercel deploy --prod
+```
+
+Repeat the same variables for `preview` if editors should test uploads on
+Preview deployments too.
 
 ## AWS S3 Setup
 
@@ -117,6 +159,14 @@ After deployment:
 7. Confirm the frontend image URL uses `TYPO3_S3_PUBLIC_BASE_URL`.
 8. Redeploy the Vercel project.
 9. Confirm the uploaded file is still available.
+
+You can also confirm the storage record from the database:
+
+```sql
+SELECT uid, name, driver, is_default, processingfolder
+FROM sys_file_storage
+WHERE driver = 'vercel_s3';
+```
 
 ## Security Notes
 

@@ -37,6 +37,10 @@ the free deploy only for checking that the container, TYPO3, and Camino boot.
 **Loud and clear:** uploads are durable only after `TYPO3_OBJECT_STORAGE_ENABLED=1`
 and the `TYPO3_S3_*` bucket variables are configured. Without those variables,
 uploaded files still live in Vercel runtime storage and can disappear.
+When object storage is enabled, the container now verifies the bucket on boot
+and creates the TYPO3 upload, processing, and temp folders there. If the bucket
+credentials are wrong, startup fails loudly instead of pretending uploads are
+safe.
 
 ## Durable Free Demo: Still Free, But Not One-Click Yet
 
@@ -144,6 +148,7 @@ TYPO3_S3_ENDPOINT=<s3-compatible-endpoint>
 TYPO3_S3_ACCESS_KEY_ID=<access-key>
 TYPO3_S3_SECRET_ACCESS_KEY=<secret-key>
 TYPO3_S3_PUBLIC_BASE_URL=<public-bucket-or-cdn-url>
+TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=1
 ```
 
 The admin password must satisfy TYPO3's password policy: use uppercase,

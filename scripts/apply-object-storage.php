@@ -7,6 +7,7 @@ require __DIR__ . '/typo3-env.php';
 
 $root = dirname(__DIR__);
 chdir($root);
+require $root . '/vendor/autoload.php';
 
 if (!typo3_vercel_object_storage_enabled()) {
     fwrite(STDOUT, "TYPO3 object storage is not enabled; keeping local fileadmin storage.\n");
@@ -81,6 +82,14 @@ try {
     exit(1);
 }
 
+if (typo3_vercel_bool_env('TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT', true)) {
+    typo3_vercel_verify_object_storage(
+        $configuration,
+        $storageUid,
+        typo3_vercel_env('TYPO3_S3_PROCESSING_FOLDER', '_processed_')
+    );
+}
+
 fwrite(STDOUT, sprintf(
     "TYPO3 object storage uid %d uses bucket %s and driver vercel_s3.%s\n",
     $storageUid,
@@ -95,15 +104,6 @@ function typo3_vercel_object_storage_enabled(): bool
         return typo3_vercel_bool_env('TYPO3_OBJECT_STORAGE_ENABLED', false);
     }
     return typo3_vercel_env('TYPO3_S3_BUCKET') !== null;
-}
-
-function typo3_vercel_bool_env(string $name, bool $default = false): bool
-{
-    $value = typo3_vercel_env($name);
-    if ($value === null) {
-        return $default;
-    }
-    return in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
 }
 
 function typo3_vercel_object_storage_configuration(): array
@@ -143,6 +143,45 @@ function typo3_vercel_object_storage_configuration(): array
         'cacheControl' => typo3_vercel_env('TYPO3_S3_CACHE_CONTROL', 'public, max-age=31536000, immutable'),
         'caseSensitive' => typo3_vercel_bool_env('TYPO3_S3_CASE_SENSITIVE', true) ? '1' : '0',
     ];
+}
+
+function typo3_vercel_verify_object_storage(array $configuration, int $storageUid, string $processingFolder): void
+{
+    try {
+        $driver = new \Webconsulting\Typo3VercelStorage\Resource\Driver\S3Driver($configuration);
+        $driver->setStorageUid($storageUid);
+        $driver->processConfiguration();
+        $driver->initialize();
+        $driver->getDefaultFolder();
+
+        foreach (typo3_vercel_required_object_storage_folders($configuration, $processingFolder) as $folderIdentifier) {
+            if (!$driver->folderExists($folderIdentifier)) {
+                $driver->createFolder(trim($folderIdentifier, '/'), '/', true);
+            }
+        }
+    } catch (Throwable $exception) {
+        fwrite(STDERR, sprintf("TYPO3 object storage verification failed: %s\n", $exception->getMessage()));
+        exit(1);
+    }
+
+    fwrite(STDOUT, "TYPO3 object storage verified and required folders exist.\n");
+}
+
+function typo3_vercel_required_object_storage_folders(array $configuration, string $processingFolder): array
+{
+    $folders = [
+        '/' . trim((string)($configuration['defaultFolder'] ?? 'user_upload'), '/') . '/',
+        '/_temp_/',
+    ];
+
+    if (!str_contains($processingFolder, ':')) {
+        $folders[] = '/' . trim($processingFolder, '/') . '/';
+    }
+
+    return array_values(array_unique(array_filter(
+        $folders,
+        static fn (string $folderIdentifier): bool => $folderIdentifier !== '//'
+    )));
 }
 
 function typo3_vercel_object_storage_pdo(array $database): PDO
