@@ -111,6 +111,10 @@ So: the backend is faster once the container is warm, but cold backend starts
 are still slow. The public demo uses Vercel Pro/performance CPU in `fra1`
 Frankfurt, which helps warm PHP work but does not remove cold starts.
 
+For a product-manager level summary of what worked, what was coded, what got
+faster, and what Vercel could improve, see
+[docs/vercel-product-manager-summary.md](docs/vercel-product-manager-summary.md).
+
 ## Durable Free Demo: Still Free, But The Database Needs Setup
 
 Yes, a truly durable demo can still be free, but only if every part stays inside
@@ -315,6 +319,7 @@ See [docs/costs.md](docs/costs.md) for the current caveats.
 - [Included TYPO3 packages](docs/typo3-packages.md)
 - [Backend login and sessions](docs/backend-login.md)
 - [Performance notes](docs/performance.md)
+- [Vercel product manager summary](docs/vercel-product-manager-summary.md)
 - [Serverless runtime notes](docs/serverless-runtime.md)
 - [Scheduler and cron](docs/scheduler.md)
 - [Security and firewall](docs/security.md)
