@@ -1,20 +1,6 @@
 # Serverless Runtime Notes
 
-## What The WordPress Template Does
-
-The Vercel WordPress template I checked is ServerlessWP. Its runtime model is:
-
-- committed WordPress core, plugins, and themes are copied to `/tmp/wp` so the
-  PHP runtime can write temporary files
-- real content lives in MySQL, or experimentally in SQLite synced to S3
-- media uploads are handled with S3 through a WordPress plugin
-- WordPress file editing and plugin/theme modification are disabled because
-  runtime filesystem changes do not persist
-
-That means it does not rely on a durable Vercel filesystem. It uses the repo as
-the deployable code image and object/database storage for persistence.
-
-## What This TYPO3 Starter Does
+## Runtime Shape
 
 This project now follows the same safe baseline:
 
@@ -48,6 +34,15 @@ To disable this behavior for debugging:
 TYPO3_SERVERLESS_FILESYSTEM=0
 ```
 
+## WordPress Template Reference
+
+The Vercel WordPress template that informed this starter does not rely on a
+durable Vercel filesystem either. It treats the repository/container image as
+code, uses a real database for content, and moves media uploads to external
+object storage. This TYPO3 starter follows the same principle: code in the
+image, content in the database, uploaded files in Blob or S3-compatible object
+storage.
+
 ## Vercel Blob
 
 Vercel Blob is the Vercel-native object storage path for editor uploads in this
@@ -66,14 +61,14 @@ Practical options:
 
 ## Database
 
-ServerlessWP experiments with SQLite synced to S3. I do not recommend copying
-that pattern to TYPO3 for this starter. TYPO3 has many write paths, backend
-editor workflows, cache writes, scheduler writes, and extension-specific writes.
-Use external MySQL/MariaDB or Postgres for real TYPO3 trials.
+Use external MySQL/MariaDB or Postgres for real TYPO3 trials. TYPO3 has many
+write paths, backend editor workflows, cache writes, scheduler writes, and
+extension-specific writes. The seeded SQLite database is only for the free
+frontend/container smoke test.
 
-## Sources
+## Further Reading
 
-- ServerlessWP template: https://vercel.com/templates/other/serverless-wordpress
-- ServerlessWP repository: https://github.com/mitchmac/serverlesswp
-- Vercel Blob docs: https://vercel.com/docs/vercel-blob
-- Vercel file upload guide: https://vercel.com/kb/guide/how-to-upload-and-store-files-with-vercel
+- [Object storage and durable uploads](object-storage.md)
+- [Vercel Blob FAL driver](vercel-blob-fal-driver.md)
+- [Database setup](database.md)
+- [Performance notes](performance.md)

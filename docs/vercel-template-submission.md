@@ -13,7 +13,7 @@ https://vercel.com/templates/submit
 - GitHub repository: https://github.com/dirnbauer/typo3-camino-vercel
 - Live demo: https://typo3-camino-vercel.vercel.app
 - Demo image: https://typo3-camino-vercel.vercel.app/template-preview.png
-- Deploy button URL: https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fdirnbauer%2Ftypo3-camino-vercel&project-name=typo3-camino-vercel&repository-name=typo3-camino-vercel&demo-title=TYPO3+Camino+on+Vercel&demo-description=Community+Vercel+container+starter+for+TYPO3+14.3+using+the+TYPO3+Camino+distribution.+Not+an+official+TYPO3+package.&demo-url=https%3A%2F%2Ftypo3-camino-vercel.vercel.app&demo-image=https%3A%2F%2Ftypo3-camino-vercel.vercel.app%2Ftemplate-preview.png&from=templates&env=TYPO3_SETUP_ADMIN_USERNAME,TYPO3_SETUP_ADMIN_PASSWORD,TYPO3_ENCRYPTION_KEY&envDescription=Set+a+backend+admin+username%2C+a+long+random+backend+password%2C+and+a+stable+96-character+hex+TYPO3+encryption+key.+Do+not+put+secrets+in+the+URL.&envLink=https%3A%2F%2Fgithub.com%2Fdirnbauer%2Ftypo3-camino-vercel%2Fblob%2Fmain%2Fdocs%2Fquickstart.md
+- Deploy button URL: https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fdirnbauer%2Ftypo3-camino-vercel&project-name=typo3-camino-vercel&repository-name=typo3-camino-vercel&demo-title=TYPO3+Camino+on+Vercel&demo-description=Community+Vercel+container+starter+for+TYPO3+14.3+using+the+TYPO3+Camino+distribution.+Not+an+official+TYPO3+package.&demo-url=https%3A%2F%2Ftypo3-camino-vercel.vercel.app&demo-image=https%3A%2F%2Ftypo3-camino-vercel.vercel.app%2Ftemplate-preview.png&from=templates&env=TYPO3_SETUP_ADMIN_USERNAME%2CTYPO3_SETUP_ADMIN_PASSWORD%2CTYPO3_ENCRYPTION_KEY&envDefaults=%7B%22TYPO3_SETUP_ADMIN_USERNAME%22%3A%22admin%22%7D&envDescription=Choose+a+backend+username%2C+set+a+strong+random+backend+password%2C+and+paste+a+stable+96-character+hex+TYPO3+encryption+key.+The+Deploy+Button+creates+a+public+Vercel+Blob+store+for+durable+uploaded+files.+Add+a+real+database+later+for+stable+backend+login+and+durable+content.&envLink=https%3A%2F%2Fgithub.com%2Fdirnbauer%2Ftypo3-camino-vercel%2Fblob%2Fmain%2Fdocs%2Fquickstart.md&stores=%5B%7B%22type%22%3A%22blob%22%2C%22access%22%3A%22public%22%7D%5D
 - Framework: Container Images
 - Language/runtime: PHP 8.4, Apache
 - Use cases: CMS, Starter, Backend
@@ -22,16 +22,20 @@ https://vercel.com/templates/submit
 
 ## Reviewer Notes
 
-The template deploys without required environment variables for a first visual
-smoke test. The container uses a pre-seeded Camino SQLite database and
-generates an ephemeral TYPO3 encryption key when no key is configured. Backend
-login is not stable in this SQLite mode because TYPO3 sessions are stored in
-the database.
+The template asks users for a backend username, backend password, and stable
+TYPO3 encryption key. It also asks Vercel to create a public Blob store and
+uses the resulting `BLOB_READ_WRITE_TOKEN` to auto-enable the `vercel_blob` FAL
+driver, so editor uploads can be durable from the first deploy when the user
+accepts the storage step.
+
+The container still uses a pre-seeded Camino SQLite database when no durable
+database is configured. Backend login is not stable in this SQLite mode because
+TYPO3 sessions are stored in the database.
 
 For production TYPO3 usage, users should set a stable `TYPO3_ENCRYPTION_KEY`,
-connect a durable SQL database via `DATABASE_URL`, and add persistent object
+connect a durable SQL database via `DATABASE_URL`, and keep persistent object
 storage for editor uploads. Durable uploads are supported through the included
-S3-compatible FAL driver, but the user must provide a bucket and credentials.
+Vercel Blob FAL driver and the S3-compatible FAL driver.
 
 ## Publish Checklist
 

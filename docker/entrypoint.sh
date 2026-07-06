@@ -70,9 +70,12 @@ should_apply_admin_password() {
 }
 
 should_apply_object_storage() {
-  case "${TYPO3_OBJECT_STORAGE_ENABLED:-0}" in
+  case "${TYPO3_OBJECT_STORAGE_ENABLED:-}" in
     1|true|TRUE|yes|YES|on|ON)
       return 0
+      ;;
+    0|false|FALSE|no|NO|off|OFF)
+      return 1
       ;;
   esac
 
@@ -80,7 +83,7 @@ should_apply_object_storage() {
     return 0
   fi
 
-  if [ -n "${TYPO3_OBJECT_STORAGE_DRIVER:-}" ] || [ -n "${BLOB_READ_WRITE_TOKEN:-}" ] || [ -n "${BLOB_STORE_ID:-}" ]; then
+  if [ -n "${TYPO3_OBJECT_STORAGE_DRIVER:-}" ] || [ -n "${TYPO3_BLOB_ENABLED:-}" ] || [ -n "${BLOB_READ_WRITE_TOKEN:-}" ] || [ -n "${BLOB_STORE_ID:-}" ]; then
     return 0
   fi
 

@@ -6,9 +6,11 @@
 2. Use a generated admin password with upper/lowercase letters, a number, and
    a symbol.
 3. Use a stable generated `TYPO3_ENCRYPTION_KEY`.
-4. Do not add `DATABASE_URL` for the free smoke test.
-5. Deploy.
-6. Open the frontend and confirm Camino renders.
+4. Keep the public Vercel Blob store enabled if you want uploaded files to be
+   durable.
+5. Do not add `DATABASE_URL` for the free smoke test.
+6. Deploy.
+7. Open the frontend and confirm Camino renders.
 
 ```dotenv
 TYPO3_SETUP_ADMIN_USERNAME=admin
@@ -31,8 +33,9 @@ openssl rand -base64 32
 TYPO3 validates the initial admin password. If setup rejects it, generate a new
 one that includes uppercase, lowercase, numbers, and a symbol.
 
-This mode is free-demo mode: seeded SQLite, no external database, no object
-storage, no stable backend login, and no durable edits. See
+This mode is free-demo mode: seeded SQLite, no external database, no stable
+backend login, and no durable database edits. Uploaded files are durable only
+when the Deploy Button-created Blob store is enabled. See
 [Free demo mode](free-demo.md).
 
 ## Secure Enough For A Real Trial
@@ -62,10 +65,29 @@ DATABASE_URL production --sensitive --force`.
 
 ## Durable Uploads
 
-Add S3-compatible object storage before editors upload files:
+The README Deploy Button can create a public Vercel Blob store. Keep that store
+enabled for the easiest all-Vercel path. There are no Blob fields to fill in:
+Vercel creates `BLOB_READ_WRITE_TOKEN`, and this starter automatically enables
+the `vercel_blob` FAL driver when that token exists.
+
+For manual setup, add object storage before editors upload files. For an
+all-Vercel trial, use Vercel Blob:
 
 ```dotenv
 TYPO3_OBJECT_STORAGE_ENABLED=1
+TYPO3_OBJECT_STORAGE_DRIVER=vercel_blob
+TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=1
+TYPO3_BLOB_ACCESS=public
+TYPO3_BLOB_PREFIX=typo3/
+```
+
+Vercel supplies `BLOB_READ_WRITE_TOKEN` when a Blob store is connected to the
+project. For Cloudflare R2, AWS S3, MinIO, or another S3-compatible provider,
+use the S3 driver:
+
+```dotenv
+TYPO3_OBJECT_STORAGE_ENABLED=1
+TYPO3_OBJECT_STORAGE_DRIVER=vercel_s3
 TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=1
 TYPO3_S3_BUCKET=<bucket>
 TYPO3_S3_REGION=auto
@@ -75,9 +97,7 @@ TYPO3_S3_SECRET_ACCESS_KEY=<secret-key>
 TYPO3_S3_PUBLIC_BASE_URL=<public-bucket-or-cdn-url>
 ```
 
-Vercel Blob works well for an all-Vercel durable trial; Cloudflare R2 is still
-available through the S3-compatible driver. See
-[Object storage and durable uploads](object-storage.md).
+See [Object storage and durable uploads](object-storage.md).
 
 When these variables are present, the Vercel container verifies the bucket at
 startup and creates the TYPO3 upload and processed-file folders in object
@@ -115,7 +135,8 @@ seeded SQLite, the backend can log out after a few seconds because the
 - Use a stable `TYPO3_ENCRYPTION_KEY`.
 - Use `TYPO3_TRUSTED_HOSTS_PATTERN` for the exact domain before production.
 - Add a real database before backend editing or content you want to keep.
-- Add S3-compatible object storage before accepting editor uploads.
+- Add object storage before accepting editor uploads. Use Vercel Blob for the
+  all-Vercel path, or the S3 driver for R2/S3-compatible providers.
 - Keep Vercel Functions close to the database region.
 - Keep setup/password rotation flags disabled after their one deploy.
 - Enable MFA for backend admin users after first login.

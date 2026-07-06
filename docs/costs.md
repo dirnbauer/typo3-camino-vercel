@@ -51,8 +51,10 @@ For the cheapest test:
 1. use Vercel Hobby
 2. use the seeded SQLite demo
 3. do not add `DATABASE_URL`
-4. do not create an object storage bucket
-5. do not use it for backend editing or content you need to keep
+4. keep the Deploy Button-created Blob store if you want uploaded files to
+   survive runtime restarts
+5. skip Blob only for the absolute smallest smoke test
+6. do not use SQLite mode for backend editing or content you need to keep
 
 For a more realistic free/low-cost test:
 
@@ -69,9 +71,12 @@ For a durable free demo with persistent uploads:
 4. wire TYPO3 uploads through the included Blob or S3-compatible FAL driver
 5. keep usage inside every provider's free limits
 
-This is not one-click yet. The current one-click demo does not include durable
-uploaded files until a Blob/S3 store is created and object storage env vars are
-enabled.
+The file-storage part can be one-click now: the README Deploy Button asks
+Vercel to create a public Blob store, and this starter auto-enables the Blob
+FAL driver when Vercel provides the Blob token. The database part is still not
+one-click. A fully durable TYPO3 demo needs a real database connection in
+`DATABASE_URL`. The public demo deployment is already configured with Vercel
+Blob and a durable database as a working example.
 
 ## Sources
 

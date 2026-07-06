@@ -1,6 +1,6 @@
 # TYPO3 Camino on Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fdirnbauer%2Ftypo3-camino-vercel&project-name=typo3-camino-vercel&repository-name=typo3-camino-vercel&demo-title=TYPO3+Camino+on+Vercel&demo-description=Community+Vercel+container+starter+for+TYPO3+14.3+using+the+TYPO3+Camino+distribution.+Not+an+official+TYPO3+package.&demo-url=https%3A%2F%2Ftypo3-camino-vercel.vercel.app&demo-image=https%3A%2F%2Ftypo3-camino-vercel.vercel.app%2Ftemplate-preview.png&from=templates&env=TYPO3_SETUP_ADMIN_USERNAME,TYPO3_SETUP_ADMIN_PASSWORD,TYPO3_ENCRYPTION_KEY&envDescription=Set+a+backend+admin+username%2C+a+long+random+backend+password%2C+and+a+stable+96-character+hex+TYPO3+encryption+key.+Do+not+put+secrets+in+the+URL.&envLink=https%3A%2F%2Fgithub.com%2Fdirnbauer%2Ftypo3-camino-vercel%2Fblob%2Fmain%2Fdocs%2Fquickstart.md)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fdirnbauer%2Ftypo3-camino-vercel&project-name=typo3-camino-vercel&repository-name=typo3-camino-vercel&demo-title=TYPO3+Camino+on+Vercel&demo-description=Community+Vercel+container+starter+for+TYPO3+14.3+using+the+TYPO3+Camino+distribution.+Not+an+official+TYPO3+package.&demo-url=https%3A%2F%2Ftypo3-camino-vercel.vercel.app&demo-image=https%3A%2F%2Ftypo3-camino-vercel.vercel.app%2Ftemplate-preview.png&from=templates&env=TYPO3_SETUP_ADMIN_USERNAME%2CTYPO3_SETUP_ADMIN_PASSWORD%2CTYPO3_ENCRYPTION_KEY&envDefaults=%7B%22TYPO3_SETUP_ADMIN_USERNAME%22%3A%22admin%22%7D&envDescription=Choose+a+backend+username%2C+set+a+strong+random+backend+password%2C+and+paste+a+stable+96-character+hex+TYPO3+encryption+key.+The+Deploy+Button+creates+a+public+Vercel+Blob+store+for+durable+uploaded+files.+Add+a+real+database+later+for+stable+backend+login+and+durable+content.&envLink=https%3A%2F%2Fgithub.com%2Fdirnbauer%2Ftypo3-camino-vercel%2Fblob%2Fmain%2Fdocs%2Fquickstart.md&stores=%5B%7B%22type%22%3A%22blob%22%2C%22access%22%3A%22public%22%7D%5D)
 
 This is not an official TYPO3 package. It is a community Vercel container
 starter for TYPO3 14.3 that uses the TYPO3 Camino distribution, packaged as a
@@ -10,42 +10,106 @@ This is a lab/template starter, not a production recommendation for every
 TYPO3 project. It is useful for testing Vercel's container support with TYPO3
 and for learning what works well on a stateless platform.
 
-## Important: Free Demo Data And Login Are Temporary
+## Install TYPO3 On Vercel
 
-The one-click free demo is usable as a frontend/container smoke test, but it is
-not durable and the TYPO3 backend login is not stable:
+This is the shortest safe path for non-technical testing.
 
-- You can upload files in TYPO3.
-- You can edit pages and records.
-- Those uploaded files and content changes can disappear.
-- The backend can log you out after a few seconds.
+1. Click **Deploy with Vercel**.
+2. Sign in to Vercel or create a free Hobby account.
+3. Choose your personal account or team.
+4. Keep the Vercel Blob store enabled when Vercel asks for storage. The button
+   creates a public Blob store for uploaded TYPO3 images and files.
+5. Enter the TYPO3 setup values:
 
-Why: the free demo uses SQLite and runtime `fileadmin` storage inside the
-Vercel container. TYPO3 stores backend sessions in the database table
-`be_sessions`. Vercel can start more than one runtime instance, and those
-instances do not share the SQLite file in `/tmp`.
+```dotenv
+TYPO3_SETUP_ADMIN_USERNAME=admin
+TYPO3_SETUP_ADMIN_PASSWORD=<your-own-strong-password>
+TYPO3_ENCRYPTION_KEY=<96-random-hex-characters>
+```
 
-For non-temporary files and content, add both:
+There are no Blob fields to fill in. Vercel creates the Blob token for the
+project, and this starter automatically uses the `vercel_blob` FAL driver when
+that token exists.
+
+6. Click **Deploy** and wait until Vercel shows the project URL.
+7. Open the site. The TYPO3 backend is available at `/typo3/`.
+
+To create the encryption key on macOS, open **Terminal**, paste this command,
+and copy the output into `TYPO3_ENCRYPTION_KEY`:
+
+```bash
+openssl rand -hex 48
+```
+
+Keep the encryption key and backend password in your own password manager.
+Never put the password, encryption key, database URL, or Blob token into a
+public GitHub file.
+
+## What You Get After One Click
+
+A fresh free clone gives you:
+
+- a working TYPO3 14.3 Camino frontend
+- a TYPO3 backend login for short tests
+- durable uploaded files when the Vercel Blob store is accepted
+- a pre-seeded SQLite demo database so the site starts without database setup
+
+The important limitation is the database. Without a real database, TYPO3
+content changes and backend sessions are still temporary. The backend can log
+you out after a few seconds because the free demo database lives in Vercel
+runtime storage, not in a shared durable database.
+
+For a real test site, add:
 
 - a durable database through `DATABASE_URL`
-- external object storage through Vercel Blob or the S3-compatible TYPO3 FAL driver
+- Vercel Blob storage from the Deploy Button, or S3-compatible object storage
 
 For a stable backend login, the durable database is required. For durable
-editor uploads, object storage is also required. Until both are configured, use
-the free deploy only for checking that the container, TYPO3, and Camino boot.
+editor uploads, Blob or S3-compatible object storage is required. If you accept
+the Blob store during the Deploy Button flow, the file part is already wired.
 
-**Loud and clear:** uploads are durable only after
-`TYPO3_OBJECT_STORAGE_ENABLED=1` and an object-storage driver is configured.
-For an all-Vercel setup, use `TYPO3_OBJECT_STORAGE_DRIVER=vercel_blob` with a
-connected Vercel Blob store. For S3-compatible storage, use
-`TYPO3_OBJECT_STORAGE_DRIVER=vercel_s3` and the `TYPO3_S3_*` bucket variables.
-Without one of those setups, uploaded files still live in Vercel runtime storage
-and can disappear. When object storage is enabled, the container verifies the
-storage on boot and creates the TYPO3 upload, processing, and temp folders
-there. If credentials are wrong, startup fails loudly instead of pretending
-uploads are safe.
+## Important: Database Data And Login Are Temporary Until You Add A DB
 
-## Durable Free Demo: Still Free, But Not One-Click Yet
+Say this loudly: the one-click deploy can make files durable through Vercel
+Blob, but it does not make TYPO3's database durable.
+
+- You can upload files in TYPO3, and they are durable if Blob is enabled.
+- You can edit pages and records.
+- Those page/content/database changes can disappear without a real database.
+- The backend can log you out after a few seconds without a real database.
+
+Why: the free clone uses SQLite inside the Vercel runtime. TYPO3 stores backend
+sessions in the database table `be_sessions`. Vercel can start more than one
+runtime instance, and those instances do not share the SQLite file in `/tmp`.
+
+For all-Vercel file storage, this starter uses
+the `vercel_blob` FAL driver automatically when a Vercel Blob store is
+connected. For S3-compatible storage, use `TYPO3_OBJECT_STORAGE_DRIVER=vercel_s3`
+and the `TYPO3_S3_*` bucket variables. When object storage is enabled, the
+container verifies storage on boot and creates the TYPO3 upload, processing,
+and temp folders there. If credentials are wrong, startup fails loudly instead
+of pretending uploads are safe. To disable automatic Blob storage in a test
+project, set `TYPO3_OBJECT_STORAGE_ENABLED=0`.
+
+## Current Public Demo State
+
+The public demo at https://typo3-camino-vercel.vercel.app is no longer the
+bare one-click state. It is configured with a durable database and Vercel Blob
+object storage. New clones do not inherit those resources; they still need the
+database setup described below. File storage is easier: the Deploy Button can
+create a new Vercel Blob store for the clone.
+
+Measured on 2026-07-06 against the live Vercel deployment:
+
+- cold backend login page: about 12.4 seconds
+- warm backend login page: p50 about 0.255 seconds over 10 requests
+- warm backend login preflight Ajax: p50 about 0.190 seconds over 10 requests
+- warm frontend home page: p50 about 0.129 seconds over 10 requests
+
+So: the backend is faster once the container is warm, but cold backend starts
+are still slow. Backend routes are intentionally not edge-cached.
+
+## Durable Free Demo: Still Free, But The Database Needs Setup
 
 Yes, a truly durable demo can still be free, but only if every part stays inside
 its provider's free quota.
@@ -59,17 +123,19 @@ Best practical zero-cost shape:
 
 What this means today:
 
-- The current one-click demo is free, but uploaded files are temporary.
-- One-click free demo with durable uploaded files still needs setup steps.
-- A durable free demo needs setup steps for the database and object storage.
-- Vercel Blob can now be wired through the included Blob FAL driver.
+- A fresh one-click clone is free and can have durable uploaded files through
+  the Blob store created by the Deploy Button.
+- A fully durable TYPO3 demo still needs a real database, so content and backend
+  sessions survive runtime restarts.
+- Vercel Blob is wired through the included Blob FAL driver.
 - Cloudflare R2 can still be wired through the included S3-compatible FAL driver.
 - It stays free only while usage remains inside all free-tier limits.
 
 ## What Works
 
 - Free one-click Vercel smoke deploy with a pre-seeded Camino SQLite demo
-  database and no external storage requirement.
+  database.
+- Deploy Button-created Vercel Blob store for durable editor uploads.
 - Stable backend login when a durable SQL database is configured.
 - TYPO3 14.3 Composer install with Camino and the current TYPO3 CMS system
   package set included.
@@ -86,14 +152,17 @@ What this means today:
 - No Linux daemon cron inside the container. Use Vercel Cron or an external cron service.
 - No durable local filesystem. Runtime writes in `/tmp`, `var/`, or `fileadmin/` can disappear.
 - SQLite is demo-only on Vercel. It is not reliable for TYPO3 backend sessions.
-- Editor uploads are not durable unless Vercel Blob or S3-compatible object storage is configured.
+- Editor uploads are not durable if the Blob store is skipped and no
+  S3-compatible object storage is configured.
 - This starter is not a GDPR/legal compliance guarantee.
 
 ## Quick Demo
 
 1. Click **Deploy with Vercel** and choose your personal Hobby account for the
    free demo.
-2. Enter these required values in the Vercel form:
+2. Keep the public Vercel Blob store enabled if you want uploaded files to
+   survive redeploys and runtime restarts.
+3. Enter these required values in the Vercel form:
 
 ```dotenv
 TYPO3_SETUP_ADMIN_USERNAME=admin
@@ -107,17 +176,16 @@ Generate the encryption key locally:
 openssl rand -hex 48
 ```
 
-3. Deploy and open the frontend.
+4. Deploy and open the frontend.
 
 The first deploy uses the seeded SQLite demo database unless you add a real
 database. For a real database, read [docs/database.md](docs/database.md) before
 deploying.
 
-For the free demo, do not add `DATABASE_URL` and do not create an object
-storage bucket.
-The demo will reset when Vercel replaces the runtime container, so use it only
-for testing the package and Camino frontend. Backend login needs a durable
-database.
+For a fresh free clone, you can leave `DATABASE_URL` empty. The demo database
+can reset when Vercel replaces the runtime container, so use that mode only for
+testing the package and Camino frontend. Backend login needs a durable database
+before you rely on it.
 
 ## Production Shape
 
@@ -140,7 +208,12 @@ TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=0
 TYPO3_EXTENSION_SETUP_ON_BOOT=0
 ```
 
-For durable uploads with Vercel Blob, create/connect a public Blob store and add:
+For durable uploads with Vercel Blob, the Deploy Button path needs no extra
+Blob env fields. Vercel creates `BLOB_READ_WRITE_TOKEN`, and the starter
+auto-enables Blob storage when that token exists.
+
+For manual or advanced Vercel Blob setup, create/connect a public Blob store
+and add:
 
 ```dotenv
 TYPO3_OBJECT_STORAGE_ENABLED=1
@@ -212,6 +285,7 @@ See [docs/costs.md](docs/costs.md) for the current caveats.
 
 ## Documentation
 
+- [Vercel Blob FAL driver](docs/vercel-blob-fal-driver.md)
 - [Quickstart](docs/quickstart.md)
 - [Free demo mode](docs/free-demo.md)
 - [Database setup](docs/database.md)

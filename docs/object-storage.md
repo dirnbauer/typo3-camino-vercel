@@ -25,6 +25,13 @@ Supported storage targets:
 Vercel Blob is not S3-compatible, so it uses the separate
 `typo3_vercel_blob_storage` extension instead of the S3 driver.
 
+The public demo deployment uses this Vercel Blob path. New projects cloned from
+the Deploy Button can create their own Vercel Blob store during deployment. If
+you skip that storage step, configure a Blob store or S3-compatible bucket
+manually before accepting uploads.
+For the full Blob extension manual, see
+[Vercel Blob FAL driver](vercel-blob-fal-driver.md).
+
 ## Implementation Status
 
 Durable TYPO3 uploads are implemented for Vercel Blob and S3-compatible
@@ -46,11 +53,14 @@ S3-compatible implementation:
 - Boot script: `scripts/apply-object-storage.php`
 - Storage record: `sys_file_storage` uid `2` by default
 
-When `TYPO3_OBJECT_STORAGE_ENABLED=1`, the Vercel container creates or updates
-the TYPO3 storage record on boot. By default it also verifies the storage and
-creates required folders. If verification fails, the container exits with a
-clear error so uploads do not silently fall back to Vercel's temporary
-filesystem.
+When object storage is enabled, the Vercel container creates or updates the
+TYPO3 storage record on boot. This happens when
+`TYPO3_OBJECT_STORAGE_ENABLED=1`, when `TYPO3_OBJECT_STORAGE_DRIVER` is set, or
+when a connected Vercel Blob store provides `BLOB_READ_WRITE_TOKEN`. Explicit
+`TYPO3_OBJECT_STORAGE_ENABLED=0` disables automatic Blob setup. By default the
+container also verifies the storage and creates required folders. If
+verification fails, the container exits with a clear error so uploads do not
+silently fall back to Vercel's temporary filesystem.
 
 ## What The Entrypoint Does
 
@@ -72,6 +82,36 @@ already reference local files.
 ## Vercel Blob Setup
 
 This is the all-Vercel durable upload path.
+
+### Easiest path: Deploy Button
+
+Use the Deploy Button in the README and keep the public Vercel Blob store
+enabled. The button uses Vercel's `stores` parameter to create the Blob store.
+Vercel then adds `BLOB_READ_WRITE_TOKEN` to the project environment. This
+starter sees that token and automatically uses the `vercel_blob` FAL driver.
+
+No Blob settings are required for the normal Deploy Button path.
+
+These are the default values used by the starter:
+
+```dotenv
+TYPO3_OBJECT_STORAGE_ENABLED=1
+TYPO3_OBJECT_STORAGE_DRIVER=vercel_blob
+TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=1
+TYPO3_BLOB_ACCESS=public
+TYPO3_BLOB_PREFIX=typo3/
+```
+
+You still need to type your own TYPO3 admin password and encryption key. The
+Blob token is created by Vercel and is not placed in the Deploy Button URL.
+
+To turn this off in a disposable test project, set:
+
+```dotenv
+TYPO3_OBJECT_STORAGE_ENABLED=0
+```
+
+### Manual path: Vercel CLI
 
 1. Create a public Vercel Blob store connected to the project.
 2. Enable TYPO3 object storage with the Blob driver.

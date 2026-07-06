@@ -81,27 +81,30 @@ openssl rand -hex 48
 openssl rand -base64 32
 ```
 
-Do not put generated secret values in the Deploy Button URL. Vercel documents
-that Deploy Button env values must be entered by the user because URLs land in
-browser history.
+Do not put generated secret values in the Deploy Button URL. The Deploy Button
+may pre-fill only non-secret defaults, such as the default admin username.
+Passwords, tokens, database URLs, and encryption keys must be entered by the
+user or added as encrypted Vercel environment variables.
 
 ## First Deploy
 
 1. Create the Vercel project from the Deploy Button or import this repository.
-2. Add the production environment variables above.
-3. Add a durable database if this is not a disposable test.
-4. Deploy.
-5. Confirm the frontend loads.
-6. Open `/typo3` and sign in with the configured admin credentials only after
+2. Keep the Deploy Button-created Vercel Blob store enabled if you want durable
+   uploaded files.
+3. Add the production environment variables above.
+4. Add a durable database if this is not a disposable test.
+5. Deploy.
+6. Confirm the frontend loads.
+7. Open `/typo3` and sign in with the configured admin credentials only after
    `DATABASE_URL` points to a durable database.
-7. Set `TYPO3_AUTO_SETUP=0` after successful database initialization.
-8. Set `TYPO3_BOOTSTRAP_EMPTY_DATABASE=0` for stricter production startup.
-9. If extensions were added after the database was created, set
+8. Set `TYPO3_AUTO_SETUP=0` after successful database initialization.
+9. Set `TYPO3_BOOTSTRAP_EMPTY_DATABASE=0` for stricter production startup.
+10. If extensions were added after the database was created, set
    `TYPO3_EXTENSION_SETUP_ON_BOOT=1` for one deploy.
-10. Redeploy so the new env values are applied.
-11. After extension setup has run, set `TYPO3_EXTENSION_SETUP_ON_BOOT=0` and
+11. Redeploy so the new env values are applied.
+12. After extension setup has run, set `TYPO3_EXTENSION_SETUP_ON_BOOT=0` and
     redeploy.
-12. If the backend password is rotated later, set
+13. If the backend password is rotated later, set
     `TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=1` for one deploy, then set it back to
     `0` and redeploy.
 
@@ -164,6 +167,7 @@ vercel deploy --prod --scope webconsulting --regions fra1
 
 ## Sources
 
+- Vercel Deploy Button source and `stores`: https://vercel.com/docs/deploy-button/source
 - Vercel Deploy Button env vars: https://vercel.com/docs/deploy-button/environment-variables
 - Vercel Deploy Button demo card: https://vercel.com/docs/deploy-button/demo
 - Vercel project configuration: https://vercel.com/docs/project-configuration

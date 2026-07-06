@@ -111,6 +111,7 @@ function typo3_vercel_object_storage_enabled(): bool
     }
     return typo3_vercel_env('TYPO3_OBJECT_STORAGE_DRIVER') !== null
         || typo3_vercel_env('TYPO3_S3_BUCKET') !== null
+        || typo3_vercel_bool_env('TYPO3_BLOB_ENABLED', false)
         || typo3_vercel_env('BLOB_READ_WRITE_TOKEN') !== null
         || typo3_vercel_env('BLOB_STORE_ID') !== null;
 }

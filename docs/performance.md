@@ -24,6 +24,39 @@ The largest avoidable startup costs were self-inflicted:
 
 Those are now optimized.
 
+## Current Live Measurements
+
+Measured on 2026-07-06 against
+`https://typo3-camino-vercel.vercel.app` after adding the Vercel Blob FAL
+driver and enabling production object storage.
+
+| Route | Result |
+| --- | --- |
+| Cold backend login page, `/typo3/` | about 12.4 seconds |
+| Warm backend login page, `/typo3/` | p50 0.255 seconds, min 0.217, max 0.306 over 10 requests |
+| Warm backend login preflight, `/typo3/ajax/login/preflight` | p50 0.190 seconds, min 0.161, max 0.244 over 10 requests |
+| Warm frontend home page, `/` | p50 0.129 seconds, min 0.123, max 0.201 over 10 requests |
+
+One earlier five-request backend probe also produced one transient Vercel
+`500` after about 25 seconds. It did not repeat in the later 10-request warm
+sample, but it is a reminder that cold starts and platform-level invocation
+outliers are still possible.
+
+The answer to "is the backend faster now?" is mixed:
+
+- warm backend responses are fast enough for a demo, around 0.2-0.3 seconds for
+  the login page and login preflight
+- cold backend starts are not materially faster than the earlier 10-13 second
+  baseline
+- backend pages cannot use the optional Vercel edge HTML cache because they use
+  cookies, sessions, and no-store headers
+
+Authenticated backend navigation was not included in this measurement because
+the pulled local Vercel env file does not expose the sensitive backend
+password. The login page and login preflight still exercise the TYPO3 backend
+container, database/session setup, PHP runtime, and uncached backend response
+path.
+
 ## Runtime Region
 
 `vercel.json` pins the deployment to `fra1`:
