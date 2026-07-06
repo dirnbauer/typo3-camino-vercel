@@ -146,6 +146,8 @@ What this means today:
 - Vercel Firewall/WAF in front of the container.
 - Vercel region pinning and runtime-local TYPO3 caches for faster warm requests.
 - Optional Vercel CDN caching for anonymous public frontend HTML.
+- Vercel memory/CPU can be raised only in the Vercel dashboard on Pro/Enterprise;
+  Hobby/free test deployments use Vercel's fixed size.
 
 ## What Does Not Work
 

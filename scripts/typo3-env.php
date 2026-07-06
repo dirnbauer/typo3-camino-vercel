@@ -44,13 +44,22 @@ function typo3_vercel_database_config(): array
         return typo3_vercel_database_config_from_url($url);
     }
 
-    $driver = typo3_vercel_env('TYPO3_DB_DRIVER', 'mysqli');
+    $driver = typo3_vercel_env(
+        'TYPO3_DB_DRIVER',
+        typo3_vercel_is_vercel_runtime() ? 'pdo_sqlite' : 'mysqli',
+    );
 
     if (in_array($driver, ['sqlite', 'pdo_sqlite'], true)) {
         return [
             'charset' => 'utf8',
             'driver' => 'pdo_sqlite',
-            'path' => typo3_vercel_env('TYPO3_DB_PATH', typo3_vercel_env('TYPO3_DB_DBNAME', '/tmp/typo3/typo3.sqlite')),
+            'path' => typo3_vercel_env(
+                'TYPO3_DB_PATH',
+                typo3_vercel_env(
+                    'TYPO3_DB_DBNAME',
+                    typo3_vercel_is_vercel_runtime() ? '/tmp/typo3/camino.sqlite' : '/tmp/typo3/typo3.sqlite',
+                ),
+            ),
         ];
     }
 

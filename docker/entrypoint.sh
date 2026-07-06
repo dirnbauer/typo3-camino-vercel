@@ -124,6 +124,19 @@ fix_runtime_permissions_recursive() {
   chown -h www-data:www-data var public/fileadmin public/typo3temp 2>/dev/null || true
 }
 
+seed_runtime_cache() {
+  if [ "${TYPO3_USE_SEEDED_CACHE:-1}" = "0" ] || [ ! -d /usr/local/share/typo3-seed/cache ]; then
+    return 0
+  fi
+
+  if [ -d /tmp/typo3/var/cache ] && [ -n "$(find /tmp/typo3/var/cache -mindepth 1 -maxdepth 1 -print -quit)" ]; then
+    return 0
+  fi
+
+  rm -rf /tmp/typo3/var/cache
+  cp -a /usr/local/share/typo3-seed/cache /tmp/typo3/var/cache
+}
+
 mkdir -p \
   /tmp/typo3/var \
   /tmp/typo3/fileadmin \
@@ -139,6 +152,7 @@ if [ -z "${TYPO3_ENCRYPTION_KEY:-}" ]; then
 fi
 
 prepare_runtime_directory var /tmp/typo3/var
+seed_runtime_cache
 
 if [ "$TYPO3_SERVERLESS_FILESYSTEM" != "0" ]; then
   prepare_runtime_directory public/fileadmin /tmp/typo3/fileadmin

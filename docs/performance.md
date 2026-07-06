@@ -24,6 +24,12 @@ The largest avoidable startup costs were self-inflicted:
 
 Those are now optimized.
 
+The container also ships a prebuilt TYPO3 code cache from the image build. On a
+fresh Vercel runtime start, the entrypoint copies that cache into `/tmp` before
+Apache starts handling requests. This avoids forcing the first backend request
+to compile all TYPO3 dependency-injection, TCA, route, and module caches from
+zero.
+
 ## Current Live Measurements
 
 Measured on 2026-07-06 against
@@ -68,6 +74,29 @@ path.
 Keep this close to the database. If the database is in another region, move the
 function region to the database region first.
 
+## Memory And CPU
+
+Vercel Container Images use the Vercel Functions resource model. Current Vercel
+docs say memory/CPU is not configured in `vercel.json`; attempting to set
+function memory there is ignored or warned about at build time.
+
+For Pro or Enterprise projects, increase memory/CPU in the dashboard:
+
+1. Open the Vercel project.
+2. Go to **Settings**.
+3. Open **Functions**.
+4. Open **Advanced Settings**.
+5. Change **Function CPU** from the default tier to the performance tier.
+6. Redeploy production.
+
+On Hobby, the memory/CPU size is fixed by Vercel. You cannot increase it for a
+free test deployment.
+
+More memory can help CPU-heavy PHP work, image processing, or memory pressure.
+It will not remove all TYPO3 backend latency because uncached backend requests
+still need PHP bootstrap, database/session work, and sometimes a fresh Vercel
+runtime start.
+
 ## TYPO3 Cache Backend
 
 On Vercel, this starter defaults page, hash, and rootline caches to TYPO3's file
@@ -80,6 +109,17 @@ TYPO3_CACHE_BACKEND=file
 Those cache files live under the runtime `/tmp` state and are disposable. This
 is intentional for Vercel: content and sessions belong in the real database,
 but generated caches can be rebuilt per instance.
+
+The default free-demo database is explicitly:
+
+```dotenv
+TYPO3_DB_DRIVER=pdo_sqlite
+TYPO3_DB_DBNAME=/tmp/typo3/camino.sqlite
+```
+
+If these are present in Vercel as empty env vars, set them to the values above
+or remove them. Empty overrides can make the runtime fall back to the wrong DB
+driver and make backend behavior inconsistent.
 
 Use this if warm frontend speed matters. Use this instead if you prefer shared
 cache rows in the database:
@@ -182,14 +222,15 @@ runtime files are disposable. Durable editor uploads still need object storage.
 
 ## Vercel Package
 
-A larger Vercel memory/CPU setting is not the first fix for this demo. The
-measured CPU time was much smaller than total request time. Start with:
+A larger Vercel memory/CPU setting is not the first fix for this demo. Start
+with:
 
 1. durable database in the same region as the function
 2. `TYPO3_CACHE_BACKEND=file`
 3. optional edge HTML cache for anonymous pages
 4. startup flags set to `0` after one-shot setup work is complete
 5. object storage for durable uploads
+6. seeded TYPO3 code cache enabled, the default
 
 Consider a higher Vercel memory/CPU tier only after metrics show CPU-bound PHP
 work or memory pressure.
