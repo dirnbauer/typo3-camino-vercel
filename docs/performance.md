@@ -22,13 +22,9 @@ The largest avoidable startup costs were self-inflicted:
 - PHP OPcache used conservative defaults instead of immutable-container
   settings
 
-Those are now optimized.
-
-The container also ships a prebuilt TYPO3 code cache from the image build. On a
-fresh Vercel runtime start, the entrypoint copies that cache into `/tmp` before
-Apache starts handling requests. This avoids forcing the first backend request
-to compile all TYPO3 dependency-injection, TCA, route, and module caches from
-zero.
+Those are now optimized. Preseeding TYPO3's generated code cache in the image
+was tested and reverted because TYPO3's runtime cache can include environment-
+specific state that is not safe to reuse across Vercel runtime starts.
 
 ## Current Live Measurements
 
@@ -230,7 +226,6 @@ with:
 3. optional edge HTML cache for anonymous pages
 4. startup flags set to `0` after one-shot setup work is complete
 5. object storage for durable uploads
-6. seeded TYPO3 code cache enabled, the default
 
 Consider a higher Vercel memory/CPU tier only after metrics show CPU-bound PHP
 work or memory pressure.
