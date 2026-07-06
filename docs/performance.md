@@ -72,9 +72,9 @@ function region to the database region first.
 
 ## Memory And CPU
 
-Vercel Container Images use the Vercel Functions resource model. Current Vercel
-docs say memory/CPU is not configured in `vercel.json`; attempting to set
-function memory there is ignored or warned about at build time.
+Vercel Container Images use the Vercel Functions resource model. Memory/CPU is
+not configured in `vercel.json`; attempting to set function memory there is
+ignored or warned about at build time.
 
 For Pro or Enterprise projects, increase memory/CPU in the dashboard:
 
@@ -84,6 +84,10 @@ For Pro or Enterprise projects, increase memory/CPU in the dashboard:
 4. Open **Advanced Settings**.
 5. Change **Function CPU** from the default tier to the performance tier.
 6. Redeploy production.
+
+The same setting is also available through the Vercel Project API as
+`resourceConfig.functionDefaultMemoryType`. The `webconsulting` production
+project has been switched from `standard` to `performance`.
 
 On Hobby, the memory/CPU size is fixed by Vercel. You cannot increase it for a
 free test deployment.
