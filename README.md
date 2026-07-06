@@ -187,6 +187,23 @@ can reset when Vercel replaces the runtime container, so use that mode only for
 testing the package and Camino frontend. Backend login needs a durable database
 before you rely on it.
 
+## Deployment Timing And Deploy Now
+
+A Git push is not immediately online: Vercel must finish a production
+deployment and show `Ready` before the live `.vercel.app` alias changes.
+
+To deploy now from the Vercel dashboard, open the project, go to
+**Deployments**, open the newest deployment, and click **Redeploy**.
+
+To deploy now from this repository with the Vercel CLI:
+
+```bash
+vercel deploy --prod --scope webconsulting --regions fra1 --yes
+```
+
+For a fork under your own Vercel account, omit `--scope webconsulting` or
+replace it with your own team scope.
+
 ## Production Shape
 
 For anything beyond a short test, use:
