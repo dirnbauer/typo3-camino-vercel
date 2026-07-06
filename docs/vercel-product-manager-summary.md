@@ -44,6 +44,20 @@ Production conclusion:
   predictable first-hit latency, heavy backend editing, heavy image processing,
   high concurrency, or strict "traditional hosting" behavior.
 
+Technical solution:
+
+- **Vercel-native production profile:** use Pro/Enterprise performance CPU,
+  `fra1` or the database-nearest region, a durable SQL database, Vercel Blob or
+  S3-compatible FAL storage, runtime-local TYPO3 caches, optional anonymous
+  edge HTML cache, and a Pro/external keepalive that warms `/_vercel_keepalive.php`
+  and optionally `/typo3/`.
+- **Strict production profile:** keep TYPO3 backend/origin on always-on PHP
+  infrastructure and use Vercel for public frontend delivery, CDN caching,
+  previews, and template/demo deployments.
+
+See [production-hardening.md](production-hardening.md) for the concrete
+settings, cron shape, and decision rule.
+
 ## Before And After
 
 These are directional numbers from the live demo, not lab-grade benchmarks.
@@ -181,6 +195,8 @@ This repository now contains a working TYPO3-on-Vercel starter:
   strategies to reduce multi-minute builds.
 - Vercel Blob documentation should include non-Node server examples, especially
   PHP token handling and public URL patterns.
+- The missing product feature for strict TYPO3-on-Vercel is a minimum-instances
+  or always-warm control for paid Container Image workloads.
 
 ## Checklist For Vercel Product
 

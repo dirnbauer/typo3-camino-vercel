@@ -319,6 +319,7 @@ See [docs/costs.md](docs/costs.md) for the current caveats.
 - [Included TYPO3 packages](docs/typo3-packages.md)
 - [Backend login and sessions](docs/backend-login.md)
 - [Performance notes](docs/performance.md)
+- [Production hardening](docs/production-hardening.md)
 - [Vercel product manager summary](docs/vercel-product-manager-summary.md)
 - [Serverless runtime notes](docs/serverless-runtime.md)
 - [Scheduler and cron](docs/scheduler.md)
