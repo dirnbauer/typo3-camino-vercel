@@ -99,15 +99,17 @@ object storage. New clones do not inherit those resources; they still need the
 database setup described below. File storage is easier: the Deploy Button can
 create a new Vercel Blob store for the clone.
 
-Measured on 2026-07-06 against the live Vercel deployment:
+Measured on 2026-07-06 against the live Vercel deployment, all tested routes
+returned `200`:
 
-- cold start outliers still occur: about 10-12 seconds in the latest probe
-- warm backend login page: about 0.23-0.31 seconds
-- warm backend login preflight Ajax: about 0.16-0.34 seconds
-- warm frontend home page: about 0.12-0.22 seconds
+- frontend `/`: first hit 1.33s, then 0.12-0.22s
+- backend login `/typo3/`: 0.23-0.41s
+- backend login preflight Ajax: 0.16-0.25s
+- earlier cold-start spikes after deploy: `/` 12.38s, `/typo3/` 10.61s
 
 So: the backend is faster once the container is warm, but cold backend starts
-are still slow. Backend routes are intentionally not edge-cached.
+are still slow. The public demo uses Vercel Pro/performance CPU in `fra1`
+Frankfurt, which helps warm PHP work but does not remove cold starts.
 
 ## Durable Free Demo: Still Free, But The Database Needs Setup
 

@@ -30,14 +30,18 @@ specific state that is not safe to reuse across Vercel runtime starts.
 
 Measured on 2026-07-06 against
 `https://typo3-camino-vercel.vercel.app` after adding the Vercel Blob FAL
-driver and enabling production object storage.
+driver, enabling production object storage, and moving the public demo project
+to Vercel's performance CPU class in `fra1`.
+
+All tested requests returned HTTP `200`.
 
 | Route | Result |
 | --- | --- |
-| Cold start outliers | latest probe saw about 10-12 seconds |
-| Warm backend login page, `/typo3/` | about 0.23-0.31 seconds |
-| Warm backend login preflight, `/typo3/ajax/login/preflight` | about 0.16-0.34 seconds |
-| Warm frontend home page, `/` | about 0.12-0.22 seconds |
+| Frontend home page, `/` | first hit 1.33 seconds, then 0.12-0.22 seconds |
+| Backend login page, `/typo3/` | 0.23-0.41 seconds |
+| Backend login preflight, `/typo3/ajax/login/preflight` | 0.16-0.25 seconds |
+| Earlier cold-start spike after deploy, `/` | 12.38 seconds |
+| Earlier cold-start spike after deploy, `/typo3/` | 10.61 seconds |
 
 One earlier five-request backend probe also produced one transient Vercel
 `500` after about 25 seconds. It did not repeat in the later 10-request warm
@@ -46,8 +50,8 @@ outliers are still possible.
 
 The answer to "is the backend faster now?" is mixed:
 
-- warm backend responses are fast enough for a demo, around 0.2-0.3 seconds for
-  the login page and login preflight
+- warm backend responses are fast enough for a demo, around 0.2-0.4 seconds for
+  the login page and around 0.16-0.25 seconds for login preflight
 - cold backend starts are not materially faster than the earlier 10-13 second
   baseline
 - backend pages cannot use the optional Vercel edge HTML cache because they use
@@ -74,6 +78,12 @@ runtime region.
 Keep this close to the database. If the database is in another region, move the
 function region to the database region first.
 
+`fra1` means Vercel runs the TYPO3 container in Frankfurt. That is a good fit
+for users in Austria and nearby EU countries because the network round trip is
+shorter than a US region. It is only fully useful when the database and object
+storage are also close to the same region; otherwise TYPO3 may still wait on
+cross-region database or file-storage calls.
+
 ## Memory And CPU
 
 Vercel Container Images use the Vercel Functions resource model. Memory/CPU is
@@ -96,10 +106,23 @@ project has been switched from `standard` to `performance`.
 On Hobby, the memory/CPU size is fixed by Vercel. You cannot increase it for a
 free test deployment.
 
+For this public demo, "Pro/performance CPU" means the project is using Vercel's
+higher Function CPU class available on Pro, not the default standard CPU tier.
+That should make PHP bootstrap, TYPO3 backend rendering, image processing, and
+Composer-autoload-heavy work faster once the container is already running.
+
 More memory can help CPU-heavy PHP work, image processing, or memory pressure.
 It will not remove all TYPO3 backend latency because uncached backend requests
 still need PHP bootstrap, database/session work, and sometimes a fresh Vercel
 runtime start.
+
+The practical result:
+
+- performance CPU improves warm request time
+- `fra1` improves European latency when the database is nearby
+- neither setting guarantees instant first requests after inactivity
+- occasional 10+ second cold starts are still possible with Vercel Container
+  Images
 
 ## TYPO3 Cache Backend
 
