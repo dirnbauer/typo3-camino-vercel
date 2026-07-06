@@ -101,10 +101,10 @@ create a new Vercel Blob store for the clone.
 
 Measured on 2026-07-06 against the live Vercel deployment:
 
-- cold backend login page: about 12.4 seconds
-- warm backend login page: p50 about 0.255 seconds over 10 requests
-- warm backend login preflight Ajax: p50 about 0.190 seconds over 10 requests
-- warm frontend home page: p50 about 0.129 seconds over 10 requests
+- cold start outliers still occur: about 10-12 seconds in the latest probe
+- warm backend login page: about 0.23-0.31 seconds
+- warm backend login preflight Ajax: about 0.16-0.34 seconds
+- warm frontend home page: about 0.12-0.22 seconds
 
 So: the backend is faster once the container is warm, but cold backend starts
 are still slow. Backend routes are intentionally not edge-cached.
@@ -147,7 +147,8 @@ What this means today:
 - Vercel region pinning and runtime-local TYPO3 caches for faster warm requests.
 - Optional Vercel CDN caching for anonymous public frontend HTML.
 - Vercel memory/CPU can be raised on Pro/Enterprise in the dashboard or project
-  API; Hobby/free test deployments use Vercel's fixed size.
+  API. The public demo project uses the performance CPU class and `fra1`.
+  Hobby/free test deployments use Vercel's fixed size.
 
 ## What Does Not Work
 

@@ -34,10 +34,10 @@ driver and enabling production object storage.
 
 | Route | Result |
 | --- | --- |
-| Cold backend login page, `/typo3/` | about 12.4 seconds |
-| Warm backend login page, `/typo3/` | p50 0.255 seconds, min 0.217, max 0.306 over 10 requests |
-| Warm backend login preflight, `/typo3/ajax/login/preflight` | p50 0.190 seconds, min 0.161, max 0.244 over 10 requests |
-| Warm frontend home page, `/` | p50 0.129 seconds, min 0.123, max 0.201 over 10 requests |
+| Cold start outliers | latest probe saw about 10-12 seconds |
+| Warm backend login page, `/typo3/` | about 0.23-0.31 seconds |
+| Warm backend login preflight, `/typo3/ajax/login/preflight` | about 0.16-0.34 seconds |
+| Warm frontend home page, `/` | about 0.12-0.22 seconds |
 
 One earlier five-request backend probe also produced one transient Vercel
 `500` after about 25 seconds. It did not repeat in the later 10-request warm
@@ -61,11 +61,15 @@ path.
 
 ## Runtime Region
 
-`vercel.json` pins the deployment to `fra1`:
+`vercel.json` pins deployments to `fra1`:
 
 ```json
 "regions": ["fra1"]
 ```
+
+The `webconsulting` production project default region is also set to `fra1` in
+the Vercel Project API, so future CLI/dashboard deploys should keep the same
+runtime region.
 
 Keep this close to the database. If the database is in another region, move the
 function region to the database region first.
@@ -222,8 +226,11 @@ runtime files are disposable. Durable editor uploads still need object storage.
 
 ## Vercel Package
 
-A larger Vercel memory/CPU setting is not the first fix for this demo. Start
-with:
+For the public `webconsulting` demo, the Vercel project is on the performance
+CPU class and pinned to `fra1`. That improves warm PHP work, but it does not
+remove Vercel cold starts.
+
+For new clones, start with:
 
 1. durable database in the same region as the function
 2. `TYPO3_CACHE_BACKEND=file`
@@ -231,5 +238,6 @@ with:
 4. startup flags set to `0` after one-shot setup work is complete
 5. object storage for durable uploads
 
-Consider a higher Vercel memory/CPU tier only after metrics show CPU-bound PHP
-work or memory pressure.
+On Pro/Enterprise, raise the Vercel memory/CPU tier when backend PHP work,
+image processing, or logs show CPU or memory pressure. On Hobby, that tier is
+fixed.
