@@ -10,6 +10,8 @@
 - [ ] Confirm database backup/restore exists.
 - [ ] Decide where `fileadmin` uploads will live.
 - [ ] Configure `TYPO3_OBJECT_STORAGE_ENABLED=1` with `vercel_blob` or `vercel_s3` before editors upload files.
+- [ ] Decide whether shared TYPO3 caches need Redis, or whether runtime-local file cache is enough.
+- [ ] If Redis is used, configure `TYPO3_CACHE_BACKEND=redis`, `TYPO3_REDIS_REQUIRED=1`, and verify `REDIS_URL` exists.
 - [ ] Keep Vercel runtime filesystem writes disposable.
 - [ ] Keep `TYPO3_AUTO_SETUP=1` only for initial setup.
 - [ ] Use `TYPO3_EXTENSION_SETUP_ON_BOOT=1` for one deploy after extension package changes.
@@ -41,6 +43,7 @@
 - [ ] Install Tool is not publicly usable.
 - [ ] File uploads are durable and scanned/limited by policy.
 - [ ] S3-compatible object-storage integration is tested before editors upload files.
+- [ ] Optional Redis cache is tested with a real Redis TCP/TLS endpoint, not REST-only variables.
 - [ ] Security updates are planned.
 - [ ] Optional edge HTML caching is enabled only for anonymous cache-safe pages.
 

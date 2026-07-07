@@ -22,8 +22,9 @@ Required pieces:
    S3-compatible storage through `vercel_s3`.
 4. **Temporary runtime state:** TYPO3 `var`, `fileadmin`, `typo3temp`, PHP temp,
    sessions, and GraphicsMagick temp paths stay in `/tmp`.
-5. **Caches:** runtime-local TYPO3 file caches for small demos, optional Redis
-   only when shared cache state matters more than avoiding a network hop.
+5. **Caches:** runtime-local TYPO3 file caches for small demos, or Redis
+   through a Vercel Marketplace Redis integration when shared cache state
+   matters across runtime instances.
 6. **Frontend cache:** optional Vercel CDN cache for anonymous public HTML only.
 7. **Cold-start mitigation:** Vercel Cron or an external uptime monitor calls a
    lightweight endpoint and, when needed, the TYPO3 backend login route.
@@ -63,7 +64,7 @@ Region: fra1, or the region closest to the database
 Fluid Compute: enabled
 ```
 
-Production environment:
+Production environment, simple default:
 
 ```dotenv
 TYPO3_CONTEXT=Production/Vercel
@@ -78,6 +79,28 @@ TYPO3_AUTO_SETUP=0
 TYPO3_BOOTSTRAP_EMPTY_DATABASE=0
 ```
 
+Production environment, shared Redis cache:
+
+```dotenv
+TYPO3_CONTEXT=Production/Vercel
+DATABASE_URL=<durable-db-url-in-same-region>
+TYPO3_CACHE_BACKEND=redis
+TYPO3_REDIS_REQUIRED=1
+TYPO3_REDIS_PREFIX=typo3-camino-vercel:
+REDIS_URL=<provided-by-vercel-marketplace-redis>
+TYPO3_OBJECT_STORAGE_ENABLED=1
+TYPO3_OBJECT_STORAGE_DRIVER=vercel_blob
+TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=1
+TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=0
+TYPO3_EXTENSION_SETUP_ON_BOOT=0
+TYPO3_AUTO_SETUP=0
+TYPO3_BOOTSTRAP_EMPTY_DATABASE=0
+```
+
+Use Redis only with a real Redis TCP/TLS endpoint close to the Vercel region.
+It is for TYPO3 cache entries, not for SQL content, backend sessions, or file
+storage in this starter.
+
 Optional anonymous frontend cache:
 
 ```dotenv
@@ -90,9 +113,9 @@ personalization, previews, carts, or uncached plugins.
 
 ## Cold-Start Mitigation
 
-The public demo measured warm backend responses around 0.35-0.40 seconds, but
-cold backend requests can still be around 10-12 seconds. The practical
-mitigation is to keep the relevant runtime path warm.
+The public demo measured Redis-enabled warm backend login responses around
+0.11-0.17 seconds, but cold requests can still be around 10-13 seconds. The
+practical mitigation is to keep the relevant runtime path warm.
 
 For Pro projects, add a keepalive cron only in real projects, not in the public
 template:
@@ -138,7 +161,7 @@ The next useful engineering improvements are:
 3. **Health endpoint:** add a protected health endpoint that can optionally
    verify database and object storage. Keep the current public keepalive cheap.
 4. **Backend measurement script:** commit a small script that measures cold and
-   warm `/`, `/typo3/`, and preflight timings separately.
+   warm `/`, `/typo3/`, preflight, and Redis-enabled timings separately.
 5. **Blob backup:** document or add a cron-safe Blob backup path for production
    users who need export/restore guarantees.
 

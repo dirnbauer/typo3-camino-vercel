@@ -44,6 +44,35 @@ MySQL preference:
 - For commercial production, price the database separately from Vercel and
   confirm backups, region, TLS, and support level.
 
+## Redis Cache Options
+
+Redis is optional. TYPO3 needs it only when you want shared cache state across
+Vercel runtime instances. It is not the primary content database and not file
+storage.
+
+The public demo uses the official Redis Cloud integration from the Vercel
+Marketplace. The resource provisioned for this test was `Free - 30 MB` in
+`fra1`, RAM-only, without high availability.
+
+That can be free for testing while the cache data fits inside the provider's
+free quota and the account stays within the provider's terms. It is not a
+production sizing recommendation.
+
+Important Redis cost notes:
+
+- Vercel's current docs say new Redis projects should use Marketplace Redis
+  integrations; Vercel KV is no longer available for new projects.
+- The Vercel Marketplace Redis listing says Redis Cloud can start free and then
+  scale to production plans.
+- The same listing notes that paid plans are where persistence and high
+  availability become relevant. For TYPO3 caches, persistence is less critical
+  than for primary data because caches can be rebuilt.
+- Upstash also has Vercel Marketplace options, but TYPO3's native Redis cache
+  backend needs a real Redis TCP/TLS endpoint. REST-only variables are not
+  enough.
+- Redis does not remove the need for a durable SQL database or Blob/S3 object
+  storage.
+
 ## Practical Recommendation
 
 For the cheapest test:
@@ -68,15 +97,16 @@ For a durable free demo with persistent uploads:
 1. use Vercel Hobby for personal/non-commercial testing
 2. use a free database quota, for example TiDB Cloud, Neon, or Supabase
 3. use free object storage quota, for example Vercel Blob or Cloudflare R2
-4. wire TYPO3 uploads through the included Blob or S3-compatible FAL driver
-5. keep usage inside every provider's free limits
+4. optionally use a free Redis cache quota for shared TYPO3 caches
+5. wire TYPO3 uploads through the included Blob or S3-compatible FAL driver
+6. keep usage inside every provider's free limits
 
 The file-storage part can be one-click now: the README Deploy Button asks
 Vercel to create a public Blob store, and this starter auto-enables the Blob
 FAL driver when Vercel provides the Blob token. The database part is still not
 one-click. A fully durable TYPO3 demo needs a real database connection in
 `DATABASE_URL`. The public demo deployment is already configured with Vercel
-Blob and a durable database as a working example.
+Blob, a durable database, and Redis cache as a working example.
 
 ## Sources
 
@@ -85,6 +115,8 @@ Blob and a durable database as a working example.
 - Vercel Blob pricing: https://vercel.com/docs/vercel-blob/usage-and-pricing
 - Vercel Functions limits: https://vercel.com/docs/functions/limitations
 - Vercel Cron pricing: https://vercel.com/docs/cron-jobs/usage-and-pricing
+- Vercel Redis docs: https://vercel.com/docs/redis
+- Vercel Redis Marketplace listing: https://vercel.com/marketplace/redis
 - TiDB Cloud for Vercel: https://vercel.com/marketplace/tidb-cloud
 - TiDB Cloud pricing: https://www.pingcap.com/pricing/
 - Neon pricing: https://neon.com/pricing

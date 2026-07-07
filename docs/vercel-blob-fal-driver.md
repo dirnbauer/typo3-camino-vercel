@@ -313,16 +313,17 @@ The seeded SQLite demo is for frontend/container smoke testing only.
 Blob does not remove Vercel cold starts. It only removes the temporary-upload
 problem.
 
-Measured on 2026-07-06 against the public demo:
+Latest public-demo measurement after enabling Redis on 2026-07-07:
 
-- cold backend login page: about 12.4 seconds
-- warm backend login page: p50 about 0.255 seconds over 10 requests
-- warm backend login preflight Ajax: p50 about 0.190 seconds over 10 requests
-- warm frontend home page: p50 about 0.129 seconds over 10 requests
+- frontend first request after deploy: 12.57 seconds
+- warm backend login page: median 0.125 seconds over 10 requests
+- warm backend login preflight Ajax: median 0.100 seconds over 10 requests
+- warm frontend home page: median 0.046 seconds over 10 requests
 
-The backend is acceptable once the container is warm, but cold backend starts
-remain slow. Backend pages are uncached because they use cookies, sessions, and
-`no-store` headers.
+Blob did not cause those backend timing improvements; Redis and the broader
+runtime tuning affect warm cache behavior. Blob's job is durable uploaded files
+and processed derivatives. Cold starts remain slow. Backend pages are uncached
+because they use cookies, sessions, and `no-store` headers.
 
 See [performance notes](performance.md) for the full measurement context.
 

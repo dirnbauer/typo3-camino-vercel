@@ -201,8 +201,20 @@ function typo3_vercel_cache_backend(): string
     $default = typo3_vercel_is_vercel_runtime() ? 'file' : 'database';
     $backend = strtolower((string)typo3_vercel_env('TYPO3_CACHE_BACKEND', $default));
 
+    if ($backend === 'redis') {
+        if (typo3_vercel_redis_cache_base_options() !== null && extension_loaded('redis')) {
+            return 'redis';
+        }
+        if (typo3_vercel_bool_env('TYPO3_REDIS_REQUIRED', false)) {
+            throw new RuntimeException(
+                'TYPO3_CACHE_BACKEND=redis was requested, but no usable Redis TCP/TLS connection or ext-redis is available.',
+                1783520001,
+            );
+        }
+        return 'file';
+    }
+
     return match ($backend) {
-        'redis' => typo3_vercel_redis_cache_base_options() !== null && extension_loaded('redis') ? 'redis' : 'file',
         'file', 'filesystem', 'local' => 'file',
         default => 'database',
     };
@@ -220,7 +232,7 @@ function typo3_vercel_redis_cache_base_options(): ?array
 {
     $url = typo3_vercel_redis_url();
     if ($url === null) {
-        return null;
+        return typo3_vercel_redis_component_options();
     }
 
     $parts = parse_url($url);
@@ -256,6 +268,95 @@ function typo3_vercel_redis_cache_base_options(): ?array
     }
     if (isset($parts['pass']) && $parts['pass'] !== '') {
         $options['password'] = rawurldecode((string)$parts['pass']);
+    }
+
+    return $options;
+}
+
+function typo3_vercel_redis_component_options(): ?array
+{
+    $host = typo3_vercel_env('TYPO3_REDIS_HOST')
+        ?? typo3_vercel_env('REDIS_HOST')
+        ?? typo3_vercel_env('REDIS_ENDPOINT')
+        ?? typo3_vercel_env('UPSTASH_REDIS_HOST')
+        ?? typo3_vercel_env('UPSTASH_REDIS_ENDPOINT');
+
+    if ($host === null) {
+        return null;
+    }
+
+    $tls = typo3_vercel_bool_env(
+        'TYPO3_REDIS_TLS',
+        typo3_vercel_bool_env(
+            'REDIS_TLS',
+            typo3_vercel_bool_env('UPSTASH_REDIS_TLS', false),
+        ),
+    );
+
+    $host = rawurldecode($host);
+    $hostPort = null;
+    $hostDatabase = null;
+    $hostUsername = null;
+    $hostPassword = null;
+
+    if (preg_match('#^(redis|rediss|tls)://#i', $host) === 1) {
+        $parts = parse_url($host);
+        if ($parts !== false && isset($parts['scheme'], $parts['host'])) {
+            $scheme = strtolower((string)$parts['scheme']);
+            $tls = in_array($scheme, ['rediss', 'tls'], true);
+            $host = rawurldecode((string)$parts['host']);
+            $hostPort = isset($parts['port']) ? (int)$parts['port'] : null;
+            if (isset($parts['path']) && trim((string)$parts['path'], '/') !== '') {
+                $hostDatabase = (int)trim((string)$parts['path'], '/');
+            }
+            if (isset($parts['user']) && $parts['user'] !== '') {
+                $hostUsername = rawurldecode((string)$parts['user']);
+            }
+            if (isset($parts['pass']) && $parts['pass'] !== '') {
+                $hostPassword = rawurldecode((string)$parts['pass']);
+            }
+        }
+    }
+
+    $port = typo3_vercel_env('TYPO3_REDIS_PORT')
+        ?? typo3_vercel_env('REDIS_PORT')
+        ?? typo3_vercel_env('UPSTASH_REDIS_PORT')
+        ?? ($hostPort !== null ? (string)$hostPort : null)
+        ?? ($tls ? '6380' : '6379');
+
+    $database = (int)(
+        typo3_vercel_env('TYPO3_REDIS_DATABASE')
+        ?? typo3_vercel_env('REDIS_DATABASE')
+        ?? typo3_vercel_env('REDIS_DB')
+        ?? ($hostDatabase !== null ? (string)$hostDatabase : null)
+        ?? '0'
+    );
+
+    $options = [
+        'hostname' => ($tls ? 'tls://' : '') . $host,
+        'port' => (int)$port,
+        'database' => $database,
+        'connectionTimeout' => typo3_vercel_int_env('TYPO3_REDIS_CONNECTION_TIMEOUT', 1, 0, 10),
+        'persistentConnection' => typo3_vercel_bool_env('TYPO3_REDIS_PERSISTENT_CONNECTION', true),
+    ];
+
+    $username = typo3_vercel_env('TYPO3_REDIS_USERNAME')
+        ?? typo3_vercel_env('REDIS_USERNAME')
+        ?? typo3_vercel_env('REDIS_USER')
+        ?? typo3_vercel_env('UPSTASH_REDIS_USERNAME')
+        ?? $hostUsername;
+    if ($username !== null) {
+        $options['username'] = $username;
+    }
+
+    $password = typo3_vercel_env('TYPO3_REDIS_PASSWORD')
+        ?? typo3_vercel_env('REDIS_PASSWORD')
+        ?? typo3_vercel_env('REDIS_PASS')
+        ?? typo3_vercel_env('UPSTASH_REDIS_PASSWORD')
+        ?? typo3_vercel_env('UPSTASH_REDIS_TOKEN')
+        ?? $hostPassword;
+    if ($password !== null) {
+        $options['password'] = $password;
     }
 
     return $options;

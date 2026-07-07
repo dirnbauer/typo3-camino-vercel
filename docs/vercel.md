@@ -74,6 +74,18 @@ TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=0
 TYPO3_EXTENSION_SETUP_ON_BOOT=0
 ```
 
+Optional shared Redis cache:
+
+```dotenv
+TYPO3_CACHE_BACKEND=redis
+TYPO3_REDIS_REQUIRED=1
+TYPO3_REDIS_PREFIX=typo3-camino-vercel:
+REDIS_URL=<provided-by-vercel-marketplace-redis>
+```
+
+Use Redis only with a real `redis://` or `rediss://` TCP/TLS endpoint. REST-only
+Redis variables are not enough for TYPO3's native Redis backend.
+
 Generate secrets locally:
 
 ```bash
@@ -162,6 +174,9 @@ vercel deploy --prod --regions fra1
 vercel env ls --scope webconsulting
 vercel env add TYPO3_ENCRYPTION_KEY production --scope webconsulting
 vercel env add TYPO3_SETUP_ADMIN_PASSWORD production --scope webconsulting
+vercel env add TYPO3_CACHE_BACKEND production --value redis --force --yes --scope webconsulting
+vercel env add TYPO3_REDIS_REQUIRED production --value 1 --force --yes --scope webconsulting
+vercel env add TYPO3_REDIS_PREFIX production --value typo3-camino-vercel: --force --yes --scope webconsulting
 vercel deploy --prod --scope webconsulting --regions fra1
 ```
 
@@ -171,3 +186,4 @@ vercel deploy --prod --scope webconsulting --regions fra1
 - Vercel Deploy Button env vars: https://vercel.com/docs/deploy-button/environment-variables
 - Vercel Deploy Button demo card: https://vercel.com/docs/deploy-button/demo
 - Vercel project configuration: https://vercel.com/docs/project-configuration
+- Vercel Redis docs: https://vercel.com/docs/redis

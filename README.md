@@ -94,22 +94,24 @@ project, set `TYPO3_OBJECT_STORAGE_ENABLED=0`.
 ## Current Public Demo State
 
 The public demo at https://typo3-camino-vercel.vercel.app is no longer the
-bare one-click state. It is configured with a durable database and Vercel Blob
-object storage. New clones do not inherit those resources; they still need the
-database setup described below. File storage is easier: the Deploy Button can
-create a new Vercel Blob store for the clone.
+bare one-click state. It is configured with a durable database, Vercel Blob
+object storage, and Redis Cloud cache through the Vercel Marketplace. New
+clones do not inherit those resources; they still need the database and Redis
+setup described below. File storage is easier: the Deploy Button can create a
+new Vercel Blob store for the clone.
 
-Measured on 2026-07-06 against the live Vercel deployment, all tested routes
-returned `200`:
+Measured on 2026-07-07 against the live Vercel deployment after enabling Redis,
+all tested routes returned `200`:
 
-- frontend `/`: first hit 1.33s, then 0.12-0.22s
-- backend login `/typo3/`: 0.23-0.41s
-- backend login preflight Ajax: 0.16-0.25s
-- earlier cold-start spikes after deploy: `/` 12.38s, `/typo3/` 10.61s
+- frontend `/`: first hit after deploy 12.57s, warm median 0.046s
+- backend login `/typo3/`: warm median 0.125s, range 0.110-0.168s
+- backend login preflight Ajax: warm median 0.100s, range 0.083-0.157s
 
-So: the backend is faster once the container is warm, but cold backend starts
-are still slow. The public demo uses Vercel Pro/performance CPU in `fra1`
-Frankfurt, which helps warm PHP work but does not remove cold starts.
+Before Redis, the latest warm backend sample was about 0.23-0.41s for
+`/typo3/` and 0.16-0.25s for login preflight. Redis helped the measured warm
+backend path, but it did not remove Vercel container cold starts. The public
+demo uses Vercel Pro/performance CPU in `fra1` Frankfurt, which helps warm PHP
+work but does not make every first request instant.
 
 For a product-manager level summary of what worked, what was coded, what got
 faster, and what Vercel could improve, see
@@ -151,6 +153,8 @@ What this means today:
 - Vercel Cron compatible endpoint for running TYPO3 Scheduler tasks.
 - Vercel Firewall/WAF in front of the container.
 - Vercel region pinning and runtime-local TYPO3 caches for faster warm requests.
+- Optional Redis cache through Vercel Marketplace Redis/Redis Cloud for shared
+  TYPO3 `hash`, `pages`, and `rootline` caches.
 - Optional Vercel CDN caching for anonymous public frontend HTML.
 - Vercel memory/CPU can be raised on Pro/Enterprise in the dashboard or project
   API. The public demo project uses the performance CPU class and `fra1`.
@@ -284,16 +288,19 @@ This only targets anonymous `GET`/`HEAD` HTML requests without cookies, query
 strings, `Set-Cookie`, `/typo3`, or `/api`. Keep it disabled while testing
 forms, frontend user login, personalization, or uncached plugins.
 
-For shared TYPO3 caches, Redis is supported when you provide a real Redis TCP
-or TLS URL close to the Vercel region:
+For shared TYPO3 caches, Redis is supported. The easiest Vercel path is the
+official Redis Marketplace integration, which injects `REDIS_URL`. Then set:
 
 ```dotenv
 TYPO3_CACHE_BACKEND=redis
-TYPO3_REDIS_URL=rediss://default:<password>@<host>:6379/0
+TYPO3_REDIS_REQUIRED=1
+TYPO3_REDIS_PREFIX=typo3-camino-vercel:
 ```
 
-For small demos, `TYPO3_CACHE_BACKEND=file` plus Vercel edge caching is usually
-faster than a remote Redis hop.
+Use only real `redis://` or `rediss://` TCP/TLS URLs close to the Vercel
+region. REST-only Redis variables are not enough for TYPO3's native Redis cache
+backend. For small one-container demos, `TYPO3_CACHE_BACKEND=file` can still be
+enough; Redis is mainly useful when shared cache state matters.
 
 ## Costs For Testing
 
@@ -306,6 +313,9 @@ For a free or low-cost durable database test:
 - **Postgres:** Neon or Supabase are the easiest Vercel Marketplace options.
 - **MySQL-compatible:** TiDB Cloud has a Vercel integration and free starter quota.
 - **PlanetScale:** MySQL-compatible and integrated with Vercel, but no free plan.
+- **Redis cache:** the official Redis Marketplace integration can start on a
+  free Redis Cloud plan. The public demo currently uses a free 30 MB Redis
+  cache. This is fine for cache testing, not a substitute for the SQL database.
 
 See [docs/costs.md](docs/costs.md) for the current caveats.
 
@@ -316,6 +326,7 @@ See [docs/costs.md](docs/costs.md) for the current caveats.
 - [Free demo mode](docs/free-demo.md)
 - [Database setup](docs/database.md)
 - [Object storage and durable uploads](docs/object-storage.md)
+- [Redis cache on Vercel](docs/redis-cache.md)
 - [Included TYPO3 packages](docs/typo3-packages.md)
 - [Backend login and sessions](docs/backend-login.md)
 - [Performance notes](docs/performance.md)

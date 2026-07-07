@@ -28,32 +28,48 @@ specific state that is not safe to reuse across Vercel runtime starts.
 
 ## Current Live Measurements
 
-Measured on 2026-07-06 against
+Measured on 2026-07-07 against
 `https://typo3-camino-vercel.vercel.app` after adding the Vercel Blob FAL
-driver, enabling production object storage, and moving the public demo project
-to Vercel's performance CPU class in `fra1`.
+driver, enabling production object storage, moving the public demo project to
+Vercel's performance CPU class in `fra1`, and enabling Redis through the
+official Redis Vercel Marketplace integration.
 
 All tested requests returned HTTP `200`.
 
 | Route | Result |
 | --- | --- |
+| Frontend home page, `/`, first request after deploy | 12.57 seconds |
+| Frontend home page, `/`, warm 10-request pass | median 0.046 seconds, range 0.031-0.173 seconds |
+| Backend login page, `/typo3/`, first Redis-enabled pass | first hit 0.431 seconds, then 0.129-0.155 seconds |
+| Backend login page, `/typo3/`, warm 10-request pass | median 0.125 seconds, range 0.110-0.168 seconds |
+| Backend login preflight, `/typo3/ajax/login/preflight`, first Redis-enabled pass | 0.089-0.159 seconds |
+| Backend login preflight, `/typo3/ajax/login/preflight`, warm 10-request pass | median 0.100 seconds, range 0.083-0.157 seconds |
+
+Earlier baseline after the database/object-storage/performance-CPU work, but
+before Redis:
+
+| Route | Earlier result |
+| --- | --- |
 | Frontend home page, `/` | first hit 1.33 seconds, then 0.12-0.22 seconds |
 | Backend login page, `/typo3/` | 0.23-0.41 seconds |
 | Backend login preflight, `/typo3/ajax/login/preflight` | 0.16-0.25 seconds |
-| Earlier cold-start spike after deploy, `/` | 12.38 seconds |
-| Earlier cold-start spike after deploy, `/typo3/` | 10.61 seconds |
+| Cold-start spike after deploy, `/` | 12.38 seconds |
+| Cold-start spike after deploy, `/typo3/` | 10.61 seconds |
 
 One earlier five-request backend probe also produced one transient Vercel
-`500` after about 25 seconds. It did not repeat in the later 10-request warm
-sample, but it is a reminder that cold starts and platform-level invocation
-outliers are still possible.
+`500` after about 25 seconds. It did not repeat in the later warm samples, but
+it is a reminder that cold starts and platform-level invocation outliers are
+still possible.
 
-The answer to "is the backend faster now?" is mixed:
+The answer to "is the backend faster now?" is:
 
-- warm backend responses are fast enough for a demo, around 0.2-0.4 seconds for
-  the login page and around 0.16-0.25 seconds for login preflight
-- cold backend starts are not materially faster than the earlier 10-13 second
-  baseline
+- warm backend responses are faster in the Redis-enabled sample, around
+  0.11-0.17 seconds for the login page and around 0.08-0.16 seconds for login
+  preflight
+- Redis is not the only possible variable in a live Vercel measurement, so read
+  this as a real production sample, not a controlled lab benchmark
+- cold starts are still not materially solved; the frontend still showed a
+  12.57 second first request after deploy
 - backend pages cannot use the optional Vercel edge HTML cache because they use
   cookies, sessions, and no-store headers
 
@@ -155,24 +171,31 @@ cache rows in the database:
 TYPO3_CACHE_BACKEND=database
 ```
 
-## Optional Redis Cache
+## Redis Cache
 
 The image includes the PHP Redis extension, and TYPO3 can use Redis for
-`hash`, `pages`, and `rootline` caches:
+`hash`, `pages`, and `rootline` caches. The public demo now uses Redis Cloud
+through the Vercel Marketplace:
 
 ```dotenv
 TYPO3_CACHE_BACKEND=redis
-TYPO3_REDIS_URL=rediss://default:<password>@<host>:6379/0
+TYPO3_REDIS_REQUIRED=1
 TYPO3_REDIS_PREFIX=typo3-camino-vercel:
+REDIS_URL=<provided-by-vercel-marketplace>
 ```
 
 Use Redis only with a real `redis://` or `rediss://` TCP/TLS endpoint close to
-the Vercel region. Upstash/Vercel REST variables such as `KV_REST_API_URL` are
-not enough for TYPO3's native Redis backend.
+the Vercel region. Vercel KV is no longer available for new projects; Vercel's
+current Redis path is a Marketplace Redis integration. Upstash/Vercel REST
+variables such as `KV_REST_API_URL` are not enough for TYPO3's native Redis
+backend.
 
-Redis can help when many Vercel containers need shared warm caches. For a small
-demo, local file cache plus Vercel edge cache is usually faster because it
-avoids another network hop.
+Redis can help when many Vercel containers need shared warm caches. In this
+demo it improved the measured warm backend path. It still does not solve cold
+starts, SQL session durability, or file durability.
+
+See [redis-cache.md](redis-cache.md) for setup, supported env variables,
+costs, and troubleshooting.
 
 ## Optional Edge HTML Cache
 
@@ -257,9 +280,10 @@ For new clones, start with:
 
 1. durable database in the same region as the function
 2. `TYPO3_CACHE_BACKEND=file`
-3. optional edge HTML cache for anonymous pages
-4. startup flags set to `0` after one-shot setup work is complete
-5. object storage for durable uploads
+3. optional Redis only when shared TYPO3 cache state is needed
+4. optional edge HTML cache for anonymous pages
+5. startup flags set to `0` after one-shot setup work is complete
+6. object storage for durable uploads
 
 On Pro/Enterprise, raise the Vercel memory/CPU tier when backend PHP work,
 image processing, or logs show CPU or memory pressure. On Hobby, that tier is

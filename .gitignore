@@ -24,3 +24,5 @@ nbproject
 !/public/typo3temp
 !/public/typo3temp/index.html
 .vercel
+.env*
+!.env.example

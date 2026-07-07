@@ -14,6 +14,9 @@ Impact:
 - `fileadmin` is copied to `/tmp` at container start. Uploads are durable only
   when Vercel Blob or S3-compatible object storage is configured.
 - generated cache files should be treated as disposable.
+- Redis can share TYPO3 cache entries across runtime instances, but it is still
+  cache storage only. It does not make SQLite, backend sessions, or uploaded
+  files durable.
 - logs should go to Vercel logs or an external log drain for retention.
 
 ## Cron
@@ -39,6 +42,15 @@ Vercel Blob is wired into TYPO3 FAL through the `vercel_blob` driver. Use a
 public Blob store for normal frontend images and downloads. Private Blob stores
 need a custom delivery/proxy strategy and are not the default for TYPO3 public
 assets.
+
+## Redis
+
+Redis is supported for TYPO3 `hash`, `pages`, and `rootline` caches. It needs a
+real Redis TCP/TLS endpoint and the PHP Redis extension. REST-only Redis
+variables from provider SDKs are not enough for TYPO3's native Redis backend.
+
+Redis does not remove Vercel container cold starts. It can improve warm shared
+cache behavior, but it is not an always-on runtime control.
 
 ## Marketplace Status
 

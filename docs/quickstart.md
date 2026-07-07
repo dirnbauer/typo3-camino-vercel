@@ -103,6 +103,27 @@ When these variables are present, the Vercel container verifies the bucket at
 startup and creates the TYPO3 upload and processed-file folders in object
 storage. Bad credentials fail the deployment loudly.
 
+## Optional Redis Cache
+
+For most first tests, leave this alone:
+
+```dotenv
+TYPO3_CACHE_BACKEND=file
+```
+
+For a shared TYPO3 cache on Vercel, add the official Redis Marketplace
+integration. Vercel injects `REDIS_URL`; then add:
+
+```dotenv
+TYPO3_CACHE_BACKEND=redis
+TYPO3_REDIS_REQUIRED=1
+TYPO3_REDIS_PREFIX=typo3-camino-vercel:
+```
+
+Redis can improve warm backend cache behavior, but it does not make SQLite
+durable, does not store uploads, and does not remove Vercel container cold
+starts. See [Redis cache on Vercel](redis-cache.md).
+
 ## Backend Login
 
 Backend URL:

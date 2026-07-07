@@ -21,6 +21,13 @@ request round-trip to the database for cache reads. Set
 `TYPO3_CACHE_BACKEND=database` if you prefer shared cache state over warm
 request speed.
 
+For shared cache state without using the SQL database for cache rows, set
+`TYPO3_CACHE_BACKEND=redis` and provide a Redis TCP/TLS endpoint through the
+Vercel Marketplace `REDIS_URL` or `TYPO3_REDIS_URL`. The public demo uses this
+Redis profile. Redis is still only cache storage here; TYPO3 content and
+backend sessions need a durable SQL database, and uploaded files need Blob or
+S3-compatible object storage.
+
 This starter includes TYPO3 14 FAL drivers named `vercel_blob` for Vercel Blob
 and `vercel_s3` for S3-compatible object storage. When
 `TYPO3_OBJECT_STORAGE_ENABLED=1` and a driver is configured, the entrypoint
@@ -70,5 +77,6 @@ frontend/container smoke test.
 
 - [Object storage and durable uploads](object-storage.md)
 - [Vercel Blob FAL driver](vercel-blob-fal-driver.md)
+- [Redis cache on Vercel](redis-cache.md)
 - [Database setup](database.md)
 - [Performance notes](performance.md)
