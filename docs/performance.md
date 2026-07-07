@@ -42,8 +42,10 @@ All tested requests returned HTTP `200`.
 | Frontend home page, `/`, warm 10-request pass | median 0.046 seconds, range 0.031-0.173 seconds |
 | Backend login page, `/typo3/`, first Redis-enabled pass | first hit 0.431 seconds, then 0.129-0.155 seconds |
 | Backend login page, `/typo3/`, warm 10-request pass | median 0.125 seconds, range 0.110-0.168 seconds |
+| Backend login page, `/typo3/`, later cold check | first hit 10.151 seconds, then 0.206-0.238 seconds |
 | Backend login preflight, `/typo3/ajax/login/preflight`, first Redis-enabled pass | 0.089-0.159 seconds |
 | Backend login preflight, `/typo3/ajax/login/preflight`, warm 10-request pass | median 0.100 seconds, range 0.083-0.157 seconds |
+| Backend login preflight, `/typo3/ajax/login/preflight`, later 5-request check | median 0.175 seconds, range 0.088-0.244 seconds |
 
 Earlier baseline after the database/object-storage/performance-CPU work, but
 before Redis:
@@ -68,8 +70,9 @@ The answer to "is the backend faster now?" is:
   preflight
 - Redis is not the only possible variable in a live Vercel measurement, so read
   this as a real production sample, not a controlled lab benchmark
-- cold starts are still not materially solved; the frontend still showed a
-  12.57 second first request after deploy
+- cold starts are still not materially solved; the frontend showed a 12.57
+  second first request after deploy, and a later backend login check still hit
+  10.151 seconds once
 - backend pages cannot use the optional Vercel edge HTML cache because they use
   cookies, sessions, and no-store headers
 

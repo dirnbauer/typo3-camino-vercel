@@ -317,6 +317,7 @@ Latest public-demo measurement after enabling Redis on 2026-07-07:
 
 - frontend first request after deploy: 12.57 seconds
 - warm backend login page: median 0.125 seconds over 10 requests
+- later backend login cold check: first hit 10.151 seconds, then 0.206-0.238 seconds
 - warm backend login preflight Ajax: median 0.100 seconds over 10 requests
 - warm frontend home page: median 0.046 seconds over 10 requests
 

@@ -106,6 +106,7 @@ all tested routes returned `200`:
 - frontend `/`: first hit after deploy 12.57s, warm median 0.046s
 - backend login `/typo3/`: warm median 0.125s, range 0.110-0.168s
 - backend login preflight Ajax: warm median 0.100s, range 0.083-0.157s
+- later backend cold check: `/typo3/` once at 10.15s, then 0.21-0.24s
 
 Before Redis, the latest warm backend sample was about 0.23-0.41s for
 `/typo3/` and 0.16-0.25s for login preflight. Redis helped the measured warm

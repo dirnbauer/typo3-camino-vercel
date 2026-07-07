@@ -38,6 +38,7 @@ Measured against the live public demo after enabling Redis on 2026-07-07:
 | Frontend `/`, first request after deploy | 12.57s |
 | Frontend `/`, warm 10-request pass | median 0.046s, range 0.031-0.173s |
 | Backend login `/typo3/`, warm 10-request pass | median 0.125s, range 0.110-0.168s |
+| Backend login `/typo3/`, later cold check | first hit 10.151s, then 0.206-0.238s |
 | Backend login preflight Ajax, warm 10-request pass | median 0.100s, range 0.083-0.157s |
 
 Before Redis, the latest documented warm backend sample was roughly
@@ -48,7 +49,8 @@ lab benchmark with every variable isolated.
 The important conclusion is:
 
 - Redis helped the measured warm backend path.
-- Redis did not remove the 10-13s Vercel container cold-start class.
+- Redis did not remove the 10-13s Vercel container cold-start class. A later
+  backend check still saw `/typo3/` at 10.151s once.
 - Redis does not fix SQLite demo-mode backend sessions. A durable database is
   still required for stable login.
 - Redis does not make uploads durable. Vercel Blob or S3-compatible object

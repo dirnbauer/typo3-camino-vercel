@@ -20,7 +20,8 @@ Current live check against `https://typo3-camino-vercel.vercel.app`:
 
 - All tested routes returned HTTP `200`.
 - Frontend `/`: one post-deploy cold hit at 12.57s, then warm median 0.046s.
-- Backend login `/typo3/`: warm median 0.125s, range 0.110-0.168s.
+- Backend login `/typo3/`: warm median 0.125s, range 0.110-0.168s; a later
+  cold check still hit 10.151s once, then returned to 0.21-0.24s.
 - Login preflight `/typo3/ajax/login/preflight`: warm median 0.100s, range
   0.083-0.157s.
 - Earlier deploy-time checks saw similar cold spikes: `/` about 12.4s and
@@ -67,7 +68,7 @@ These are directional numbers from the live demo, not lab-grade benchmarks.
 | Area | Before | After | What changed most |
 | --- | --- | --- | --- |
 | Frontend warm page | roughly sub-second after warmup | median 0.046s in latest warm pass | Edge/cache/runtime setup; very good once warm |
-| Backend login warm page | inconsistent during early setup | median 0.125s after Redis | Real DB, startup cleanup, performance CPU, Redis |
+| Backend login warm page | inconsistent during early setup | median 0.125s after Redis, with a later 10.151s cold hit | Real DB, startup cleanup, performance CPU, Redis |
 | Backend login preflight | usable but affected by setup/session issues | median 0.100s after Redis | Real DB, stable runtime config, Redis |
 | Cold starts | about 10-13s | still about 10-12s when they happen | Not materially solved |
 | Backend login reliability | could log out after seconds in SQLite demo mode | stable with durable DB | Real DB was the decisive fix |
@@ -124,8 +125,9 @@ These are directional numbers from the live demo, not lab-grade benchmarks.
 
 ## What Did Not Change Much
 
-- **Cold starts:** still the largest remaining issue. CPU class and TYPO3
-  cleanup helped warm behavior, but cold starts still measured around 10-12s.
+- **Cold starts:** still the largest remaining issue. CPU class, Redis, and
+  TYPO3 cleanup helped warm behavior, but cold starts still measured around
+  10-13s.
 - **Build time:** still several minutes because the image installs system
   packages, PHP extensions, Composer dependencies, TYPO3, and Camino.
 - **Backend cacheability:** backend routes still cannot safely be edge-cached
