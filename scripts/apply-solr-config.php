@@ -115,6 +115,18 @@ function solr_connection_from_env(string $prefix, string $fallbackPrefix, ?array
     $username = solr_env($prefix . '_USERNAME') ?? solr_env($fallbackPrefix . '_USERNAME') ?? ($parsed['username'] ?? $fallback['username'] ?? null);
     $password = solr_env($prefix . '_PASSWORD') ?? solr_env($fallbackPrefix . '_PASSWORD') ?? ($parsed['password'] ?? $fallback['password'] ?? null);
 
+    if ($usesServiceBinding && solr_bool_env('TYPO3_SOLR_APP_PROXY_ENABLED', true)) {
+        return [
+            'scheme' => 'http',
+            'host' => '127.0.0.1',
+            'port' => (int)(solr_env('TYPO3_SOLR_APP_PROXY_PORT') ?? solr_env('PORT', '80')),
+            'path' => '/api/solr-proxy.php/',
+            'core' => $core,
+            'username' => null,
+            'password' => null,
+        ];
+    }
+
     return [
         'scheme' => $scheme,
         'host' => $host,

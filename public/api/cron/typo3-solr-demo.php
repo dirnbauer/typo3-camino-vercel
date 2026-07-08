@@ -186,8 +186,11 @@ function typo3_solr_probe(): void
     header('Content-Type: text/plain; charset=utf-8');
 
     $target = isset($_GET['target']) ? strtolower((string)$_GET['target']) : 'all';
-    $timeout = isset($_GET['timeout']) && is_numeric($_GET['timeout']) ? (float)$_GET['timeout'] : 3.0;
-    $timeout = max(1.0, min(10.0, $timeout));
+    $usesAppProxy = typo3_solr_has_internal_service_url() && typo3_solr_app_proxy_enabled();
+    $defaultTimeout = $usesAppProxy ? 45.0 : 3.0;
+    $maxTimeout = $usesAppProxy ? 90.0 : 10.0;
+    $timeout = isset($_GET['timeout']) && is_numeric($_GET['timeout']) ? (float)$_GET['timeout'] : $defaultTimeout;
+    $timeout = max(1.0, min($maxTimeout, $timeout));
 
     $serviceUrl = getenv('TYPO3_SOLR_SERVICE_URL')
         ?: getenv('SOLR_SERVICE_URL')
@@ -203,7 +206,7 @@ function typo3_solr_probe(): void
     }
 
     $core = getenv('TYPO3_SOLR_CORE') ?: getenv('SOLR_CORE') ?: 'core_en';
-    $base = rtrim((string)$serviceUrl, '/');
+    $base = rtrim(typo3_solr_probe_base_url((string)$serviceUrl), '/');
     $selectParams = [
         'q' => isset($_GET['q']) ? substr((string)$_GET['q'], 0, 200) : '*:*',
         'rows' => isset($_GET['rows']) && is_numeric($_GET['rows']) ? max(0, min(20, (int)$_GET['rows'])) : 0,
@@ -245,6 +248,26 @@ function typo3_solr_probe(): void
         echo "\n";
         flush();
     }
+}
+
+function typo3_solr_probe_base_url(string $serviceUrl): string
+{
+    if (typo3_solr_has_internal_service_url() && typo3_solr_app_proxy_enabled()) {
+        $port = getenv('TYPO3_SOLR_APP_PROXY_PORT') ?: getenv('PORT') ?: '80';
+        return 'http://127.0.0.1:' . (int)$port . '/api/solr-proxy.php';
+    }
+
+    return $serviceUrl;
+}
+
+function typo3_solr_app_proxy_enabled(): bool
+{
+    $value = getenv('TYPO3_SOLR_APP_PROXY_ENABLED');
+    if ($value === false || $value === '') {
+        return true;
+    }
+
+    return typo3_solr_truthy((string)$value);
 }
 
 /**

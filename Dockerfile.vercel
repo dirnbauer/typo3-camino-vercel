@@ -54,6 +54,7 @@ RUN apt-get update \
         "</IfModule>" \
         "<Directory ${APACHE_DOCUMENT_ROOT}>" \
         "    Options FollowSymLinks" \
+        "    AcceptPathInfo On" \
         "    AllowOverride None" \
         "    Require all granted" \
         "    Include /var/www/html/public/.htaccess" \
