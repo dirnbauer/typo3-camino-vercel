@@ -81,11 +81,12 @@ cache behavior, but it is not an always-on runtime control.
 ## Solr
 
 EXT:solr is installed as an optional Composer package, but Vercel does not
-provide managed Apache Solr for this starter. Production search should use an
-external managed Solr 10 service. A Solr Docker image on Vercel would still
-need durable index state and operational protection, so it is not enabled by
-default. Large indexing jobs should run as chunked scheduler batches or on an
-external worker, not as one long Vercel invocation.
+provide managed Apache Solr for this starter. The repo includes an internal
+Vercel Solr container service for demos and experiments, but production search
+should use an external managed Solr 10 service. The Vercel Solr container still
+needs durable index state and operational protection before it can be considered
+production-safe. Large indexing jobs should run as chunked scheduler batches or
+on an external worker, not as one long Vercel invocation.
 
 ## Marketplace Status
 

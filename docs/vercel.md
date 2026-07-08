@@ -5,6 +5,11 @@
 Vercel builds `Dockerfile.vercel` as a Container Image service and routes all
 traffic to that service through `vercel.json`.
 
+The project also defines an internal demo-only Solr service in
+`services/solr/`. Vercel injects the service binding URL into the TYPO3 app as
+`TYPO3_SOLR_SERVICE_URL`. The Solr service receives no public rewrite, so public
+traffic still only enters the TYPO3 app service.
+
 The template pins Functions/Container Images to `fra1` in `vercel.json`. That
 is a good default for this European demo and for a Neon database created in
 Frankfurt. If your database lives elsewhere, change `regions` to the database
@@ -85,6 +90,19 @@ REDIS_URL=<provided-by-vercel-marketplace-redis>
 
 Use Redis only with a real `redis://` or `rediss://` TCP/TLS endpoint. REST-only
 Redis variables are not enough for TYPO3's native Redis backend.
+
+Optional internal demo Solr service:
+
+```dotenv
+TYPO3_SOLR_ENABLED=1
+TYPO3_SOLR_SITE_BASE=https://your-project.vercel.app/
+TYPO3_SOLR_SITE_IDENTIFIER=camino
+TYPO3_SOLR_CORE=core_en
+```
+
+This uses the Vercel service binding `TYPO3_SOLR_SERVICE_URL` and the internal
+`solr` service from `vercel.json`. Do not use it as production Solr because the
+Solr index is runtime state, not durable managed storage.
 
 Generate secrets locally:
 
@@ -186,4 +204,8 @@ vercel deploy --prod --scope webconsulting --regions fra1
 - Vercel Deploy Button env vars: https://vercel.com/docs/deploy-button/environment-variables
 - Vercel Deploy Button demo card: https://vercel.com/docs/deploy-button/demo
 - Vercel project configuration: https://vercel.com/docs/project-configuration
+- Vercel Services: https://vercel.com/docs/services
+- Vercel service bindings: https://vercel.com/docs/services/bindings
+- Vercel Container Images: https://vercel.com/docs/functions/container-images
+- Vercel Container Registry: https://vercel.com/docs/container-registry
 - Vercel Redis docs: https://vercel.com/docs/redis

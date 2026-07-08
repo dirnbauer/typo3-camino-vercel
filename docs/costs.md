@@ -76,9 +76,9 @@ Important Redis cost notes:
 ## Solr Search Cost Notes
 
 Vercel does not currently provide managed Apache Solr as a first-party or
-Marketplace storage service for this starter. A Docker Solr service can be used
-locally in DDEV and may be useful as a disposable experiment, but production
-TYPO3 search needs durable Solr index storage.
+Marketplace storage service for this starter. This repo includes an internal
+Vercel Solr container service for demos, and DDEV includes local Solr for
+development, but production TYPO3 search needs durable Solr index storage.
 
 Practical production choices:
 

@@ -38,6 +38,16 @@ scripts/apply-solr-config.php
 The Vercel entrypoint runs that script only when Solr env vars are present.
 Nothing changes for normal deploys without Solr.
 
+Experimental Vercel demo service:
+
+```text
+services/solr/
+```
+
+`vercel.json` wires this service as an internal Vercel service binding named
+`TYPO3_SOLR_SERVICE_URL`. TYPO3 uses that binding only when
+`TYPO3_SOLR_ENABLED=1`.
+
 Local development:
 
 ```text
@@ -120,6 +130,37 @@ Optional all-site application:
 ```dotenv
 TYPO3_SOLR_SITE_IDENTIFIER=all
 ```
+
+Experimental internal Vercel demo service:
+
+```dotenv
+TYPO3_SOLR_ENABLED=1
+TYPO3_SOLR_SITE_BASE=https://your-project.vercel.app/
+TYPO3_SOLR_SITE_IDENTIFIER=camino
+TYPO3_SOLR_CORE=core_en
+```
+
+Do not set `TYPO3_SOLR_URL` for the internal demo service. Vercel injects
+`TYPO3_SOLR_SERVICE_URL` through the binding from the `app` service to the
+`solr` service, and `scripts/apply-solr-config.php` expands that base URL to
+`/solr/core_en`.
+
+Enable it on Vercel with:
+
+```bash
+vercel env add TYPO3_SOLR_ENABLED production --value 1 --force --yes
+vercel env add TYPO3_SOLR_SITE_BASE production --value "https://typo3-camino-vercel.vercel.app/" --force --yes
+vercel env add TYPO3_SOLR_SITE_IDENTIFIER production --value camino --force --yes
+vercel env add TYPO3_SOLR_CORE production --value core_en --force --yes
+vercel env add TYPO3_SOLR_INCLUDE_STYLESHEETS production --value 1 --force --yes
+vercel env add TYPO3_EXTENSION_SETUP_ON_BOOT production --value 1 --force --yes
+vercel deploy --prod --regions fra1
+vercel env add TYPO3_EXTENSION_SETUP_ON_BOOT production --value 0 --force --yes
+vercel deploy --prod --regions fra1
+```
+
+The first deploy lets TYPO3 run extension setup against the database. The second
+deploy returns startup to the normal faster path.
 
 ## What The Script Writes
 
@@ -214,23 +255,38 @@ See [long-running jobs](long-running-jobs.md).
 
 ## Can Solr Run As A Vercel Container?
 
-Technically, Vercel can run Dockerfile-based HTTP services. That does not make
-Solr a good production service there by default.
+Yes, for this repo's demo path. `vercel.json` defines an internal `solr`
+service and the `app` service has a private service binding to it. The Solr
+service is not exposed by a public rewrite.
+
+```text
+TYPO3 app service
+  -> TYPO3_SOLR_SERVICE_URL binding
+  -> internal Solr service
+```
+
+The service uses:
+
+- `typo3solr/ext-solr:14.0.0-beta3`
+- Apache Solr 10.0.0
+- configset `ext_solr_14_0_0`
+- enabled cores `core_en` and `core_de`
+
+This is still not a production Solr architecture by default.
 
 Solr needs durable index state in `/var/solr`, predictable startup, private
 networking or strong access control, monitoring, backups, and upgrade handling.
 A disposable Solr container can be useful for experiments, but it is not the
 same as managed Solr.
 
-This repo therefore keeps the Vercel Solr container example outside the main
-deployment config:
+The Solr service files live here:
 
 ```text
-examples/vercel-solr-service/
+services/solr/
 ```
 
-Do not copy that example into production without solving durability and access
-control first.
+Do not treat this service as production search without solving durability,
+backup/restore, monitoring, memory sizing, and reindex operations first.
 
 ## Buying/Choosing A Solr Provider
 
@@ -265,4 +321,8 @@ provider requires account, billing, region, SLA, and data-processing decisions.
 - EXT:solr site sets: https://docs.typo3.org/p/apache-solr-for-typo3/solr/main/en-us/Configuration/SiteSets.html
 - EXT:solr 14 release notes: https://docs.typo3.org/p/apache-solr-for-typo3/solr/main/en-us/Releases/solr-release-14-0.html
 - EXT:solr Packagist package: https://packagist.org/packages/apache-solr-for-typo3/solr
+- Vercel Services: https://vercel.com/docs/services
+- Vercel service bindings: https://vercel.com/docs/services/bindings
+- Vercel Container Images: https://vercel.com/docs/functions/container-images
+- Vercel Container Registry: https://vercel.com/docs/container-registry
 - Scheduler and cron in this repo: scheduler.md

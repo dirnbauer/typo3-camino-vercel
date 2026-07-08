@@ -157,9 +157,9 @@ What this means today:
 - Vercel region pinning and runtime-local TYPO3 caches for faster warm requests.
 - Optional Redis cache through Vercel Marketplace Redis/Redis Cloud for shared
   TYPO3 `hash`, `pages`, and `rootline` caches.
-- Optional EXT:solr 14.0 beta integration for an external Apache Solr 10
-  endpoint. Vercel does not provide managed Apache Solr; use managed Solr for
-  production, or DDEV Solr locally.
+- Optional EXT:solr 14.0 beta integration for Apache Solr 10. Production should
+  use managed Solr. The repo also includes an internal Vercel Solr container
+  service for demos only.
 - Optional Vercel CDN caching for anonymous public frontend HTML.
 - Vercel memory/CPU can be raised on Pro/Enterprise in the dashboard or project
   API. The public demo project uses the performance CPU class and `fra1`.
@@ -177,8 +177,8 @@ What this means today:
   S3-compatible object storage is configured.
 - Vercel's deployment File API is not a replacement for Vercel Blob. It uploads
   deployment/build files, not runtime TYPO3 editor uploads.
-- A Solr Docker container on Vercel is not production storage. Solr needs
-  durable index state, so production search should use external managed Solr.
+- The included Vercel Solr container service is demo-only. Its index state is
+  runtime state, not durable production storage.
 - This starter is not a GDPR/legal compliance guarantee.
 
 ## Quick Demo

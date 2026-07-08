@@ -87,6 +87,11 @@ function solr_has_connection_env(): bool
 function solr_connection_from_env(string $prefix, string $fallbackPrefix, ?array $fallback = null): array
 {
     $url = solr_env($prefix . '_URL') ?? solr_env($fallbackPrefix . '_URL');
+    $usesServiceBinding = false;
+    if ($url === null) {
+        $url = solr_service_url_from_env($prefix, $fallbackPrefix);
+        $usesServiceBinding = $url !== null;
+    }
     $parsed = $url !== null ? solr_parse_url($url) : [];
 
     $scheme = solr_env($prefix . '_SCHEME') ?? solr_env($fallbackPrefix . '_SCHEME') ?? ($parsed['scheme'] ?? $fallback['scheme'] ?? 'https');
@@ -96,7 +101,8 @@ function solr_connection_from_env(string $prefix, string $fallbackPrefix, ?array
         exit(1);
     }
 
-    $port = solr_env($prefix . '_PORT') ?? solr_env($fallbackPrefix . '_PORT') ?? ($parsed['port'] ?? $fallback['port'] ?? ($scheme === 'https' ? 443 : 8983));
+    $defaultPort = $usesServiceBinding ? ($scheme === 'https' ? 443 : 80) : ($scheme === 'https' ? 443 : 8983);
+    $port = solr_env($prefix . '_PORT') ?? solr_env($fallbackPrefix . '_PORT') ?? ($parsed['port'] ?? $fallback['port'] ?? $defaultPort);
     $path = solr_env($prefix . '_PATH') ?? solr_env($fallbackPrefix . '_PATH') ?? ($parsed['path'] ?? $fallback['path'] ?? '/');
     $core = solr_env($prefix . '_CORE') ?? solr_env($fallbackPrefix . '_CORE') ?? ($parsed['core'] ?? $fallback['core'] ?? 'core_en');
     $username = solr_env($prefix . '_USERNAME') ?? solr_env($fallbackPrefix . '_USERNAME') ?? ($parsed['username'] ?? $fallback['username'] ?? null);
@@ -111,6 +117,27 @@ function solr_connection_from_env(string $prefix, string $fallbackPrefix, ?array
         'username' => $username,
         'password' => $password,
     ];
+}
+
+function solr_service_url_from_env(string $prefix, string $fallbackPrefix): ?string
+{
+    if (solr_env($prefix . '_HOST') !== null || solr_env($fallbackPrefix . '_HOST') !== null) {
+        return null;
+    }
+
+    $serviceUrl = solr_env($prefix . '_SERVICE_URL')
+        ?? solr_env($fallbackPrefix . '_SERVICE_URL')
+        ?? solr_env('TYPO3_SOLR_INTERNAL_URL')
+        ?? solr_env('SOLR_INTERNAL_URL');
+
+    if ($serviceUrl === null) {
+        return null;
+    }
+
+    $path = solr_env($prefix . '_PATH') ?? solr_env($fallbackPrefix . '_PATH') ?? '/solr/';
+    $core = solr_env($prefix . '_CORE') ?? solr_env($fallbackPrefix . '_CORE') ?? 'core_en';
+
+    return rtrim($serviceUrl, '/') . solr_normalize_path($path) . rawurlencode($core);
 }
 
 function solr_parse_url(string $url): array

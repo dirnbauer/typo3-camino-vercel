@@ -1,0 +1,10 @@
+FROM typo3solr/ext-solr:14.0.0-beta3
+
+ENV PORT=8983 \
+    SOLR_PORT_LISTEN=8983 \
+    SOLR_JAVA_MEM="-Xms512m -Xmx512m" \
+    TYPO3_SOLR_ENABLED_CORES="english german"
+
+EXPOSE 8983
+
+CMD ["solr-foreground", "--user-managed"]
