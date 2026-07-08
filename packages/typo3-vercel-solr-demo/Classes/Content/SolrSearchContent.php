@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace Webconsulting\Typo3VercelSolrDemo\Content;
 
+use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Core\Attribute\AsAllowedCallable;
+
 final class SolrSearchContent
 {
     /**
      * @param array<string, mixed> $configuration
      */
-    public function render(mixed $content = '', array $configuration = []): string
+    #[AsAllowedCallable]
+    public function render(mixed $content = '', array $configuration = [], ?ServerRequestInterface $request = null): string
     {
-        unset($content, $configuration);
+        unset($content, $configuration, $request);
 
         try {
             return $this->renderSearch();
