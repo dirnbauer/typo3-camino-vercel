@@ -185,6 +185,33 @@ Linux cron daemon in this container. Use:
 
 See [scheduler.md](scheduler.md).
 
+### Large Indexing Jobs
+
+Indexing a whole website can take minutes or hours depending on page count,
+language count, rendering cost, Solr latency, and whether files are extracted
+with Tika. Do not run that as one Vercel request.
+
+Use EXT:solr's Index Queue Worker in chunks:
+
+- queue the content for indexing in the Solr backend module
+- configure "Number of documents to Index" to a bounded value
+- run Scheduler repeatedly until the queue is empty
+- measure one batch and keep it well below Vercel's invocation limit
+
+Start with 25-100 documents per batch for normal pages. Use 10-50 for large or
+multi-language sites. Use 1-10 for file/Tika indexing, and prefer an external
+worker for those jobs.
+
+For hour-scale full reindexing, run the Scheduler CLI from an external worker
+that has the same production database and Solr environment variables:
+
+```bash
+vendor/bin/typo3 scheduler:list
+vendor/bin/typo3 scheduler:execute <index-queue-worker-task-id> --no-interaction
+```
+
+See [long-running jobs](long-running-jobs.md).
+
 ## Can Solr Run As A Vercel Container?
 
 Technically, Vercel can run Dockerfile-based HTTP services. That does not make
@@ -229,6 +256,7 @@ provider requires account, billing, region, SLA, and data-processing decisions.
 - no Solr credentials are committed
 - no file indexing/Tika setup is enabled
 - no Solr index backup/restore automation is included
+- no multi-hour Vercel worker is included for full reindexing
 - no guarantee that EXT:solr beta is acceptable for every production project
 
 ## References

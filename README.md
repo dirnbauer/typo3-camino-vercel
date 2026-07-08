@@ -168,6 +168,9 @@ What this means today:
 ## What Does Not Work
 
 - No Linux daemon cron inside the container. Use Vercel Cron or an external cron service.
+- Multi-hour jobs, including large Solr reindexes, must run as small Scheduler
+  batches or on an external worker. One Vercel request is not a multi-hour job
+  runner.
 - No durable local filesystem. Runtime writes in `/tmp`, `var/`, or `fileadmin/` can disappear.
 - SQLite is demo-only on Vercel. It is not reliable for TYPO3 backend sessions.
 - Editor uploads are not durable if the Blob store is skipped and no
@@ -350,6 +353,7 @@ See [docs/costs.md](docs/costs.md) for the current caveats.
 - [Object storage and durable uploads](docs/object-storage.md)
 - [Redis cache on Vercel](docs/redis-cache.md)
 - [Solr search](docs/solr.md)
+- [Long-running jobs](docs/long-running-jobs.md)
 - [Included TYPO3 packages](docs/typo3-packages.md)
 - [Backend login and sessions](docs/backend-login.md)
 - [Performance notes](docs/performance.md)
