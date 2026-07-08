@@ -423,6 +423,36 @@ function typo3_vercel_cache_configurations(): array
     ];
 }
 
+function typo3_vercel_log_configuration(): array
+{
+    $phpErrorLogWriter = 'TYPO3\\CMS\\Core\\Log\\Writer\\PhpErrorLogWriter';
+    $fileWriter = 'TYPO3\\CMS\\Core\\Log\\Writer\\FileWriter';
+    $logToPhpErrorLog = typo3_vercel_bool_env('TYPO3_LOG_TO_PHP_ERROR_LOG', typo3_vercel_is_vercel_runtime());
+
+    $configuration = [
+        'TYPO3' => [
+            'CMS' => [
+                'deprecations' => [
+                    'writerConfiguration' => [
+                        'notice' => [
+                            $fileWriter => [
+                                'disabled' => true,
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ];
+
+    if ($logToPhpErrorLog) {
+        $configuration['writerConfiguration']['warning'][$phpErrorLogWriter] = [];
+        $configuration['ApacheSolrForTypo3']['Solr']['writerConfiguration']['error'][$phpErrorLogWriter] = [];
+    }
+
+    return $configuration;
+}
+
 function typo3_vercel_settings(): array
 {
     $database = typo3_vercel_database_config();
@@ -477,21 +507,7 @@ function typo3_vercel_settings(): array
             'webp_quality' => typo3_vercel_int_env('TYPO3_GFX_WEBP_QUALITY', 85, 1, 100),
             'avif_quality' => typo3_vercel_int_env('TYPO3_GFX_AVIF_QUALITY', 75, 1, 100),
         ],
-        'LOG' => [
-            'TYPO3' => [
-                'CMS' => [
-                    'deprecations' => [
-                        'writerConfiguration' => [
-                            'notice' => [
-                                'TYPO3\\CMS\\Core\\Log\\Writer\\FileWriter' => [
-                                    'disabled' => true,
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-        ],
+        'LOG' => typo3_vercel_log_configuration(),
         'MAIL' => [
             'transport' => typo3_vercel_env('TYPO3_MAIL_TRANSPORT', 'sendmail'),
             'transport_sendmail_command' => typo3_vercel_env('TYPO3_MAIL_SENDMAIL_COMMAND', '/usr/sbin/sendmail -t -i'),
