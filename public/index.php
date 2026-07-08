@@ -14,6 +14,26 @@
  */
 
 call_user_func(static function () {
+    if ((getenv('VERCEL') === '1' || getenv('VERCEL_URL') !== false) && PHP_OS_FAMILY !== 'Windows') {
+        foreach (
+            [
+                '/tmp/typo3',
+                '/tmp/typo3/var',
+                '/tmp/typo3/var/cache',
+                '/tmp/typo3/var/lock',
+                '/tmp/typo3/var/log',
+                '/tmp/typo3/tmp',
+                '/tmp/typo3/gm',
+                '/tmp/typo3/php-sessions',
+            ] as $runtimePath
+        ) {
+            if (!is_dir($runtimePath)) {
+                @mkdir($runtimePath, 0777, true);
+            }
+            @chmod($runtimePath, 0777);
+        }
+    }
+
     $classLoader = require dirname(__DIR__).'/vendor/autoload.php';
     \TYPO3\CMS\Core\Core\SystemEnvironmentBuilder::run();
 

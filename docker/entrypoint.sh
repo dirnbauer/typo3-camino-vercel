@@ -150,6 +150,9 @@ fix_runtime_permissions() {
   chown www-data:www-data \
     /tmp/typo3 \
     /tmp/typo3/var \
+    /tmp/typo3/var/cache \
+    /tmp/typo3/var/lock \
+    /tmp/typo3/var/log \
     /tmp/typo3/fileadmin \
     /tmp/typo3/typo3temp \
     /tmp/typo3/tmp \
@@ -157,6 +160,7 @@ fix_runtime_permissions() {
     /tmp/typo3/php-sessions \
     config \
     config/system 2>/dev/null || true
+  chmod -R a+rwX /tmp/typo3 2>/dev/null || true
   chown -h www-data:www-data var public/fileadmin public/typo3temp 2>/dev/null || true
 
   if [ "${TYPO3_DB_DRIVER:-}" = "pdo_sqlite" ] && [ -n "${TYPO3_DB_DBNAME:-}" ]; then
@@ -167,11 +171,15 @@ fix_runtime_permissions() {
 
 fix_runtime_permissions_recursive() {
   chown -R www-data:www-data /tmp/typo3 config || true
+  chmod -R a+rwX /tmp/typo3 2>/dev/null || true
   chown -h www-data:www-data var public/fileadmin public/typo3temp 2>/dev/null || true
 }
 
 mkdir -p \
   /tmp/typo3/var \
+  /tmp/typo3/var/cache \
+  /tmp/typo3/var/lock \
+  /tmp/typo3/var/log \
   /tmp/typo3/fileadmin \
   /tmp/typo3/typo3temp \
   /tmp/typo3/tmp \
@@ -191,6 +199,8 @@ fi
 apply_database_defaults
 
 prepare_runtime_directory var /tmp/typo3/var
+mkdir -p /tmp/typo3/var/cache /tmp/typo3/var/lock /tmp/typo3/var/log
+chmod -R a+rwX /tmp/typo3 2>/dev/null || true
 
 if [ "$TYPO3_SERVERLESS_FILESYSTEM" != "0" ]; then
   prepare_runtime_directory public/fileadmin /tmp/typo3/fileadmin

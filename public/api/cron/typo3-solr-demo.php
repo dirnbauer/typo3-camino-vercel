@@ -42,10 +42,15 @@ if ($action === 'logs') {
     exit;
 }
 
+if ($action === 'runtime') {
+    typo3_solr_runtime($root);
+    exit;
+}
+
 if (!in_array($action, ['setup', 'diagnose'], true)) {
     http_response_code(400);
     header('Content-Type: text/plain; charset=utf-8');
-    echo "Unsupported action.\n";
+    echo "Unsupported action. Use setup, diagnose, probe, logs, or runtime.\n";
     exit;
 }
 
@@ -331,6 +336,71 @@ function typo3_solr_logs(string $root): void
         $tail = substr($content, -6000);
         echo typo3_solr_redact($tail) . "\n\n";
     }
+}
+
+function typo3_solr_runtime(string $root): void
+{
+    header('Content-Type: text/plain; charset=utf-8');
+
+    echo "TYPO3 Vercel runtime diagnostics\n";
+    echo "root=" . $root . "\n";
+    echo "php_sapi=" . PHP_SAPI . "\n";
+    echo "uid=" . (function_exists('posix_geteuid') ? (string)posix_geteuid() : 'n/a') . "\n";
+    echo "VERCEL=" . (getenv('VERCEL') === false ? 'missing' : 'present') . "\n";
+    echo "VERCEL_URL=" . (getenv('VERCEL_URL') === false ? 'missing' : 'present') . "\n";
+    echo "TYPO3_CACHE_BACKEND=" . typo3_solr_public_env_value('TYPO3_CACHE_BACKEND') . "\n";
+    echo "TYPO3_RUNTIME_LOCK_DIR=" . typo3_solr_public_env_value('TYPO3_RUNTIME_LOCK_DIR') . "\n\n";
+
+    foreach (
+        [
+            'project_var' => $root . '/var',
+            'project_var_lock' => $root . '/var/lock',
+            'tmp_root' => '/tmp/typo3',
+            'tmp_var' => '/tmp/typo3/var',
+            'tmp_var_lock' => '/tmp/typo3/var/lock',
+            'tmp_var_cache' => '/tmp/typo3/var/cache',
+            'tmp_var_log' => '/tmp/typo3/var/log',
+            'tmp_uploads' => '/tmp/typo3/fileadmin',
+            'tmp_public_temp' => '/tmp/typo3/typo3temp',
+            'tmp_php' => '/tmp/typo3/tmp',
+            'tmp_gfx' => '/tmp/typo3/gm',
+            'tmp_sessions' => '/tmp/typo3/php-sessions',
+            'public_fileadmin' => $root . '/public/fileadmin',
+            'public_typo3temp' => $root . '/public/typo3temp',
+        ] as $label => $path
+    ) {
+        typo3_solr_runtime_path_line($label, $path);
+    }
+}
+
+function typo3_solr_runtime_path_line(string $label, string $path): void
+{
+    $exists = file_exists($path);
+    $isLink = is_link($path);
+    $target = $isLink ? (readlink($path) ?: 'unreadable') : '-';
+    $mode = $exists ? substr(sprintf('%o', (int)fileperms($path)), -4) : '----';
+
+    echo sprintf(
+        "%s path=%s exists=%s dir=%s link=%s target=%s writable=%s mode=%s\n",
+        $label,
+        $path,
+        $exists ? 'yes' : 'no',
+        is_dir($path) ? 'yes' : 'no',
+        $isLink ? 'yes' : 'no',
+        $target,
+        is_writable($path) ? 'yes' : 'no',
+        $mode,
+    );
+}
+
+function typo3_solr_public_env_value(string $name): string
+{
+    $value = getenv($name);
+    if ($value === false || $value === '') {
+        return 'missing';
+    }
+
+    return preg_match('/(PASSWORD|SECRET|TOKEN|KEY|URL|DSN)/i', $name) === 1 ? 'present' : $value;
 }
 
 function typo3_solr_redact(string $value): string

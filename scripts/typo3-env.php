@@ -28,6 +28,29 @@ function typo3_vercel_int_env(string $name, int $default, int $min, int $max): i
     return max($min, min($max, (int)$value));
 }
 
+function typo3_vercel_project_root(): string
+{
+    return str_replace('\\', '/', dirname(__DIR__));
+}
+
+function typo3_vercel_project_relative_path(string $absolutePath): string
+{
+    $target = str_replace('\\', '/', $absolutePath);
+    if ($target === '' || $target[0] !== '/') {
+        return trim($target, '/');
+    }
+
+    $fromParts = explode('/', trim(typo3_vercel_project_root(), '/'));
+    $toParts = explode('/', trim($target, '/'));
+
+    while ($fromParts !== [] && $toParts !== [] && $fromParts[0] === $toParts[0]) {
+        array_shift($fromParts);
+        array_shift($toParts);
+    }
+
+    return implode('/', array_merge(array_fill(0, count($fromParts), '..'), $toParts));
+}
+
 function typo3_vercel_is_vercel_runtime(): bool
 {
     return typo3_vercel_env('VERCEL') === '1'
@@ -461,6 +484,29 @@ function typo3_vercel_log_configuration(): array
     return $configuration;
 }
 
+function typo3_vercel_locking_configuration(bool $isVercelRuntime): array
+{
+    $runtimeLockDir = typo3_vercel_env('TYPO3_RUNTIME_LOCK_DIR');
+    if ($runtimeLockDir === null && $isVercelRuntime) {
+        $runtimeLockDir = '/tmp/typo3/var/lock';
+    }
+
+    if ($runtimeLockDir === null) {
+        return [];
+    }
+
+    // TYPO3's lockFileDir setting is intentionally relative to the project
+    // path. Convert the absolute /tmp runtime directory into the relative path
+    // TYPO3 expects so locks never fall back to the immutable image directory.
+    return [
+        'strategies' => [
+            'TYPO3\\CMS\\Core\\Locking\\FileLockStrategy' => [
+                'lockFileDir' => typo3_vercel_project_relative_path($runtimeLockDir),
+            ],
+        ],
+    ];
+}
+
 function typo3_vercel_settings(): array
 {
     $database = typo3_vercel_database_config();
@@ -537,6 +583,7 @@ function typo3_vercel_settings(): array
                 'frontend.cache.autoTagging' => true,
                 'security.system.enforceAllowedFileExtensions' => true,
             ],
+            'locking' => typo3_vercel_locking_configuration($isVercelRuntime),
             'productionExceptionHandler' => typo3_vercel_bool_env('TYPO3_LOG_PRODUCTION_EXCEPTIONS', $isVercelRuntime)
                 ? 'Webconsulting\\Typo3VercelStorage\\Error\\VercelProductionExceptionHandler'
                 : 'TYPO3\\CMS\\Core\\Error\\ProductionExceptionHandler',

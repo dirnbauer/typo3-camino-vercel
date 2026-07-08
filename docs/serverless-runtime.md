@@ -14,6 +14,12 @@ The image contains the code and Camino demo assets. Runtime writes are
 disposable. Use a real database and object storage for anything that must
 survive redeploys, cold starts, or scaling.
 
+TYPO3 locking is also routed into runtime storage. On Vercel, this starter sets
+TYPO3's `FileLockStrategy` to use `/tmp/typo3/var/lock` and pre-creates that
+directory during startup. The frontend entry point also creates the same
+directory before TYPO3 boots, so page generation, Scheduler runs, cache
+operations, and Solr-related requests do not fail when TYPO3 needs a lock.
+
 TYPO3 page, hash, and rootline caches default to the runtime-local file backend
 on Vercel (`TYPO3_CACHE_BACKEND=file`). These caches are intentionally
 disposable and rebuilt per runtime instance. They avoid making every warm page

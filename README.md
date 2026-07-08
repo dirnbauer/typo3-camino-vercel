@@ -161,6 +161,8 @@ What this means today:
 - TYPO3 14.3 Composer install with Camino and the current TYPO3 CMS system
   package set included.
 - Serverless-style runtime paths: TYPO3 writes to `/tmp`, not durable image paths.
+  TYPO3 locks are explicitly routed to `/tmp/typo3/var/lock` so page rendering,
+  Scheduler runs, and Solr requests do not try to write into the immutable image.
 - Durable external SQL database support through `DATABASE_URL` or TYPO3 DB env vars.
 - Durable editor uploads through Vercel Blob or the S3-compatible TYPO3 FAL driver.
 - Vercel Cron compatible endpoint for running TYPO3 Scheduler tasks.

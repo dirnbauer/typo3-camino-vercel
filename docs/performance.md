@@ -296,8 +296,10 @@ GraphicsMagick temp files into writable runtime storage:
 ```
 
 `public/typo3temp`, `public/fileadmin`, and `var` are symlinked to `/tmp` on
-Vercel. That supports TYPO3's normal temporary files and image processing, but
-runtime files are disposable. Durable editor uploads still need object storage.
+Vercel, and TYPO3 lock files are forced to `/tmp/typo3/var/lock`. That supports
+TYPO3's normal temporary files, image processing, lock files, and cache files,
+but runtime files are disposable. Durable editor uploads still need object
+storage.
 
 ## Vercel Package
 
