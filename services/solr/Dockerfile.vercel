@@ -3,14 +3,15 @@ FROM typo3solr/ext-solr:14.0.0-beta3
 USER root
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl nginx-light \
+    && apt-get install -y --no-install-recommends curl python3-minimal \
     && for core_properties in /var/solr/data/cores/*/core.properties; do mv "${core_properties}" "${core_properties}_disabled"; done \
     && for core in english german; do mv "/var/solr/data/cores/${core}/core.properties_disabled" "/var/solr/data/cores/${core}/core.properties"; done \
     && chown -R solr:solr /var/solr /opt/solr \
     && rm -rf /var/lib/apt/lists/*
 
 COPY start-vercel-solr.sh /usr/local/bin/start-vercel-solr
-RUN chmod 755 /usr/local/bin/start-vercel-solr
+COPY waiting-solr-proxy.py /usr/local/bin/waiting-solr-proxy
+RUN chmod 755 /usr/local/bin/start-vercel-solr /usr/local/bin/waiting-solr-proxy
 
 ENV PORT=80 \
     SOLR_PORT_LISTEN=8983 \

@@ -7,10 +7,11 @@ export SOLR_PORT_LISTEN="${SOLR_INTERNAL_PORT:-8983}"
 export SOLR_HOME="${SOLR_HOME:-/tmp/solr-home}"
 export SOLR_LOGS_DIR="${SOLR_LOGS_DIR:-/tmp/solr-logs}"
 export SOLR_PID_DIR="${SOLR_PID_DIR:-/tmp/solr-pids}"
-export NGINX_CONF="${NGINX_CONF:-/tmp/nginx-solr.conf}"
+export SOLR_READY_FILE="${SOLR_READY_FILE:-/tmp/typo3-solr-ready}"
 export TYPO3_SOLR_SEED_DEMO_DOCS="${TYPO3_SOLR_SEED_DEMO_DOCS:-1}"
 
 mkdir -p "${SOLR_HOME}" "${SOLR_LOGS_DIR}" "${SOLR_PID_DIR}"
+rm -f "${SOLR_READY_FILE}"
 
 if [ ! -f "${SOLR_HOME}/solr.xml" ]; then
   cp -a /var/solr/data/. "${SOLR_HOME}/"
@@ -20,49 +21,26 @@ chown -R solr:solr "${SOLR_HOME}" "${SOLR_LOGS_DIR}" "${SOLR_PID_DIR}"
 
 echo "Starting TYPO3 Solr on internal port ${SOLR_PORT_LISTEN} with SOLR_HOME=${SOLR_HOME}"
 
-cat > "${NGINX_CONF}" <<EOF
-pid /tmp/nginx-solr.pid;
-error_log /dev/stderr info;
-
-events {
-  worker_connections 256;
-}
-
-http {
-  access_log /dev/stdout;
-  server_tokens off;
-  client_body_temp_path /tmp/nginx-client-body;
-  proxy_temp_path /tmp/nginx-proxy;
-  fastcgi_temp_path /tmp/nginx-fastcgi;
-  uwsgi_temp_path /tmp/nginx-uwsgi;
-  scgi_temp_path /tmp/nginx-scgi;
-  proxy_connect_timeout 2s;
-  proxy_send_timeout 60s;
-  proxy_read_timeout 60s;
-
-  server {
-    listen ${VERCEL_SOLR_PUBLIC_PORT};
-
-    location / {
-      proxy_pass http://127.0.0.1:${SOLR_PORT_LISTEN};
-      proxy_set_header Host \$host;
-      proxy_set_header X-Forwarded-Proto \$scheme;
-      proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    }
-  }
-}
-EOF
-
 env PATH="/opt/java/openjdk/bin:/opt/solr/bin:/opt/solr/docker/scripts:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
   /opt/solr/docker/scripts/solr-fg --user-managed --force &
 
 solr_pid="$!"
+proxy_pid=""
+ready_pid=""
 
 shutdown() {
+  if [ -n "${ready_pid}" ]; then
+    kill "${ready_pid}" >/dev/null 2>&1 || true
+    wait "${ready_pid}" >/dev/null 2>&1 || true
+  fi
+  if [ -n "${proxy_pid}" ]; then
+    kill "${proxy_pid}" >/dev/null 2>&1 || true
+    wait "${proxy_pid}" >/dev/null 2>&1 || true
+  fi
   kill "${solr_pid}" >/dev/null 2>&1 || true
   wait "${solr_pid}" >/dev/null 2>&1 || true
 }
-trap shutdown INT TERM
+trap 'shutdown; exit 143' INT TERM
 
 normalize_base_url() {
   local base_url="${TYPO3_SOLR_DEMO_PUBLIC_BASE_URL:-${VERCEL_PROJECT_PRODUCTION_URL:-${VERCEL_URL:-https://typo3-camino-vercel.vercel.app}}}"
@@ -255,12 +233,23 @@ wait_for_solr_ready() {
   return 1
 }
 
-if ! wait_for_solr_ready; then
-  shutdown
-  exit 1
-fi
+python3 /usr/local/bin/waiting-solr-proxy &
+proxy_pid="$!"
 
-seed_demo_documents || echo "WARNING: TYPO3 Solr demo document seed failed" >&2
+(
+  if wait_for_solr_ready; then
+    seed_demo_documents || echo "WARNING: TYPO3 Solr demo document seed failed" >&2
+    touch "${SOLR_READY_FILE}"
+    echo "TYPO3 Solr readiness proxy is now forwarding requests"
+    exit 0
+  fi
 
-echo "Forwarding Vercel port ${VERCEL_SOLR_PUBLIC_PORT} to Solr port ${SOLR_PORT_LISTEN}"
-exec nginx -c "${NGINX_CONF}" -g 'daemon off;'
+  echo "TYPO3 Solr failed readiness; stopping service proxy" >&2
+  kill "${proxy_pid}" >/dev/null 2>&1 || true
+) &
+ready_pid="$!"
+
+wait "${proxy_pid}"
+proxy_status="$?"
+shutdown
+exit "${proxy_status}"
