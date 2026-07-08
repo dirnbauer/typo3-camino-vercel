@@ -268,7 +268,7 @@ function typo3_vercel_redis_cache_base_options(): ?array
         'port' => (int)($parts['port'] ?? ($scheme === 'rediss' ? 6380 : 6379)),
         'database' => $database,
         'connectionTimeout' => typo3_vercel_int_env('TYPO3_REDIS_CONNECTION_TIMEOUT', 1, 0, 10),
-        'persistentConnection' => typo3_vercel_bool_env('TYPO3_REDIS_PERSISTENT_CONNECTION', true),
+        'persistentConnection' => typo3_vercel_bool_env('TYPO3_REDIS_PERSISTENT_CONNECTION', false),
     ];
 
     if (isset($parts['user']) && $parts['user'] !== '') {
@@ -345,7 +345,7 @@ function typo3_vercel_redis_component_options(): ?array
         'port' => (int)$port,
         'database' => $database,
         'connectionTimeout' => typo3_vercel_int_env('TYPO3_REDIS_CONNECTION_TIMEOUT', 1, 0, 10),
-        'persistentConnection' => typo3_vercel_bool_env('TYPO3_REDIS_PERSISTENT_CONNECTION', true),
+        'persistentConnection' => typo3_vercel_bool_env('TYPO3_REDIS_PERSISTENT_CONNECTION', false),
     ];
 
     $username = typo3_vercel_env('TYPO3_REDIS_USERNAME')
