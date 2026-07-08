@@ -40,7 +40,7 @@ RUN apt-get update \
         zip \
     && yes '' | pecl install redis \
     && docker-php-ext-enable redis \
-    && a2enmod deflate expires headers remoteip rewrite \
+    && a2enmod brotli deflate expires headers remoteip rewrite \
     && sed -ri -e "s!/var/www/html!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/sites-available/*.conf \
     && printf '%s\n' \
         "ServerName localhost" \
@@ -55,11 +55,11 @@ RUN apt-get update \
         "</Directory>" > /etc/apache2/conf-available/typo3.conf \
     && printf '%s\n' \
         "<IfModule mpm_prefork_module>" \
-        "    StartServers 2" \
-        "    MinSpareServers 2" \
-        "    MaxSpareServers 5" \
+        "    StartServers 8" \
+        "    MinSpareServers 8" \
+        "    MaxSpareServers 16" \
         "    MaxRequestWorkers 16" \
-        "    MaxConnectionsPerChild 500" \
+        "    MaxConnectionsPerChild 1000" \
         "</IfModule>" > /etc/apache2/conf-available/typo3-mpm.conf \
     && a2enconf typo3 \
     && a2enconf typo3-mpm \
@@ -71,10 +71,16 @@ WORKDIR /var/www/html
 
 COPY composer.json composer.lock ./
 COPY packages ./packages
-RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
+# The runtime image is immutable and read-only (except /tmp), so no classes are
+# created after build: --classmap-authoritative is safe and skips the filesystem
+# fallback Composer otherwise performs on every class_exists() miss.
+RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --classmap-authoritative
 
 COPY . .
 COPY docker/php.ini /usr/local/etc/php/conf.d/typo3.ini
+
+# Persistent opcache directory, primed below and read at runtime by every instance.
+RUN mkdir -p /usr/local/share/opcache
 
 RUN set -eu; \
     mkdir -p var/seed public/fileadmin/_temp_ public/fileadmin/user_upload public/typo3temp config/system; \
@@ -98,7 +104,12 @@ RUN set -eu; \
     cp /var/www/html/var/seed/camino.sqlite /usr/local/share/typo3-seed/camino.sqlite; \
     rm -rf var/* public/typo3temp/*
 
-RUN chmod +x docker/entrypoint.sh scripts/bootstrap-typo3.php scripts/apply-admin-password.php scripts/apply-object-storage.php scripts/apply-solr-config.php \
+# Prime the shared opcode cache so a new instance's first request loads compiled
+# opcodes from disk instead of recompiling the TYPO3 codebase. Never fails the build.
+RUN php scripts/warm-opcache.php || true; \
+    chmod -R a+rX /usr/local/share/opcache
+
+RUN chmod +x docker/entrypoint.sh scripts/bootstrap-typo3.php scripts/apply-admin-password.php scripts/apply-object-storage.php scripts/apply-solr-config.php scripts/warm-opcache.php \
     && mkdir -p var public/fileadmin/_temp_ public/fileadmin/user_upload public/typo3temp config/system \
     && chown -R www-data:www-data var public/fileadmin public/typo3temp config
 

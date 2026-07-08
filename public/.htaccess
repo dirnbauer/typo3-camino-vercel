@@ -26,6 +26,40 @@
 
 ### Begin: Compression ###
 
+# Brotli is preferred when the client advertises it (Accept-Encoding: br) and
+# yields ~10-20% smaller text payloads than gzip; mod_deflate below handles the
+# gzip fallback. Both filters no-op when the response is already encoded.
+<IfModule mod_brotli.c>
+	<IfModule mod_filter.c>
+		AddOutputFilterByType BROTLI_COMPRESS application/atom+xml \
+			application/javascript \
+			application/json \
+			application/ld+json \
+			application/manifest+json \
+			application/rss+xml \
+			application/vnd.ms-fontobject \
+			application/x-font-ttf \
+			application/x-javascript \
+			application/xhtml+xml \
+			application/xml \
+			font/eot \
+			font/opentype \
+			font/otf \
+			font/ttf \
+			image/bmp \
+			image/svg+xml \
+			image/vnd.microsoft.icon \
+			image/x-icon \
+			text/cache-manifest \
+			text/css \
+			text/html \
+			text/javascript \
+			text/plain \
+			text/xml
+	</IfModule>
+	BrotliCompressionQuality 5
+</IfModule>
+
 <IfModule mod_deflate.c>
 	# Force compression for mangled `Accept-Encoding` request headers
 	<IfModule mod_setenvif.c>
@@ -165,6 +199,24 @@
 </IfModule>
 
 ### End: Browser caching of resource files ###
+
+
+### Begin: Vercel edge caching of static assets ###
+
+# mod_expires only emits `Cache-Control: max-age=N`, which Vercel's CDN ignores
+# for shared caching. Adding `s-maxage` lets the Vercel edge serve immutable
+# static assets (fileadmin, _assets, versioned files) without invoking the
+# container at all — the single biggest per-request win for an asset-heavy site,
+# and it avoids paying a cold start for stray asset requests after scale-to-zero.
+# HTML is deliberately excluded: anonymous HTML edge caching is opt-in via the
+# VercelFrontendCacheHeaders middleware (TYPO3_VERCEL_EDGE_CACHE_TTL).
+<IfModule mod_headers.c>
+	<FilesMatch "\.(css|js|mjs|woff2?|ttf|otf|eot|ico|png|jpe?g|gif|svg|svgz|webp|avif|avifs|bmp|jxl|mp4|m4v|webm|ogg|ogv|oga|opus|m4a)$">
+		Header set Cache-Control "public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=86400, immutable"
+	</FilesMatch>
+</IfModule>
+
+### End: Vercel edge caching of static assets ###
 
 
 ### Begin: MIME types ###

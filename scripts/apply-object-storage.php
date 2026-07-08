@@ -56,6 +56,22 @@ $values = [
 ];
 $values = array_intersect_key($values, array_flip($columns));
 
+// The stored row and its remote folders only need to be (re)created when the
+// computed configuration actually changes. Skipping an unchanged row avoids the
+// per-cold-start cost of the write plus the network folder verification, which
+// otherwise runs on every container boot whenever object-storage env vars are set.
+$volatileColumns = ['tstamp' => true, 'crdate' => true];
+$comparableValues = array_diff_key($values, $volatileColumns);
+$existingRow = typo3_vercel_existing_storage_row($pdo, $storageUid, array_keys($comparableValues));
+if ($existingRow !== null && typo3_vercel_storage_row_matches($existingRow, $comparableValues)) {
+    fwrite(STDOUT, sprintf(
+        "TYPO3 object storage uid %d already matches the configured %s driver; skipping.\n",
+        $storageUid,
+        $driverName
+    ));
+    exit(0);
+}
+
 try {
     $pdo->beginTransaction();
 
@@ -65,11 +81,7 @@ try {
     }
 
     if (typo3_vercel_storage_exists($pdo, $storageUid)) {
-        $updateValues = $values;
-        unset($updateValues['uid'], $updateValues['pid'], $updateValues['crdate']);
-        $assignments = array_map(static fn (string $column): string => $column . ' = :' . $column, array_keys($updateValues));
-        $statement = $pdo->prepare('UPDATE sys_file_storage SET ' . implode(', ', $assignments) . ' WHERE uid = :uid');
-        $statement->execute($updateValues + ['uid' => $storageUid]);
+        typo3_vercel_update_storage_row($pdo, $values, $storageUid);
     } else {
         $statement = $pdo->prepare(
             'INSERT INTO sys_file_storage (' . implode(', ', array_keys($values)) . ') VALUES (:' . implode(', :', array_keys($values)) . ')'
@@ -78,6 +90,23 @@ try {
     }
 
     $pdo->commit();
+} catch (PDOException $exception) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    // A concurrent cold start may have inserted uid first. Converge to the same
+    // configuration with a plain UPDATE instead of failing this instance's boot.
+    if (typo3_vercel_is_duplicate_key_error($exception)) {
+        try {
+            typo3_vercel_update_storage_row($pdo, $values, $storageUid);
+        } catch (Throwable $updateException) {
+            fwrite(STDERR, sprintf("Applying TYPO3 object storage failed: %s\n", $updateException->getMessage()));
+            exit(1);
+        }
+    } else {
+        fwrite(STDERR, sprintf("Applying TYPO3 object storage failed: %s\n", $exception->getMessage()));
+        exit(1);
+    }
 } catch (Throwable $exception) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
@@ -338,6 +367,65 @@ function typo3_vercel_storage_exists(PDO $pdo, int $uid): bool
     $statement = $pdo->prepare('SELECT uid FROM sys_file_storage WHERE uid = :uid');
     $statement->execute(['uid' => $uid]);
     return $statement->fetchColumn() !== false;
+}
+
+/**
+ * @param array<int, string> $columns
+ * @return array<string, mixed>|null
+ */
+function typo3_vercel_existing_storage_row(PDO $pdo, int $uid, array $columns): ?array
+{
+    $safeColumns = array_values(array_filter(
+        $columns,
+        static fn (string $column): bool => preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $column) === 1
+    ));
+    if ($safeColumns === []) {
+        return null;
+    }
+
+    $statement = $pdo->prepare('SELECT ' . implode(', ', $safeColumns) . ' FROM sys_file_storage WHERE uid = :uid');
+    $statement->execute(['uid' => $uid]);
+    $row = $statement->fetch(PDO::FETCH_ASSOC);
+
+    return is_array($row) ? $row : null;
+}
+
+/**
+ * @param array<string, mixed> $existing
+ * @param array<string, mixed> $expected
+ */
+function typo3_vercel_storage_row_matches(array $existing, array $expected): bool
+{
+    foreach ($expected as $column => $value) {
+        if (!array_key_exists($column, $existing)) {
+            return false;
+        }
+        if ((string)$existing[$column] !== (string)$value) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * @param array<string, mixed> $values
+ */
+function typo3_vercel_update_storage_row(PDO $pdo, array $values, int $uid): void
+{
+    $updateValues = $values;
+    unset($updateValues['uid'], $updateValues['pid'], $updateValues['crdate']);
+    $assignments = array_map(static fn (string $column): string => $column . ' = :' . $column, array_keys($updateValues));
+    $statement = $pdo->prepare('UPDATE sys_file_storage SET ' . implode(', ', $assignments) . ' WHERE uid = :uid');
+    $statement->execute($updateValues + ['uid' => $uid]);
+}
+
+function typo3_vercel_is_duplicate_key_error(PDOException $exception): bool
+{
+    if (in_array((string)$exception->getCode(), ['23000', '23505'], true)) {
+        return true;
+    }
+    $message = strtolower($exception->getMessage());
+    return str_contains($message, 'duplicate') || str_contains($message, 'unique constraint');
 }
 
 function typo3_vercel_flexform_xml(array $configuration): string

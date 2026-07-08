@@ -16,7 +16,7 @@ services:
       TYPO3_SETUP_ADMIN_PASSWORD: admin-password-change-me
       TYPO3_SETUP_ADMIN_USERNAME: admin
       TYPO3_SETUP_DISTRIBUTION: theme_camino
-      TYPO3_TRUSTED_HOSTS_PATTERN: localhost(:[0-9]+)?|127\.0\.0\.1(:[0-9]+)?
+      TYPO3_TRUSTED_HOSTS_PATTERN: (?:localhost(:[0-9]+)?|127\.0\.0\.1(:[0-9]+)?)
     ports:
       - "8080:80"
 

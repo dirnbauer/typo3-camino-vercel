@@ -26,6 +26,32 @@ Those are now optimized. Preseeding TYPO3's generated code cache in the image
 was tested and reverted because TYPO3's runtime cache can include environment-
 specific state that is not safe to reuse across Vercel runtime starts.
 
+## Container Optimizations
+
+The immutable image is tuned for the serverless model:
+
+- **Primed OPcache file cache.** `docker/php.ini` sets `opcache.file_cache` to a
+  build-time-warmed directory (`scripts/warm-opcache.php`). Because the Vercel
+  filesystem is read-only except `/tmp`, the cache is populated once at build and
+  read by every new instance, so the first request loads compiled opcodes from
+  disk instead of recompiling the TYPO3 codebase.
+- **Tracing JIT.** `opcache.jit=tracing` (64 MB buffer) trims CPU on warm
+  requests on PHP 8.4.
+- **Authoritative autoloader.** `composer install --classmap-authoritative`
+  removes the per-`class_exists()` filesystem fallback; safe because no classes
+  are generated at runtime.
+- **Warm Apache workers.** `mpm_prefork` starts with enough workers to answer a
+  cold instance's first page plus its parallel asset requests immediately,
+  instead of ramping up one worker at a time.
+- **Edge-cached static assets.** `public/.htaccess` sends `s-maxage` on static
+  files so Vercel's CDN serves CSS/JS/fonts/images without invoking the
+  container — and without paying a cold start for stray asset requests after
+  scale-to-zero.
+- **Brotli compression.** Enabled alongside gzip for smaller text payloads.
+- **Object storage verified only on change.** The boot script skips the storage
+  write and its network folder verification when the stored record is already
+  correct, keeping cold starts cheap.
+
 ## Current Live Measurements
 
 Measured on 2026-07-07 against
