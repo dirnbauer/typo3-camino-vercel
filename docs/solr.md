@@ -137,10 +137,11 @@ services/solr/
 `TYPO3_SOLR_SERVICE_URL`. TYPO3 uses that binding only when
 `TYPO3_SOLR_ENABLED=1`. The service self-seeds the static Camino demo
 documents into every runtime instance at startup, so the demo search does not
-depend on cross-instance runtime writes. The service binds the Vercel port
-immediately and starts Solr in the same container, then seeds the demo documents
-as soon as `core_en` answers. This keeps Vercel deployment promotion reliable,
-but an immediate first Solr request can still see a short cold-start warmup.
+depend on cross-instance runtime writes. The service starts Solr in the same
+container, waits until `core_en` answers, seeds the demo documents, and only
+then exposes nginx on the Vercel service port. This avoids TYPO3's backend Solr
+module hitting a half-started service during cold start. The first Solr request
+can still wait several seconds while Vercel starts the service.
 
 Local development:
 
@@ -402,8 +403,7 @@ Live production deployment checked on 2026-07-08:
   Solr demo service it intentionally skips EXT:solr runtime indexing; with
   managed/external Solr it runs TYPO3's real `scheduler:run`.
 - Protected Solr probes returned `200` and saw the six self-seeded Camino demo
-  documents. During a fresh Solr service cold start, an immediate probe can
-  still miss the service until `core_en` is ready.
+  documents.
 - Public `/search?tx_solr[q]=Camino` returned `200` with no TYPO3 Oops. The
   final warm result check returned six result entries in about 0.57s:
   `Camino`, `Camino Route Comparison`, `Packing List`, `Imprint`, `FAQs`, and
@@ -435,10 +435,10 @@ Live production deployment checked on 2026-07-08:
 - The internal Solr service now self-seeds the static Camino demo search index
   on startup so each service instance can answer the demo search without
   relying on cross-instance runtime index state.
-- The Solr service binds the Vercel port immediately for reliable deployment
-  promotion and seeds the static demo documents as soon as `core_en` is ready.
-  An immediate first Solr request can still hit service warmup; warm requests
-  should return normally.
+- The Solr service waits for `core_en`, seeds the static demo documents, and
+  then binds the Vercel service port. This was changed after TYPO3's backend
+  Solr module showed a first-hit connection error while the service was still
+  starting.
 
 Important limitation: the internal Vercel Solr service stores the index in
 runtime `/tmp`. The startup seed makes the static demo searchable, but this is
@@ -570,6 +570,8 @@ The service uses:
 - configset `ext_solr_14_0_0`
 - enabled cores `core_en` and `core_de`
 - a startup seed for the six static Camino demo documents
+- a startup readiness gate so TYPO3 does not proxy to Solr before `core_en` is
+  reachable
 
 This is still not a production Solr architecture by default.
 

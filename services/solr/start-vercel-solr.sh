@@ -236,24 +236,31 @@ EOF
   echo "Seeded ${count:-0} Camino demo document(s) into TYPO3 Solr core_en"
 }
 
-(
+wait_for_solr_ready() {
   for attempt in $(seq 1 120); do
     if curl -fsS "http://127.0.0.1:${SOLR_PORT_LISTEN}/solr/core_en/select?q=*:*&rows=0" >/dev/null; then
       echo "TYPO3 Solr core_en is ready after ${attempt}s"
-      seed_demo_documents || echo "WARNING: TYPO3 Solr demo document seed failed" >&2
-      exit 0
+      return 0
     fi
 
     if ! kill -0 "${solr_pid}" >/dev/null 2>&1; then
       echo "TYPO3 Solr exited before it became ready" >&2
-      exit 1
+      return 1
     fi
 
     sleep 1
   done
 
   echo "TYPO3 Solr did not become ready within 120s" >&2
-) &
+  return 1
+}
+
+if ! wait_for_solr_ready; then
+  shutdown
+  exit 1
+fi
+
+seed_demo_documents || echo "WARNING: TYPO3 Solr demo document seed failed" >&2
 
 echo "Forwarding Vercel port ${VERCEL_SOLR_PUBLIC_PORT} to Solr port ${SOLR_PORT_LISTEN}"
 exec nginx -c "${NGINX_CONF}" -g 'daemon off;'
