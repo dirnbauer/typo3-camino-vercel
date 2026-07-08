@@ -74,9 +74,9 @@ Add it to Vercel:
 vercel env add CRON_SECRET production
 ```
 
-## Enable Vercel Cron
+## Vercel Cron In This Repo
 
-Add this to `vercel.json` when you are ready to enable the scheduler:
+`vercel.json` includes a safe daily Scheduler cron by default:
 
 ```json
 {
@@ -89,14 +89,34 @@ Add this to `vercel.json` when you are ready to enable the scheduler:
 }
 ```
 
-On Vercel Hobby, cron jobs are limited to once per day and can run within the
-selected hour rather than exactly at the selected minute. Use Pro if TYPO3 tasks
-must run more often or with tighter timing.
+This is intentionally daily so free/Hobby clones still deploy. On Vercel Hobby,
+cron jobs are limited to once per day and can run within the selected hour
+rather than exactly at the selected minute. A more frequent cron expression in
+the public template would make Hobby deployments fail.
 
-On Pro/Enterprise, once-per-minute cron can process small queue chunks over
-time, but it must not overlap with a still-running previous Scheduler call. If
-the next cron tick may arrive before the current run finishes, reduce the batch
-size or move the job to an external worker.
+On Pro/Enterprise, change the schedule only after you have configured a durable
+database and a durable Solr endpoint. For small Solr queues, this is a practical
+starting point:
+
+```json
+{
+  "crons": [
+    {
+      "path": "/api/cron/typo3-scheduler.php",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}
+```
+
+Once-per-minute cron can process small queue chunks over time, but it must not
+overlap with a still-running previous Scheduler call. If the next cron tick may
+arrive before the current run finishes, reduce the Solr batch size or move the
+job to an external worker.
+
+Vercel sends `Authorization: Bearer <CRON_SECRET>` automatically to cron jobs
+when the `CRON_SECRET` environment variable exists. The endpoint rejects cron
+requests without that header.
 
 For multi-hour jobs, see [long-running jobs](long-running-jobs.md).
 

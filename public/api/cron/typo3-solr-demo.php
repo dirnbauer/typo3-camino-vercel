@@ -50,6 +50,9 @@ if (!in_array($action, ['setup', 'diagnose'], true)) {
 }
 
 $limit = isset($_GET['limit']) && is_numeric($_GET['limit']) ? max(1, min(200, (int)$_GET['limit'])) : 50;
+$schedulerInterval = isset($_GET['schedulerInterval']) && is_numeric($_GET['schedulerInterval'])
+    ? max(60, min(86400, (int)$_GET['schedulerInterval']))
+    : max(60, min(86400, (int)(getenv('TYPO3_SOLR_SCHEDULER_INTERVAL') ?: 300)));
 $siteIdentifier = getenv('TYPO3_SOLR_SITE_IDENTIFIER') ?: 'camino';
 $rootPageId = getenv('TYPO3_SOLR_ROOT_PAGE_ID') ?: '1';
 $slug = getenv('TYPO3_SOLR_SEARCH_SLUG') ?: '/search';
@@ -70,6 +73,10 @@ if ($action === 'setup') {
     $command[] = '--normalize-demo-pages';
     if (typo3_solr_should_index_on_setup()) {
         $command[] = '--index';
+    }
+    if (typo3_solr_should_create_scheduler_task()) {
+        $command[] = '--scheduler-task';
+        $command[] = '--scheduler-interval=' . $schedulerInterval;
     }
 }
 
@@ -115,6 +122,10 @@ if ($exitCode === 0 && $action === 'setup' && !typo3_solr_should_index_on_setup(
 
 function typo3_solr_should_index_on_setup(): bool
 {
+    if (isset($_GET['index'])) {
+        return typo3_solr_truthy((string)$_GET['index']);
+    }
+
     $explicit = getenv('TYPO3_SOLR_INDEX_ON_SETUP');
     if ($explicit !== false && $explicit !== '') {
         return typo3_solr_truthy((string)$explicit);
@@ -130,6 +141,20 @@ function typo3_solr_should_index_on_setup(): bool
     }
 
     return !typo3_solr_has_internal_service_url();
+}
+
+function typo3_solr_should_create_scheduler_task(): bool
+{
+    if (isset($_GET['scheduler'])) {
+        return typo3_solr_truthy((string)$_GET['scheduler']);
+    }
+
+    $explicit = getenv('TYPO3_SOLR_SCHEDULER_TASK');
+    if ($explicit !== false && $explicit !== '') {
+        return typo3_solr_truthy((string)$explicit);
+    }
+
+    return typo3_solr_should_index_on_setup() && !typo3_solr_has_internal_service_url();
 }
 
 function typo3_solr_has_internal_service_url(): bool

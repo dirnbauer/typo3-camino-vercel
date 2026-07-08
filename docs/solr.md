@@ -91,7 +91,8 @@ vendor/bin/typo3 webconsulting:solr-demo:setup
 The command creates a `/search` page, adds the standard EXT:solr results
 content element (`solr_pi_results`), stores `search.targetPage` in the content
 element FlexForm, initializes the EXT:solr index queue, and can process a small
-queue batch.
+queue batch. It can also create or update the real EXT:solr Index Queue Worker
+Scheduler task when called with `--scheduler-task`.
 
 Protected Vercel indexing endpoint:
 
@@ -105,7 +106,9 @@ search page but skips runtime indexing by default, because the Solr service
 self-seeds the static Camino demo documents on startup. With an external
 managed Solr connection, the endpoint runs a small bounded index by default.
 Set `TYPO3_SOLR_INDEX_ON_SETUP=1` to force bounded runtime indexing, or `0` to
-disable it. This is for small demo/batch indexing, not multi-hour jobs.
+disable it. Add `scheduler=1` to the protected endpoint or set
+`TYPO3_SOLR_SCHEDULER_TASK=1` to create/update the EXT:solr Index Queue Worker
+task. This is for small demo/batch indexing, not multi-hour jobs.
 
 Experimental Vercel demo service:
 
@@ -152,6 +155,8 @@ TYPO3_SOLR_INCLUDE_STYLESHEETS=1
 TYPO3_SOLR_STYLESHEET_SITE_SET=webconsulting/typo3-vercel-solr-demo-stylesheets
 TYPO3_SOLR_SEARCH_SLUG=/search
 TYPO3_SOLR_INDEX_ON_SETUP=1
+TYPO3_SOLR_SCHEDULER_TASK=1
+TYPO3_SOLR_SCHEDULER_INTERVAL=300
 CRON_SECRET=<long-random-token-for-protected-setup-endpoints>
 ```
 
@@ -309,6 +314,15 @@ curl -fsS \
   "https://your-project.vercel.app/api/cron/typo3-solr-demo.php?limit=50"
 ```
 
+For managed/external Solr, create or update the TYPO3 Scheduler task at the
+same time:
+
+```bash
+curl -fsS \
+  -H "Authorization: Bearer $CRON_SECRET" \
+  "https://your-project.vercel.app/api/cron/typo3-solr-demo.php?limit=50&scheduler=1&schedulerInterval=300"
+```
+
 The setup command flushes TYPO3 caches automatically when it creates or changes
 the search page. The endpoint also normalizes the seeded Camino demo pages for
 indexing. For external managed Solr, it initializes the EXT:solr page queue and
@@ -320,6 +334,7 @@ Manual CLI form, useful locally or on a worker:
 
 ```bash
 vendor/bin/typo3 webconsulting:solr-demo:setup --index --limit=50
+vendor/bin/typo3 webconsulting:solr-demo:setup --scheduler-task --limit=50 --scheduler-interval=300
 ```
 
 The endpoint:
@@ -331,6 +346,8 @@ The endpoint:
 - initializes the EXT:solr `pages` index queue when runtime indexing is enabled
 - processes up to `limit` queue documents, capped at 200 per request, when
   runtime indexing is enabled
+- creates or updates the EXT:solr Index Queue Worker Scheduler task when
+  `scheduler=1`, `TYPO3_SOLR_SCHEDULER_TASK=1`, or `--scheduler-task` is used
 - falls back to direct Camino demo page indexing when the beta EXT:solr queue
   worker cannot render Camino pages in the Vercel context and runtime indexing
   is enabled
@@ -457,7 +474,8 @@ EXT:solr indexing depends on TYPO3 Scheduler tasks. Vercel does not run a
 Linux cron daemon in this container. Use:
 
 - the protected `/api/cron/typo3-scheduler.php` endpoint
-- Vercel Cron on paid plans when the cadence fits
+- the daily Vercel Cron entry already included in `vercel.json`
+- a faster Vercel Cron schedule on Pro/Enterprise when the cadence fits
 - an external HTTPS cron service for more frequent indexing
 
 See [scheduler.md](scheduler.md).

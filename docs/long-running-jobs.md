@@ -127,6 +127,10 @@ time:
 }
 ```
 
+The committed template uses the safer daily cron so Hobby/free deployments do
+not fail. For a real managed-Solr project on Pro, change the cron cadence only
+after measuring one Scheduler batch.
+
 Only use this when each Scheduler run is comfortably below the invocation limit.
 If one run can exceed the next cron interval, reduce the Solr batch size or move
 the job to an external worker. Overlapping Scheduler runs are a real operational

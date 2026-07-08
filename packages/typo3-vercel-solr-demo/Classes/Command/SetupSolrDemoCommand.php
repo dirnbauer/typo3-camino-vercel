@@ -15,6 +15,7 @@ use ApacheSolrForTypo3\Solr\System\Solr\Document\Document;
 use ApacheSolrForTypo3\Solr\System\DateTime\FormatService;
 use ApacheSolrForTypo3\Solr\System\Solr\ResponseAdapter;
 use ApacheSolrForTypo3\Solr\System\Solr\SolrConnection;
+use ApacheSolrForTypo3\Solr\Task\IndexQueueWorkerTask;
 use ApacheSolrForTypo3\Solr\Util;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -26,6 +27,8 @@ use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Scheduler\Domain\Repository\SchedulerTaskRepository;
+use TYPO3\CMS\Scheduler\Execution;
 
 #[AsCommand(
     name: 'webconsulting:solr-demo:setup',
@@ -53,6 +56,8 @@ final class SetupSolrDemoCommand extends Command
             ->addOption('flush-caches', null, InputOption::VALUE_NONE, 'Flush TYPO3 caches after creating or updating the search page.')
             ->addOption('normalize-demo-pages', null, InputOption::VALUE_NONE, 'Make visible Camino demo pages indexable before queue initialization.')
             ->addOption('limit', null, InputOption::VALUE_REQUIRED, 'Maximum queue documents to process per run.', '50')
+            ->addOption('scheduler-task', null, InputOption::VALUE_NONE, 'Create or update the EXT:solr Index Queue Worker scheduler task.')
+            ->addOption('scheduler-interval', null, InputOption::VALUE_REQUIRED, 'Scheduler task interval in seconds.', '300')
             ->addOption('indexing-configuration', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'EXT:solr indexing configuration name.', ['pages']);
     }
 
@@ -104,6 +109,15 @@ final class SetupSolrDemoCommand extends Command
                     $this->indexVisibleDemoPagesDirectly($rootPageId, $searchPageUid, $output);
                 }
             }
+        }
+
+        if ((bool)$input->getOption('scheduler-task')) {
+            $this->ensureIndexQueueSchedulerTask(
+                $rootPageId,
+                $limit,
+                max(60, $this->intOption($input, 'scheduler-interval', 300)),
+                $output,
+            );
         }
 
         return Command::SUCCESS;
@@ -404,6 +418,80 @@ final class SetupSolrDemoCommand extends Command
             $statistics->getSuccessCount(),
             $statistics->getFailedCount(),
         ));
+    }
+
+    private function ensureIndexQueueSchedulerTask(
+        int $rootPageId,
+        int $documentsToIndexLimit,
+        int $interval,
+        OutputInterface $output,
+    ): void {
+        /** @var SchedulerTaskRepository $taskRepository */
+        $taskRepository = GeneralUtility::makeInstance(SchedulerTaskRepository::class);
+        $task = $this->findIndexQueueSchedulerTask($rootPageId, $taskRepository);
+        $created = $task === null;
+
+        if ($task === null) {
+            /** @var IndexQueueWorkerTask $task */
+            $task = GeneralUtility::makeInstance(IndexQueueWorkerTask::class);
+        }
+
+        $task->setRootPageId($rootPageId);
+        $task->setDocumentsToIndexLimit($documentsToIndexLimit);
+        $task->setExecution(Execution::createRecurringExecution(time(), $interval, 0, false));
+        $task->setRunOnNextCronJob(true);
+        $task->setDisabled(false);
+        $task->setDescription(sprintf(
+            'EXT:solr index queue worker for Camino root page %d (%d documents/run).',
+            $rootPageId,
+            $documentsToIndexLimit,
+        ));
+
+        $success = $created ? $taskRepository->add($task) : $taskRepository->update($task);
+        if (!$success) {
+            throw new \RuntimeException('Could not create or update the EXT:solr scheduler task.', 1773312920);
+        }
+
+        $output->writeln(sprintf(
+            'EXT:solr scheduler task %s: uid %d, root page %d, %d documents/run, interval %d seconds.',
+            $created ? 'created' : 'updated',
+            $task->getTaskUid(),
+            $rootPageId,
+            $documentsToIndexLimit,
+            $interval,
+        ));
+    }
+
+    private function findIndexQueueSchedulerTask(
+        int $rootPageId,
+        SchedulerTaskRepository $taskRepository,
+    ): ?IndexQueueWorkerTask {
+        $connection = $this->connectionPool->getConnectionForTable('tx_scheduler_task');
+        $queryBuilder = $connection->createQueryBuilder();
+        $queryBuilder->getRestrictions()->removeAll();
+        $uids = $queryBuilder
+            ->select('uid')
+            ->from('tx_scheduler_task')
+            ->where(
+                $queryBuilder->expr()->eq('tasktype', $queryBuilder->createNamedParameter(IndexQueueWorkerTask::class)),
+                $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
+            )
+            ->executeQuery()
+            ->fetchFirstColumn();
+
+        foreach ($uids as $uid) {
+            try {
+                $task = $taskRepository->findByUid((int)$uid);
+            } catch (\Throwable) {
+                continue;
+            }
+
+            if ($task instanceof IndexQueueWorkerTask && (int)$task->getRootPageId() === $rootPageId) {
+                return $task;
+            }
+        }
+
+        return null;
     }
 
     /**

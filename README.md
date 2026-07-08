@@ -166,6 +166,9 @@ What this means today:
 - Vercel Cron compatible endpoint for running TYPO3 Scheduler tasks.
 - Vercel Firewall/WAF in front of the container.
 - Vercel region pinning and runtime-local TYPO3 caches for faster warm requests.
+- A daily Vercel Cron entry that calls the protected TYPO3 Scheduler endpoint.
+  It is intentionally daily so free/Hobby clones still deploy; Pro projects can
+  change it to a faster schedule for small queue batches.
 - Optional Redis cache through Vercel Marketplace Redis/Redis Cloud for shared
   TYPO3 `hash`, `pages`, and `rootline` caches.
 - Optional EXT:solr 14.0 beta integration for Apache Solr 10. Production should
@@ -207,6 +210,9 @@ What this means today:
   instance startup. Runtime indexing from TYPO3 into that service is still not a
   production-safe or durable search architecture. Use a managed/external Solr 10
   endpoint for production search indexes.
+- Vercel Cron is not a full worker queue. For Solr, create the EXT:solr Index
+  Queue Worker Scheduler task through the protected setup endpoint when using
+  managed Solr, then process small batches through `/api/cron/typo3-scheduler.php`.
 - This starter is not a GDPR/legal compliance guarantee.
 
 ## Quick Demo

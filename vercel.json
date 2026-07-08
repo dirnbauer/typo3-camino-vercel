@@ -22,6 +22,12 @@
       "entrypoint": "Dockerfile.vercel"
     }
   },
+  "crons": [
+    {
+      "path": "/api/cron/typo3-scheduler.php",
+      "schedule": "0 3 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

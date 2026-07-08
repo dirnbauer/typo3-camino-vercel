@@ -118,6 +118,7 @@ TYPO3_SOLR_SITE_SET=webconsulting/typo3-vercel-solr-demo
 TYPO3_SOLR_STYLESHEET_SITE_SET=webconsulting/typo3-vercel-solr-demo-stylesheets
 TYPO3_SOLR_SEARCH_SLUG=/search
 TYPO3_SOLR_INDEX_ON_SETUP=0
+TYPO3_SOLR_SCHEDULER_TASK=0
 CRON_SECRET=<long-random-token-for-protected-setup-endpoints>
 ```
 
@@ -153,6 +154,23 @@ enough for reliable search results; the reliable demo search data comes from
 the Solr service startup seed. Set `TYPO3_SOLR_INDEX_ON_SETUP=1` only for
 deliberate bounded indexing tests or external managed Solr. Use an external
 worker and managed Solr for large or production reindexes.
+
+`vercel.json` includes a daily Vercel Cron entry for
+`/api/cron/typo3-scheduler.php`. Vercel sends `Authorization: Bearer
+<CRON_SECRET>` automatically when `CRON_SECRET` exists, and the endpoint rejects
+requests without it. The daily schedule keeps free/Hobby clones deployable. For
+managed Solr on Pro/Enterprise, first create the EXT:solr Index Queue Worker
+task:
+
+```bash
+curl -fsS \
+  -H "Authorization: Bearer $CRON_SECRET" \
+  "https://your-project.vercel.app/api/cron/typo3-solr-demo.php?limit=50&scheduler=1&schedulerInterval=300"
+```
+
+Then change the cron schedule in `vercel.json` to a measured batch cadence, for
+example `*/5 * * * *`, and redeploy. Do not use a faster schedule unless one
+Scheduler run finishes well before the next one starts.
 
 Operational caveat: the internal Solr service can take around 20s to answer a
 first Solr-touching request after scale-to-zero. The repo's Camino demo search
