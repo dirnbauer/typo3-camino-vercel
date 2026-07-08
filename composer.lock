@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a3d2b442f0b9d94da0bf0a2c8f9c39bd",
+    "content-hash": "487c1f3cd3fd19dac6a97d48d8d6b0d9",
     "packages": [
         {
             "name": "apache-solr-for-typo3/solr",
@@ -8711,7 +8711,7 @@
             "dist": {
                 "type": "path",
                 "url": "./packages/typo3-vercel-blob-storage",
-                "reference": "ccd225b8c824af575b3e17cdaccb6005d611aa37"
+                "reference": "13148b93271b173e548b33f01f3affa8050933e9"
             },
             "require": {
                 "guzzlehttp/guzzle": "^7.4",
@@ -8738,12 +8738,46 @@
             }
         },
         {
+            "name": "webconsulting/typo3-vercel-solr-demo",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "./packages/typo3-vercel-solr-demo",
+                "reference": "78ad9c6c5960dade76f7195daa44b05517b37828"
+            },
+            "require": {
+                "apache-solr-for-typo3/solr": "^14.0@beta",
+                "php": "^8.4",
+                "symfony/console": "^7.4 || ^8.0",
+                "typo3/cms-core": "^14.3",
+                "typo3/cms-scheduler": "^14.3"
+            },
+            "type": "typo3-cms-extension",
+            "extra": {
+                "typo3/cms": {
+                    "extension-key": "typo3_vercel_solr_demo"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Webconsulting\\Typo3VercelSolrDemo\\": "Classes/"
+                }
+            },
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "description": "TYPO3 Camino Solr demo setup helpers for Vercel container deployments",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
             "name": "webconsulting/typo3-vercel-storage",
             "version": "1.0.0",
             "dist": {
                 "type": "path",
                 "url": "./packages/typo3-vercel-storage",
-                "reference": "7385026ef42e5f6fb172fd5cadc4d1bb057be3ec"
+                "reference": "bfc8b7f0699ba0f17a1c44ec171065b632b252ce"
             },
             "require": {
                 "aws/aws-sdk-php": "^3.369",

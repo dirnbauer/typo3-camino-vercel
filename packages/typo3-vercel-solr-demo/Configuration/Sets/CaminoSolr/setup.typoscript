@@ -1,0 +1,20 @@
+@import 'EXT:solr/Configuration/TypoScript/Solr/setup.typoscript'
+
+plugin.tx_solr.search.query.allowedSites = *
+
+tt_content.solr_pi_results = USER_INT
+tt_content.solr_pi_results {
+  userFunc = Webconsulting\Typo3VercelSolrDemo\Content\SolrSearchContent->render
+}
+
+tt_content.solr_pi_search = EXTBASEPLUGIN
+tt_content.solr_pi_search {
+  extensionName = Solr
+  pluginName = pi_search
+}
+
+tt_content.solr_pi_frequentlysearched = EXTBASEPLUGIN
+tt_content.solr_pi_frequentlysearched {
+  extensionName = Solr
+  pluginName = pi_frequentlySearched
+}

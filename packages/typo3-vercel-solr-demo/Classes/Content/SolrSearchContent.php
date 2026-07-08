@@ -1,0 +1,200 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Webconsulting\Typo3VercelSolrDemo\Content;
+
+final class SolrSearchContent
+{
+    /**
+     * @param array<string, mixed> $configuration
+     */
+    public function render(string $content, array $configuration): string
+    {
+        unset($content, $configuration);
+
+        $query = $this->searchQuery();
+        $html = [];
+        $html[] = '<div class="tx_solr container">';
+        $html[] = '<form action="/search" method="get" class="tx-solr-search-form">';
+        $html[] = '<div class="input-group">';
+        $html[] = '<input type="text" class="tx-solr-q form-control" name="tx_solr[q]" value="' . $this->escape($query) . '" maxlength="50" autocomplete="off" />';
+        $html[] = '<button class="btn btn-primary tx-solr-submit" type="submit">Search</button>';
+        $html[] = '</div>';
+        $html[] = '</form>';
+
+        if ($query === '') {
+            $html[] = '</div>';
+            return implode("\n", $html);
+        }
+
+        $result = $this->querySolr($query);
+        if ($result['ok'] !== true) {
+            $html[] = '<div class="alert alert-warning mt-3" role="status">';
+            $html[] = 'Search is warming up. Please retry in a moment.';
+            $html[] = '</div>';
+            $html[] = '</div>';
+            return implode("\n", $html);
+        }
+
+        $documents = $result['documents'];
+        $html[] = '<p class="mt-3">Searched for &quot;' . $this->escape($query) . '&quot;.</p>';
+
+        if ($documents === []) {
+            $html[] = '<p>No results found.</p>';
+            $html[] = '</div>';
+            return implode("\n", $html);
+        }
+
+        $html[] = '<div class="results-list list-group mt-3">';
+        foreach ($documents as $document) {
+            $title = $this->stringField($document, 'title', 'Untitled');
+            $url = $this->stringField($document, 'url', '#');
+            $body = $this->truncate($this->stringField($document, 'content', ''), 320);
+
+            $html[] = '<div class="results-entry list-group-item">';
+            $html[] = '<h3 class="results-topic"><a href="' . $this->escape($url) . '">' . $this->escape($title) . '</a></h3>';
+            if ($body !== '') {
+                $html[] = '<p class="result-content">' . $this->escape($body) . '</p>';
+            }
+            $html[] = '</div>';
+        }
+        $html[] = '</div>';
+        $html[] = '</div>';
+
+        return implode("\n", $html);
+    }
+
+    private function searchQuery(): string
+    {
+        $query = $_GET['tx_solr']['q'] ?? '';
+        if (is_array($query)) {
+            $query = reset($query) ?: '';
+        }
+        return mb_substr(trim((string)$query), 0, 50);
+    }
+
+    /**
+     * @return array{ok:bool,documents:array<int,array<string,mixed>>}
+     */
+    private function querySolr(string $query): array
+    {
+        $coreUrl = $this->solrCoreUrl();
+        if ($coreUrl === null) {
+            return ['ok' => false, 'documents' => []];
+        }
+
+        $params = [
+            'q' => $query,
+            'fq' => 'siteHash:vercel-demo AND type:pages',
+            'rows' => '10',
+            'fl' => 'id,title,content,url,uid',
+            'wt' => 'json',
+        ];
+        $url = $coreUrl . '/select?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+
+        $lastBody = '';
+        foreach ([1, 2] as $attempt) {
+            $response = $this->request($url, 25.0);
+            if ($response['status'] === 200 && $response['body'] !== '') {
+                $lastBody = $response['body'];
+                break;
+            }
+
+            if ($attempt === 1 && in_array($response['status'], [0, 502, 503, 504], true)) {
+                sleep(2);
+                continue;
+            }
+
+            return ['ok' => false, 'documents' => []];
+        }
+
+        $decoded = json_decode($lastBody, true);
+        if (!is_array($decoded)) {
+            return ['ok' => false, 'documents' => []];
+        }
+
+        $documents = $decoded['response']['docs'] ?? [];
+        if (!is_array($documents)) {
+            return ['ok' => false, 'documents' => []];
+        }
+
+        return ['ok' => true, 'documents' => array_values(array_filter($documents, 'is_array'))];
+    }
+
+    private function solrCoreUrl(): ?string
+    {
+        $core = getenv('TYPO3_SOLR_CORE') ?: getenv('SOLR_CORE') ?: 'core_en';
+        $serviceUrl = getenv('TYPO3_SOLR_SERVICE_URL')
+            ?: getenv('SOLR_SERVICE_URL')
+            ?: getenv('TYPO3_SOLR_INTERNAL_URL')
+            ?: getenv('SOLR_INTERNAL_URL');
+
+        if (is_string($serviceUrl) && $serviceUrl !== '') {
+            return rtrim($serviceUrl, '/') . '/solr/' . rawurlencode($core);
+        }
+
+        $url = getenv('TYPO3_SOLR_URL') ?: getenv('SOLR_URL');
+        if (is_string($url) && $url !== '') {
+            return rtrim($url, '/');
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{status:int,body:string}
+     */
+    private function request(string $url, float $timeout): array
+    {
+        $context = stream_context_create([
+            'http' => [
+                'ignore_errors' => true,
+                'timeout' => $timeout,
+            ],
+            'ssl' => [
+                'verify_peer' => true,
+                'verify_peer_name' => true,
+            ],
+        ]);
+
+        $body = @file_get_contents($url, false, $context);
+        $headers = isset($http_response_header) && is_array($http_response_header) ? $http_response_header : [];
+        $status = 0;
+        foreach ($headers as $header) {
+            if (preg_match('/^HTTP\/\S+\s+(\d+)/', $header, $match) === 1) {
+                $status = (int)$match[1];
+                break;
+            }
+        }
+
+        return ['status' => $status, 'body' => $body === false ? '' : (string)$body];
+    }
+
+    /**
+     * @param array<string, mixed> $document
+     */
+    private function stringField(array $document, string $field, string $default): string
+    {
+        $value = $document[$field] ?? $default;
+        if (is_array($value)) {
+            $value = reset($value) ?: $default;
+        }
+        return trim((string)$value);
+    }
+
+    private function truncate(string $value, int $maxLength): string
+    {
+        $value = preg_replace('/\s+/', ' ', $value) ?? $value;
+        if (mb_strlen($value) <= $maxLength) {
+            return $value;
+        }
+
+        return rtrim(mb_substr($value, 0, $maxLength - 3)) . '...';
+    }
+
+    private function escape(string $value): string
+    {
+        return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+}

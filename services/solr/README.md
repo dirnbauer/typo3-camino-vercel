@@ -22,8 +22,47 @@ The TYPO3 app uses that binding only when Solr is explicitly enabled with:
 
 ```dotenv
 TYPO3_SOLR_ENABLED=1
+TYPO3_SOLR_APPLY_SITE_SET=1
+TYPO3_SOLR_SITE_SET=webconsulting/typo3-vercel-solr-demo
 ```
 
+The app config writer maps the service root to `solr_path_read: /` and
+`solr_core_read: core_en`. Do not configure `solr_path_read: /solr/`; EXT:solr
+would then request `/solr/solr/core_en/`.
+
+For Camino, keep the default local Solr site set. The official EXT:solr site set
+depends on Fluid Styled Content and conflicts with Camino's custom content
+rendering in this starter.
+
 This is demo infrastructure only. The Solr index lives inside Vercel runtime
-storage and is not a durable production index. Use an external managed Solr
-endpoint for production.
+storage and is not a durable production index. A fresh Vercel Solr service
+instance can start with an empty `/tmp` index, and runtime writes from the TYPO3
+app can hit a different service instance than later search requests.
+
+To keep the public demo usable, `start-vercel-solr.sh` seeds the static Camino
+demo documents into `core_en` on every Solr service startup. That makes demo
+search repeatable without pretending that this is durable production indexing.
+The script starts nginx on the Vercel-exposed port immediately so the service
+can promote reliably, then seeds the demo documents as soon as `core_en` is
+reachable. An immediate first Solr request can still see service warmup; warm
+requests should answer normally.
+
+In live testing, protected Solr probes could see the six seeded documents, but
+first Solr-touching requests after scale-to-zero took around 20s and could
+surface a temporary nginx `502`. This is acceptable only for the experimental
+demo service.
+
+Create/update the TYPO3 `/search` page with the protected TYPO3 endpoint after
+deploy, not during container boot:
+
+```bash
+curl -fsS \
+  -H "Authorization: Bearer $CRON_SECRET" \
+  "https://your-project.vercel.app/api/cron/typo3-solr-demo.php?limit=50"
+```
+
+The endpoint skips runtime indexing by default for this internal service. Set
+`TYPO3_SOLR_INDEX_ON_SETUP=1` only when deliberately testing bounded runtime
+indexing. Reliable demo data comes from the Solr service startup seed. Use an
+external managed Solr 10 endpoint plus an external worker/scheduler for
+production indexing.

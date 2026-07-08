@@ -1,0 +1,4 @@
+name: webconsulting/typo3-vercel-solr-demo-stylesheets
+label: "TYPO3 Vercel Solr Demo Stylesheets"
+dependencies:
+  - webconsulting/typo3-vercel-solr-demo

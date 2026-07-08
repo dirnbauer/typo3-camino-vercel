@@ -51,6 +51,7 @@
         "typo3/cms-workspaces": "^14.3",
         "typo3/theme-camino": "^14.3",
         "webconsulting/typo3-vercel-blob-storage": "^1.0",
+        "webconsulting/typo3-vercel-solr-demo": "^1.0",
         "webconsulting/typo3-vercel-storage": "^1.0"
     },
     "repositories": {
@@ -58,6 +59,7 @@
             "options": {
                 "versions": {
                     "webconsulting/typo3-vercel-blob-storage": "1.0.0",
+                    "webconsulting/typo3-vercel-solr-demo": "1.0.0",
                     "webconsulting/typo3-vercel-storage": "1.0.0"
                 }
             },

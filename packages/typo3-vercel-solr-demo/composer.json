@@ -1,0 +1,23 @@
+{
+    "name": "webconsulting/typo3-vercel-solr-demo",
+    "description": "TYPO3 Camino Solr demo setup helpers for Vercel container deployments",
+    "license": "GPL-2.0-or-later",
+    "type": "typo3-cms-extension",
+    "require": {
+        "apache-solr-for-typo3/solr": "^14.0@beta",
+        "php": "^8.4",
+        "symfony/console": "^7.4 || ^8.0",
+        "typo3/cms-core": "^14.3",
+        "typo3/cms-scheduler": "^14.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "Webconsulting\\Typo3VercelSolrDemo\\": "Classes/"
+        }
+    },
+    "extra": {
+        "typo3/cms": {
+            "extension-key": "typo3_vercel_solr_demo"
+        }
+    }
+}

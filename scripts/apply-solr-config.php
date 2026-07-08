@@ -119,7 +119,7 @@ function solr_connection_from_env(string $prefix, string $fallbackPrefix, ?array
         'scheme' => $scheme,
         'host' => $host,
         'port' => (int)$port,
-        'path' => solr_normalize_path($path),
+        'path' => solr_normalize_site_path($path),
         'core' => $core,
         'username' => $username,
         'password' => $password,
@@ -141,7 +141,7 @@ function solr_service_url_from_env(string $prefix, string $fallbackPrefix): ?str
         return null;
     }
 
-    $path = solr_env($prefix . '_PATH') ?? solr_env($fallbackPrefix . '_PATH') ?? '/solr/';
+    $path = solr_env($prefix . '_PATH') ?? solr_env($fallbackPrefix . '_PATH') ?? '/';
     $core = solr_env($prefix . '_CORE') ?? solr_env($fallbackPrefix . '_CORE') ?? 'core_en';
 
     return rtrim($serviceUrl, '/') . solr_normalize_path($path) . rawurlencode($core);
@@ -161,6 +161,9 @@ function solr_parse_url(string $url): array
     $segments = array_values(array_filter(explode('/', trim($path, '/')), static fn (string $segment): bool => $segment !== ''));
     if ($segments !== [] && preg_match('/^core[_-]/', end($segments)) === 1) {
         $core = array_pop($segments);
+        if (($segments[count($segments) - 1] ?? '') === 'solr') {
+            array_pop($segments);
+        }
         $basePath = $segments === [] ? '/' : '/' . implode('/', $segments) . '/';
     }
 
@@ -189,6 +192,19 @@ function solr_normalize_path(string $path): string
     return $path;
 }
 
+function solr_normalize_site_path(string $path): string
+{
+    $path = solr_normalize_path($path);
+    $segments = array_values(array_filter(explode('/', trim($path, '/')), static fn (string $segment): bool => $segment !== ''));
+
+    if (($segments[count($segments) - 1] ?? '') === 'solr') {
+        array_pop($segments);
+        return $segments === [] ? '/' : '/' . implode('/', $segments) . '/';
+    }
+
+    return $path;
+}
+
 function solr_site_config_paths(string $root): array
 {
     $identifier = solr_env('TYPO3_SOLR_SITE_IDENTIFIER', 'camino');
@@ -200,11 +216,20 @@ function solr_site_config_paths(string $root): array
 
 function solr_apply_site_dependencies(array &$site): void
 {
-    $dependencies = array_values(array_unique(array_merge((array)($site['dependencies'] ?? []), ['apache-solr-for-typo3/solr'])));
+    $siteSet = solr_env('TYPO3_SOLR_SITE_SET', 'webconsulting/typo3-vercel-solr-demo');
+    $stylesheetSiteSet = solr_env('TYPO3_SOLR_STYLESHEET_SITE_SET', 'webconsulting/typo3-vercel-solr-demo-stylesheets');
+    $dependencies = array_values(array_filter(
+        (array)($site['dependencies'] ?? []),
+        static fn (mixed $dependency): bool => !in_array((string)$dependency, [
+            'apache-solr-for-typo3/solr',
+            'apache-solr-for-typo3/solr-stylesheets',
+        ], true),
+    ));
+    $dependencies[] = $siteSet;
     if (solr_bool_env('TYPO3_SOLR_INCLUDE_STYLESHEETS', true)) {
-        $dependencies[] = 'apache-solr-for-typo3/solr-stylesheets';
+        $dependencies[] = $stylesheetSiteSet;
     }
-    $site['dependencies'] = array_values(array_unique($dependencies));
+    $site['dependencies'] = array_values(array_unique(array_filter($dependencies, static fn (mixed $dependency): bool => (string)$dependency !== '')));
 }
 
 function solr_apply_site_base(array &$site): void

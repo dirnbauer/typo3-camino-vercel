@@ -113,14 +113,51 @@ TYPO3_SOLR_ENABLED=1
 TYPO3_SOLR_SITE_BASE=https://your-project.vercel.app/
 TYPO3_SOLR_SITE_IDENTIFIER=camino
 TYPO3_SOLR_CORE=core_en
-TYPO3_SOLR_APPLY_SITE_SET=0
+TYPO3_SOLR_APPLY_SITE_SET=1
+TYPO3_SOLR_SITE_SET=webconsulting/typo3-vercel-solr-demo
+TYPO3_SOLR_STYLESHEET_SITE_SET=webconsulting/typo3-vercel-solr-demo-stylesheets
+TYPO3_SOLR_SEARCH_SLUG=/search
+TYPO3_SOLR_INDEX_ON_SETUP=0
+CRON_SECRET=<long-random-token-for-protected-setup-endpoints>
 ```
 
 This uses the Vercel service binding `TYPO3_SOLR_SERVICE_URL` and the internal
 `solr` service from `vercel.json`. Do not use it as production Solr because the
-Solr index is runtime state, not durable managed storage. Keep
-`TYPO3_SOLR_APPLY_SITE_SET=0` for the Camino demo frontend; set it to `1` only
-when you intentionally add and test the EXT:solr frontend site sets.
+Solr index is runtime state, not durable managed storage. To make the demo
+predictable, the Solr service self-seeds the static Camino demo documents on
+each service instance startup. The service binds the Vercel port immediately
+for reliable deployment promotion and seeds the demo documents as soon as
+`core_en` answers. An immediate first Solr request can still see a short
+cold-start warmup. `TYPO3_SOLR_APPLY_SITE_SET=1` is needed for the EXT:solr
+frontend plugin. This starter uses the local
+`webconsulting/typo3-vercel-solr-demo` site set so Camino is not broken by the
+official EXT:solr site set's Fluid Styled Content dependency.
+
+Do not create the Solr demo page at Vercel container boot. The live test showed
+that boot-time TYPO3 CLI setup can push cold starts into
+`INTERNAL_FUNCTION_INVOCATION_FAILED`, so this repo intentionally does not
+support Solr page creation/indexing in the Vercel entrypoint. Instead, run
+small one-shot setup through the protected `/api/cron/typo3-solr-demo.php`
+endpoint after deploy:
+
+```bash
+curl -fsS \
+  -H "Authorization: Bearer $CRON_SECRET" \
+  "https://your-project.vercel.app/api/cron/typo3-solr-demo.php?limit=50"
+```
+
+That endpoint creates/updates `/search`, flushes TYPO3 caches after setup, and
+can attempt a bounded demo index batch. For the built-in Vercel Solr service,
+runtime indexing is skipped by default because writes are not durable/sticky
+enough for reliable search results; the reliable demo search data comes from
+the Solr service startup seed. Set `TYPO3_SOLR_INDEX_ON_SETUP=1` only for
+deliberate bounded indexing tests or external managed Solr. Use an external
+worker and managed Solr for large or production reindexes.
+
+Operational caveat: the internal Solr service can take around 20s to answer a
+first Solr-touching request after scale-to-zero. The repo's Camino demo search
+renderer catches that warmup path and avoids a TYPO3 frontend exception, but it
+does not make the Vercel Solr service a durable production search backend.
 
 Generate secrets locally:
 

@@ -1,10 +1,26 @@
 FROM typo3solr/ext-solr:14.0.0-beta3
 
-ENV PORT=8983 \
+USER root
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl nginx-light \
+    && for core_properties in /var/solr/data/cores/*/core.properties; do mv "${core_properties}" "${core_properties}_disabled"; done \
+    && for core in english german; do mv "/var/solr/data/cores/${core}/core.properties_disabled" "/var/solr/data/cores/${core}/core.properties"; done \
+    && chown -R solr:solr /var/solr /opt/solr \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY start-vercel-solr.sh /usr/local/bin/start-vercel-solr
+RUN chmod 755 /usr/local/bin/start-vercel-solr
+
+ENV PORT=80 \
     SOLR_PORT_LISTEN=8983 \
     SOLR_JAVA_MEM="-Xms512m -Xmx512m" \
+    SOLR_HOME=/tmp/solr-home \
+    SOLR_LOGS_DIR=/tmp/solr-logs \
+    SOLR_PID_DIR=/tmp/solr-pids \
+    SOLR_ALLOW_RUNASROOT=true \
     TYPO3_SOLR_ENABLED_CORES="english german"
 
-EXPOSE 8983
+EXPOSE 80
 
-CMD ["solr-foreground", "--user-managed"]
+ENTRYPOINT ["start-vercel-solr"]

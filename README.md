@@ -115,6 +115,16 @@ backend path, but it did not remove Vercel container cold starts. The public
 demo uses Vercel Pro/performance CPU in `fra1` Frankfurt, which helps warm PHP
 work but does not make every first request instant.
 
+Measured on 2026-07-08 after adding the internal demo Solr service, `/search`
+can return `200` once the Solr service is warm. The service now self-seeds the
+six Camino demo search documents on startup because runtime writes to a
+separate Vercel Solr service can hit a different fresh service instance. First
+Solr-touching requests still have real cold-start cost and can surface a
+temporary nginx `502` from the internal service. The repo therefore includes a
+small Camino search renderer that catches warmup failures instead of showing a
+TYPO3 exception. Warm `/` and `/search` requests stayed fast.
+See [docs/solr.md](docs/solr.md).
+
 For a product-manager level summary of what worked, what was coded, what got
 faster, and what Vercel could improve, see
 [docs/vercel-product-manager-summary.md](docs/vercel-product-manager-summary.md).
@@ -160,9 +170,18 @@ What this means today:
   TYPO3 `hash`, `pages`, and `rootline` caches.
 - Optional EXT:solr 14.0 beta integration for Apache Solr 10. Production should
   use managed Solr. The repo also includes an internal Vercel Solr container
-  service for demos only. The demo service can be enabled without changing the
-  Camino frontend; full Solr site sets are opt-in with
-  `TYPO3_SOLR_APPLY_SITE_SET=1`.
+  service for demos only. That service self-seeds the Camino demo documents on
+  every service instance. The repo also has an idempotent `/search` page setup
+  command and protected setup endpoint. Runtime indexing is skipped by default
+  for the internal service; managed Solr can enable it with
+  `TYPO3_SOLR_INDEX_ON_SETUP=1`.
+  The demo `/search` page uses a small Camino renderer that queries Solr and
+  handles Vercel service warmup without showing a TYPO3 exception.
+  Frontend search needs
+  `TYPO3_SOLR_APPLY_SITE_SET=1`; create the demo search page with the protected
+  endpoint after deploy, not during container boot. The default Solr site set is
+  Camino-compatible and avoids the official EXT:solr site set dependency on
+  Fluid Styled Content.
 - Optional Vercel CDN caching for anonymous public frontend HTML.
 - Production exception summaries go to Vercel runtime logs without exposing
   debug stack traces to visitors.
@@ -183,8 +202,11 @@ What this means today:
 - Vercel's deployment File API is not a replacement for Vercel Blob. It uploads
   deployment/build files, not runtime TYPO3 editor uploads.
 - The included Vercel Solr container service is demo-only. Its index state is
-  runtime state, not durable production storage. It is useful for experiments,
-  not for production search indexes.
+  runtime state, not durable production storage. To keep the public demo
+  usable, the Solr service self-seeds the static Camino demo documents on every
+  instance startup. Runtime indexing from TYPO3 into that service is still not a
+  production-safe or durable search architecture. Use a managed/external Solr 10
+  endpoint for production search indexes.
 - This starter is not a GDPR/legal compliance guarantee.
 
 ## Quick Demo
