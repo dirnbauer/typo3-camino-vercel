@@ -36,12 +36,16 @@ $command = [
     '--no-interaction',
 ];
 
+// stderr is redirected into stdout so a single blocking read cannot deadlock:
+// reading one pipe to EOF while the child fills a second, unread pipe past its
+// ~64 KB buffer (e.g. a large task stack trace) would otherwise hang the request
+// until the Vercel function times out.
 $process = proc_open(
     $command,
     [
         0 => ['pipe', 'r'],
         1 => ['pipe', 'w'],
-        2 => ['pipe', 'w'],
+        2 => ['redirect', 1],
     ],
     $pipes,
     $root,
@@ -54,21 +58,15 @@ if (!is_resource($process)) {
 }
 
 fclose($pipes[0]);
-$stdout = stream_get_contents($pipes[1]);
-$stderr = stream_get_contents($pipes[2]);
+$output = stream_get_contents($pipes[1]);
 fclose($pipes[1]);
-fclose($pipes[2]);
 
 $exitCode = proc_close($process);
 http_response_code($exitCode === 0 ? 200 : 500);
 header('Content-Type: text/plain; charset=utf-8');
 
-if ($stdout !== false && $stdout !== '') {
-    echo $stdout;
-}
-if ($stderr !== false && $stderr !== '') {
-    echo $stderr;
-}
-if ($stdout === '' && $stderr === '') {
+if ($output !== false && $output !== '') {
+    echo $output;
+} else {
     echo $exitCode === 0 ? "TYPO3 scheduler finished.\n" : "TYPO3 scheduler failed.\n";
 }

@@ -97,6 +97,22 @@ function typo3_vercel_database_config(): array
 
 function typo3_vercel_database_config_from_url(string $url): array
 {
+    // Canonical SQLite URLs (sqlite:///abs/path, sqlite://rel/path, sqlite:/abs/path)
+    // are not reliably parseable by parse_url(): the standard triple-slash form makes
+    // parse_url() return false, and the two-slash form silently drops the first path
+    // segment into the host. Handle the scheme up front instead.
+    if (preg_match('#^sqlite:(//)?(.*)$#i', $url, $sqliteMatch) === 1) {
+        $path = $sqliteMatch[2];
+        // Normalise a leading run of slashes so that authority slashes and an
+        // absolute path both collapse to a single leading slash.
+        $path = '/' . ltrim($path, '/');
+        return [
+            'charset' => 'utf8',
+            'driver' => 'pdo_sqlite',
+            'path' => $path !== '/' ? $path : '/tmp/typo3/typo3.sqlite',
+        ];
+    }
+
     $parts = parse_url($url);
     if ($parts === false || !isset($parts['scheme'])) {
         throw new RuntimeException('DATABASE_URL is not a valid URL.');
@@ -108,10 +124,10 @@ function typo3_vercel_database_config_from_url(string $url): array
         parse_str($parts['query'], $query);
     }
 
-    $dbname = isset($parts['path']) ? ltrim((string)$parts['path'], '/') : '';
+    $dbname = isset($parts['path']) ? rawurldecode(ltrim((string)$parts['path'], '/')) : '';
     $user = isset($parts['user']) ? rawurldecode((string)$parts['user']) : '';
     $password = isset($parts['pass']) ? rawurldecode((string)$parts['pass']) : '';
-    $host = (string)($parts['host'] ?? 'localhost');
+    $host = rawurldecode((string)($parts['host'] ?? 'localhost'));
 
     if (in_array($scheme, ['postgres', 'postgresql'], true)) {
         $config = [
@@ -142,14 +158,6 @@ function typo3_vercel_database_config_from_url(string $url): array
             'password' => $password,
             'port' => (int)($parts['port'] ?? 3306),
             'user' => $user,
-        ];
-    }
-
-    if ($scheme === 'sqlite') {
-        return [
-            'charset' => 'utf8',
-            'driver' => 'pdo_sqlite',
-            'path' => $dbname !== '' ? '/' . $dbname : '/tmp/typo3/typo3.sqlite',
         ];
     }
 
@@ -531,7 +539,12 @@ function typo3_vercel_settings(): array
             ],
             'sitename' => typo3_vercel_env('TYPO3_PROJECT_NAME', 'TYPO3 Camino'),
             'systemMaintainers' => [1],
-            'trustedHostsPattern' => typo3_vercel_env('TYPO3_TRUSTED_HOSTS_PATTERN', '(.+\\.)?vercel\\.app|localhost(:[0-9]+)?|127\\.0\\.0\\.1(:[0-9]+)?|0\\.0\\.0\\.0(:[0-9]+)?'),
+            // The pattern must be wrapped in a single non-capturing group. TYPO3 evaluates
+            // it as preg_match('/^' . $pattern . '$/i', $host), so a bare a|b|c alternation
+            // would anchor ^ only to the first branch and $ only to the last, leaving the
+            // middle branches unanchored and matching hostile Host headers such as
+            // "vercel.app.attacker.com" or "localhost.attacker.com".
+            'trustedHostsPattern' => typo3_vercel_env('TYPO3_TRUSTED_HOSTS_PATTERN', '(?:(.+\\.)?vercel\\.app|localhost(:[0-9]+)?|127\\.0\\.0\\.1(:[0-9]+)?|0\\.0\\.0\\.0(:[0-9]+)?)'),
             'reverseProxyIP' => typo3_vercel_env('TYPO3_REVERSE_PROXY_IP', $isVercelRuntime ? '*' : ''),
             'reverseProxyHeaderMultiValue' => typo3_vercel_env('TYPO3_REVERSE_PROXY_HEADER_MULTI_VALUE', 'none'),
             'reverseProxySSL' => typo3_vercel_env('TYPO3_REVERSE_PROXY_SSL', ''),

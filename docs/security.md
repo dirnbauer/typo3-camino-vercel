@@ -13,13 +13,41 @@ Configured by default:
 - strict trusted-host pattern support through `TYPO3_TRUSTED_HOSTS_PATTERN`
 - Argon2i password hashing
 - `displayErrors=0` in production
-- system encryption key from `TYPO3_ENCRYPTION_KEY`
+- system encryption key from `TYPO3_ENCRYPTION_KEY` (required on Vercel — the
+  container refuses to start without it, because a per-instance random fallback
+  would break cHash validation and cache integrity across ephemeral instances)
 
 Set a host pattern before production:
 
 ```dotenv
 TYPO3_TRUSTED_HOSTS_PATTERN=(?:www\.)?example\.com
 ```
+
+TYPO3 evaluates the pattern anchored as `/^<pattern>$/i`. If you use an
+alternation, wrap the whole thing in a single non-capturing group so both
+anchors apply to every branch — otherwise the middle branches are left
+unanchored and accept spoofed `Host` headers:
+
+```dotenv
+# Correct — every branch is anchored:
+TYPO3_TRUSTED_HOSTS_PATTERN=(?:example\.com|staging\.example\.com)
+# Wrong — "example.com.attacker.com" would be trusted:
+TYPO3_TRUSTED_HOSTS_PATTERN=example\.com|staging\.example\.com
+```
+
+## Install Tool
+
+This starter uses a single entry point for every route, so the Install Tool GUI
+(reached via `?__typo3_install`) is disabled by default and cannot be opened on
+public URLs. Enable it deliberately only when you need it:
+
+```dotenv
+TYPO3_INSTALL_TOOL_ENABLED=1
+TYPO3_INSTALL_TOOL_PASSWORD_HASH=<argon2i-hash>
+```
+
+Setting a non-empty `TYPO3_INSTALL_TOOL_PASSWORD_HASH` also enables the switch.
+Disable it again (`TYPO3_INSTALL_TOOL_ENABLED=0` and an empty hash) after use.
 
 ## Backend Security
 

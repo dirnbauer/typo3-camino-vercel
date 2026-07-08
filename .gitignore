@@ -11,6 +11,7 @@ nbproject
 !/public/api
 !/public/api/**
 !/public/index.php
+!/public/_vercel_keepalive.php
 !/public/template-preview.png
 !/public/fileadmin
 !/public/fileadmin/.htaccess

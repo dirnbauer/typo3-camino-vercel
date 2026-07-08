@@ -49,13 +49,17 @@ if ($passwordHash === false) {
     exit(1);
 }
 
+// Scope the update to the live (non-deleted) account only. Without the
+// `deleted = 0` guard, a previously soft-deleted "admin" row would be matched
+// and force-undeleted on every boot, resurrecting stale accounts and creating
+// duplicate active users with the same username.
 $statement = $pdo->prepare(
     'UPDATE be_users
         SET password = :password,
             admin = 1,
-            disable = 0,
-            deleted = 0
-      WHERE username = :username',
+            disable = 0
+      WHERE username = :username
+        AND deleted = 0',
 );
 $statement->execute([
     'password' => $passwordHash,
@@ -63,7 +67,7 @@ $statement->execute([
 ]);
 
 if ($statement->rowCount() === 0) {
-    fwrite(STDERR, sprintf("TYPO3 backend user \"%s\" was not found; admin password was not applied.\n", $adminUsername));
+    fwrite(STDERR, sprintf("TYPO3 backend user \"%s\" was not found (or is deleted); admin password was not applied.\n", $adminUsername));
     exit(1);
 }
 

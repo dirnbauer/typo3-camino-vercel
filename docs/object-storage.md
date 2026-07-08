@@ -80,10 +80,15 @@ When object storage is enabled, the Vercel container creates or updates the
 TYPO3 storage record on boot. This happens when
 `TYPO3_OBJECT_STORAGE_ENABLED=1`, when `TYPO3_OBJECT_STORAGE_DRIVER` is set, or
 when a connected Vercel Blob store provides `BLOB_READ_WRITE_TOKEN`. Explicit
-`TYPO3_OBJECT_STORAGE_ENABLED=0` disables automatic Blob setup. By default the
-container also verifies the storage and creates required folders. If
-verification fails, the container exits with a clear error so uploads do not
-silently fall back to Vercel's temporary filesystem.
+`TYPO3_OBJECT_STORAGE_ENABLED=0` disables automatic Blob setup.
+
+To keep cold starts cheap, the boot script is a no-op once the stored record
+already matches the configured driver: when the computed configuration is
+unchanged it skips both the database write and the network folder verification.
+The verification (and folder creation) therefore runs on the first boot after
+object storage is enabled or its configuration changes, not on every request.
+When verification does run and fails, the container exits with a clear error so
+uploads do not silently fall back to Vercel's temporary filesystem.
 
 ## What The Entrypoint Does
 
@@ -95,7 +100,9 @@ When object storage is enabled, `docker/entrypoint.sh` runs
 - sets the driver to `vercel_blob` or `vercel_s3`
 - stores non-secret driver settings in TYPO3's FlexForm configuration
 - makes uid `2` the default writable upload storage
-- verifies the configured storage unless `TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=0`
+- verifies the configured storage (unless `TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=0`)
+  when the record is created or its configuration changes, and skips the check on
+  unchanged boots
 - creates `user_upload/`, `_processed_/`, and `_temp_/` in object storage
 - leaves the committed Camino seed files on the local storage uid `1`
 

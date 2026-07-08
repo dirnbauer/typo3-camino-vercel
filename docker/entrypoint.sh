@@ -180,8 +180,12 @@ mkdir -p \
   config/system
 
 if [ -z "${TYPO3_ENCRYPTION_KEY:-}" ]; then
+  if [ "${VERCEL:-}" = "1" ] || [ -n "${VERCEL_URL:-}" ]; then
+    echo "FATAL: TYPO3_ENCRYPTION_KEY is not set. On Vercel, instances are ephemeral and scale to zero, so a per-instance random key would break cHash validation (enforceValidation is on) and cache/session integrity across concurrent instances. Set a stable 96-character hex key, e.g. 'openssl rand -hex 48'." >&2
+    exit 1
+  fi
   export TYPO3_ENCRYPTION_KEY="$(php -r 'echo bin2hex(random_bytes(48));')"
-  echo "TYPO3_ENCRYPTION_KEY was not set; generated an ephemeral key for this container. Set a stable key for production." >&2
+  echo "TYPO3_ENCRYPTION_KEY was not set; generated an ephemeral key for this local container. Set a stable key for production." >&2
 fi
 
 apply_database_defaults

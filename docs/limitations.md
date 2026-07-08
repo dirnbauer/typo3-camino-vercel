@@ -55,6 +55,23 @@ endpoint.
 See [long-running jobs](long-running-jobs.md) for the decision table and Solr
 indexing patterns.
 
+## Outgoing Mail
+
+The container ships no local mail transfer agent, so TYPO3's default `sendmail`
+transport cannot deliver mail on Vercel. Any site that sends mail (form
+submissions, notifications, backend password resets) must be pointed at an
+external SMTP relay:
+
+```dotenv
+TYPO3_MAIL_TRANSPORT=smtp
+TYPO3_MAIL_SMTP_SERVER=smtp.example.com:587
+TYPO3_MAIL_SMTP_ENCRYPT=tls
+TYPO3_MAIL_SMTP_USERNAME=<smtp-user>
+TYPO3_MAIL_SMTP_PASSWORD=<smtp-password>
+```
+
+Without an SMTP configuration, mail delivery fails silently in the frontend.
+
 ## Database Setup
 
 The automatic first-boot setup is intentionally simple. It works best with

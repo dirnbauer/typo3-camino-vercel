@@ -17,9 +17,15 @@ call_user_func(static function () {
     $classLoader = require dirname(__DIR__).'/vendor/autoload.php';
     \TYPO3\CMS\Core\Core\SystemEnvironmentBuilder::run();
 
+    // The `?__typo3_install` switch would otherwise turn every public URL into an
+    // Install Tool entry point (Vercel routes all paths here, so it cannot be
+    // blocked by path-based rules). Only honour it when the operator has opted in
+    // by setting an Install Tool password hash or TYPO3_INSTALL_TOOL_ENABLED=1.
     $isInstallToolDirectAccess = false;
-    if (class_exists(\TYPO3\CMS\Install\Http\Application::class)) {
-        $isInstallToolDirectAccess = isset($_GET['__typo3_install']);
+    if (isset($_GET['__typo3_install']) && class_exists(\TYPO3\CMS\Install\Http\Application::class)) {
+        $installEnabled = in_array(strtolower((string)getenv('TYPO3_INSTALL_TOOL_ENABLED')), ['1', 'true', 'yes', 'on'], true);
+        $installHash = (string)getenv('TYPO3_INSTALL_TOOL_PASSWORD_HASH');
+        $isInstallToolDirectAccess = $installEnabled || $installHash !== '';
     }
 
     $container = \TYPO3\CMS\Core\Core\Bootstrap::init($classLoader, $isInstallToolDirectAccess);
