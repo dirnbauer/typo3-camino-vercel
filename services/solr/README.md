@@ -42,20 +42,12 @@ app can hit a different service instance than later search requests.
 To keep the public demo usable, `start-vercel-solr.sh` seeds the static Camino
 demo documents into `core_en` on every Solr service startup. That makes demo
 search repeatable without pretending that this is durable production indexing.
-The script starts a tiny readiness proxy on the Vercel service port immediately,
-then starts Solr in the same container. The proxy waits until `core_en` is
-reachable and the demo documents are seeded before it forwards Solr requests.
-That avoids TYPO3's backend Solr module hitting a half-started service and
-showing a false connection error on the first cold request. The tradeoff is that
-the first Solr-touching request waits for the Vercel Solr container to finish
-cold start.
-
-Important: this service-side proxy cannot catch Vercel's own internal service
-gateway response while the service is still starting. In that earlier phase the
-TYPO3 app can receive HTTP `500 Starting...` before the request reaches this
-container. The TYPO3 app therefore also includes `public/api/solr-proxy.php`, a
-loopback-only retry proxy that EXT:solr uses for the internal Vercel demo
-service.
+The script starts nginx on the Vercel-exposed port immediately so the service
+can promote reliably, then seeds the demo documents as soon as `core_en` is
+reachable. Early requests may see Vercel gateway `500 Starting...` responses or
+nginx `502`/`503` while Solr boots. The TYPO3 app therefore includes
+`public/api/solr-proxy.php`, a loopback-only retry proxy that EXT:solr uses for
+the internal Vercel demo service.
 
 In live testing, protected Solr probes could see the six seeded documents, but
 first Solr-touching requests after scale-to-zero can still take several

@@ -137,17 +137,16 @@ services/solr/
 `TYPO3_SOLR_SERVICE_URL`. TYPO3 uses that binding only when
 `TYPO3_SOLR_ENABLED=1`. The service self-seeds the static Camino demo
 documents into every runtime instance at startup, so the demo search does not
-depend on cross-instance runtime writes. The service starts a tiny readiness
-proxy on the Vercel service port immediately, then starts Solr in the same
-container. The proxy waits until `core_en` answers and the demo documents are
-seeded before it forwards Solr requests. This avoids TYPO3's backend Solr module
-hitting a half-started Solr process after the service container is running.
+depend on cross-instance runtime writes. The service starts nginx on the
+Vercel-exposed port immediately so the service can promote reliably, then starts
+Solr in the same container and seeds the demo documents as soon as `core_en`
+answers.
 
-That Solr-container proxy is not enough by itself on Vercel. During a deep cold
+That service-local nginx is not enough by itself on Vercel. During a deep cold
 start, Vercel's internal service gateway can answer the TYPO3 app with
-HTTP `500 Starting...` before the Solr service container gets the request. Code
-inside the Solr container cannot catch that response because the request has not
-reached it yet.
+HTTP `500 Starting...` before the Solr service container gets the request. After
+the container starts, nginx can also briefly return `502`/`503` while the Solr
+process is still booting.
 
 For the internal Vercel demo service, the TYPO3 app therefore uses a second,
 loopback-only app proxy:
@@ -156,7 +155,7 @@ loopback-only app proxy:
 TYPO3/EXT:solr
   -> http://127.0.0.1:<PORT>/api/solr-proxy.php/solr/core_en/...
   -> Vercel internal service binding TYPO3_SOLR_SERVICE_URL
-  -> Solr service container readiness proxy
+  -> Solr service container nginx
   -> Apache Solr core_en
 ```
 
@@ -462,16 +461,13 @@ Live production deployment checked on 2026-07-08:
 - The internal Solr service now self-seeds the static Camino demo search index
   on startup so each service instance can answer the demo search without
   relying on cross-instance runtime index state.
-- The Solr service now uses a small readiness proxy that binds the Vercel
-  service port immediately, waits for `core_en`, seeds the static demo
-  documents, and only then forwards Solr requests. This was changed after
-  TYPO3's backend Solr module showed a first-hit connection error while the
-  service was still starting.
-- The first readiness proxy did not fully solve the backend module failure.
-  Vercel can return `500 Starting...` from the internal service gateway before
-  the request reaches the Solr container. The final demo architecture adds
-  `public/api/solr-proxy.php` in the TYPO3 app container and points EXT:solr at
-  that loopback URL, so app-side code can retry those gateway startup responses.
+- The Solr service binds nginx immediately for reliable service promotion, then
+  seeds the static demo documents as soon as `core_en` is ready.
+- Vercel can still return `500 Starting...` from the internal service gateway
+  before the request reaches the Solr container. The final demo architecture
+  adds `public/api/solr-proxy.php` in the TYPO3 app container and points EXT:solr
+  at that loopback URL, so app-side code can retry gateway `500` responses and
+  service-local nginx `502`/`503` warmup responses.
 - For the internal proxy mode, `scripts/typo3-env.php` raises TYPO3's global
   HTTP timeout for EXT:solr. Without that, the proxy can still be correct but
   TYPO3's HTTP client may give up too early during a deep cold start.
@@ -606,8 +602,8 @@ The service uses:
 - configset `ext_solr_14_0_0`
 - enabled cores `core_en` and `core_de`
 - a startup seed for the six static Camino demo documents
-- a Solr-container readiness proxy so requests do not reach Solr before
-  `core_en` is reachable and seeded
+- service-local nginx so the Vercel service can bind immediately while Solr
+  starts and seeds
 - an app-container retry proxy for Vercel's internal `500 Starting...` service
   gateway responses
 
