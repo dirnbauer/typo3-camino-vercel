@@ -471,6 +471,16 @@ Live production deployment checked on 2026-07-08:
 - For the internal proxy mode, `scripts/typo3-env.php` raises TYPO3's global
   HTTP timeout for EXT:solr. Without that, the proxy can still be correct but
   TYPO3's HTTP client may give up too early during a deep cold start.
+- Latest live check after deployment `dpl_4VKzjGYrZuTy5vu7bm5HScA7VgtP`:
+  the first cold protected `select` probe returned HTTP `200` after about
+  12.7s, but saw `numFound: 0` while the startup seed was still becoming
+  visible. Five seconds later the same `select` returned HTTP `200` in about
+  0.29s with all six Camino demo documents.
+- The subsequent full protected probe returned HTTP `200` for `cores`, `ping`,
+  and `select` in about 0.56s total. `core_en` reported `numDocs: 6`; `core_de`
+  reported `numDocs: 0`, as expected for the English Camino demo.
+- Public `/search?tx_solr[q]=Camino` returned HTTP `200` with six result entries
+  in about 7.0s during the post-deploy warmup window.
 
 Important limitation: the internal Vercel Solr service stores the index in
 runtime `/tmp`. The startup seed makes the static demo searchable, but this is
