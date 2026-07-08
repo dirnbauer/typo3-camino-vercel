@@ -47,10 +47,15 @@ if ($action === 'runtime') {
     exit;
 }
 
+if ($action === 'benchmark') {
+    typo3_solr_benchmark();
+    exit;
+}
+
 if (!in_array($action, ['setup', 'diagnose'], true)) {
     http_response_code(400);
     header('Content-Type: text/plain; charset=utf-8');
-    echo "Unsupported action. Use setup, diagnose, probe, logs, or runtime.\n";
+    echo "Unsupported action. Use setup, diagnose, probe, benchmark, logs, or runtime.\n";
     exit;
 }
 
@@ -268,6 +273,301 @@ function typo3_solr_app_proxy_enabled(): bool
     }
 
     return typo3_solr_truthy((string)$value);
+}
+
+function typo3_solr_benchmark(): void
+{
+    header('Content-Type: text/plain; charset=utf-8');
+
+    $serviceUrl = getenv('TYPO3_SOLR_SERVICE_URL')
+        ?: getenv('SOLR_SERVICE_URL')
+        ?: getenv('TYPO3_SOLR_INTERNAL_URL')
+        ?: getenv('SOLR_INTERNAL_URL')
+        ?: getenv('TYPO3_SOLR_URL')
+        ?: getenv('SOLR_URL');
+
+    if ($serviceUrl === false || $serviceUrl === '') {
+        http_response_code(503);
+        echo "No Solr service URL is configured.\n";
+        return;
+    }
+
+    $core = getenv('TYPO3_SOLR_CORE') ?: getenv('SOLR_CORE') ?: 'core_en';
+    $base = rtrim(typo3_solr_probe_base_url((string)$serviceUrl), '/');
+    $documents = typo3_solr_int_query('documents', 20, 1, 100);
+    $updateRuns = typo3_solr_int_query('updateRuns', 5, 1, 20);
+    $searchRuns = typo3_solr_int_query('searchRuns', 10, 1, 50);
+    $timeout = typo3_solr_float_query('timeout', 60.0, 1.0, 90.0);
+    $benchmarkHash = 'vercel-benchmark';
+    $runId = gmdate('YmdHis') . '-' . bin2hex(random_bytes(4));
+    $changed = gmdate('Y-m-d\TH:i:s\Z');
+
+    $updateUrl = $base . '/solr/' . rawurlencode((string)$core) . '/update?commit=true';
+    $docsUrl = $base . '/solr/' . rawurlencode((string)$core) . '/update/json/docs?commit=true';
+    $selectUrl = $base . '/solr/' . rawurlencode((string)$core) . '/select';
+    $benchmarkQuery = 'siteHash:' . $benchmarkHash;
+
+    echo "TYPO3 Solr benchmark\n";
+    echo "core=" . $core . "\n";
+    echo "documents=" . $documents . " updateRuns=" . $updateRuns . " searchRuns=" . $searchRuns . "\n";
+    echo "runId=" . $runId . "\n\n";
+
+    $deleteBefore = typo3_solr_benchmark_request(
+        $updateUrl,
+        'POST',
+        json_encode(['delete' => ['query' => $benchmarkQuery]], JSON_THROW_ON_ERROR),
+        $timeout,
+    );
+    typo3_solr_benchmark_print_request('cleanup_before', $deleteBefore);
+
+    $benchmarkDocs = [];
+    for ($i = 1; $i <= $documents; $i++) {
+        $benchmarkDocs[] = typo3_solr_benchmark_document($benchmarkHash, $runId, $i, $changed);
+    }
+
+    $index = typo3_solr_benchmark_request(
+        $docsUrl,
+        'POST',
+        json_encode($benchmarkDocs, JSON_THROW_ON_ERROR),
+        $timeout,
+    );
+    typo3_solr_benchmark_print_request('index_add_commit', $index);
+
+    $countAfterIndex = typo3_solr_benchmark_select_count($selectUrl, $benchmarkHash, $timeout);
+    echo sprintf(
+        "index_count_check http=%s seconds=%.3f numFound=%s\n\n",
+        (string)$countAfterIndex['status'],
+        $countAfterIndex['time'],
+        (string)($countAfterIndex['count'] ?? 'n/a'),
+    );
+
+    $updateTimes = [];
+    for ($i = 1; $i <= $updateRuns; $i++) {
+        $doc = typo3_solr_benchmark_document($benchmarkHash, $runId, 1, gmdate('Y-m-d\TH:i:s\Z'));
+        $doc['content'] = 'Updated TYPO3 Vercel Solr benchmark document run ' . $runId . ' update ' . $i . '.';
+        $update = typo3_solr_benchmark_request(
+            $docsUrl,
+            'POST',
+            json_encode($doc, JSON_THROW_ON_ERROR),
+            $timeout,
+        );
+        $updateTimes[] = $update['time'];
+        typo3_solr_benchmark_print_request('update_' . $i, $update);
+    }
+    typo3_solr_benchmark_print_stats('update_commit_seconds', $updateTimes);
+
+    $searchTimes = [];
+    $lastFound = null;
+    for ($i = 1; $i <= $searchRuns; $i++) {
+        $queryUrl = $selectUrl . '?' . http_build_query([
+            'q' => 'benchmark',
+            'fq' => 'siteHash:"' . $benchmarkHash . '"',
+            'rows' => 10,
+            'fl' => 'id,title,score',
+            'wt' => 'json',
+        ], '', '&', PHP_QUERY_RFC3986);
+        $search = typo3_solr_benchmark_request($queryUrl, 'GET', null, $timeout);
+        $searchTimes[] = $search['time'];
+        $decoded = json_decode($search['body'], true);
+        if (is_array($decoded)) {
+            $lastFound = $decoded['response']['numFound'] ?? $lastFound;
+        }
+        typo3_solr_benchmark_print_request('search_' . $i, $search);
+    }
+    echo "search_numFound=" . ($lastFound ?? 'n/a') . "\n";
+    typo3_solr_benchmark_print_stats('search_seconds', $searchTimes);
+
+    $deleteAfter = typo3_solr_benchmark_request(
+        $updateUrl,
+        'POST',
+        json_encode(['delete' => ['query' => $benchmarkQuery]], JSON_THROW_ON_ERROR),
+        $timeout,
+    );
+    typo3_solr_benchmark_print_request('cleanup_after', $deleteAfter);
+
+    echo "benchmark_finished=yes\n";
+}
+
+function typo3_solr_int_query(string $name, int $default, int $min, int $max): int
+{
+    $value = $_GET[$name] ?? null;
+    if (!is_numeric($value)) {
+        return $default;
+    }
+
+    return max($min, min($max, (int)$value));
+}
+
+function typo3_solr_float_query(string $name, float $default, float $min, float $max): float
+{
+    $value = $_GET[$name] ?? null;
+    if (!is_numeric($value)) {
+        return $default;
+    }
+
+    return max($min, min($max, (float)$value));
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function typo3_solr_benchmark_document(string $siteHash, string $runId, int $uid, string $changed): array
+{
+    return [
+        'id' => 'vercel-benchmark/pages/' . $runId . '/' . $uid . '/0/0/c:0',
+        'site' => 'benchmark',
+        'typo3Context_stringS' => 'Production',
+        'siteHash' => $siteHash,
+        'domain_stringS' => 'https://typo3-camino-vercel.vercel.app',
+        'appKey' => 'EXT:solr',
+        'type' => 'pages',
+        'uid' => 900000 + $uid,
+        'pid' => 1,
+        'variantId' => 'vercel-benchmark/pages/' . $runId . '/' . $uid . '/0/0/c:0',
+        'typeNum' => 0,
+        'created' => '2026-01-01T00:00:00Z',
+        'changed' => $changed,
+        'rootline' => ['1', '900000'],
+        'access' => ['c:0'],
+        'title' => 'TYPO3 Vercel Solr Benchmark ' . $uid,
+        'navTitle' => 'Benchmark ' . $uid,
+        'content' => 'TYPO3 Vercel Solr benchmark document for measuring indexing update and search latency.',
+        'url' => 'https://typo3-camino-vercel.vercel.app/search?benchmark=' . rawurlencode($runId) . '-' . $uid,
+        'keywords' => ['benchmark', 'typo3', 'vercel', 'solr'],
+    ];
+}
+
+/**
+ * @return array{status:int|string,time:float,error:string,body:string}
+ */
+function typo3_solr_benchmark_request(string $url, string $method, ?string $body, float $timeout): array
+{
+    $headers = ['Connection: close'];
+    if ($body !== null) {
+        $headers[] = 'Content-Type: application/json';
+    }
+
+    $started = microtime(true);
+    if (function_exists('curl_init')) {
+        $handle = curl_init($url);
+        if ($handle === false) {
+            return ['status' => 0, 'time' => 0.0, 'error' => 'curl_init failed', 'body' => ''];
+        }
+
+        curl_setopt_array($handle, [
+            CURLOPT_CUSTOMREQUEST => $method,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_TIMEOUT_MS => (int)($timeout * 1000),
+        ]);
+        if ($body !== null) {
+            curl_setopt($handle, CURLOPT_POSTFIELDS, $body);
+        }
+        $responseBody = curl_exec($handle);
+        $status = (int)curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
+        $error = curl_error($handle);
+        curl_close($handle);
+
+        return [
+            'status' => $status,
+            'time' => microtime(true) - $started,
+            'error' => $error,
+            'body' => is_string($responseBody) ? $responseBody : '',
+        ];
+    }
+
+    $context = stream_context_create([
+        'http' => [
+            'ignore_errors' => true,
+            'method' => $method,
+            'header' => implode("\r\n", $headers) . "\r\n",
+            'content' => $body ?? '',
+            'timeout' => $timeout,
+        ],
+    ]);
+    $responseBody = @file_get_contents($url, false, $context);
+    $status = 'n/a';
+    foreach (($http_response_header ?? []) as $header) {
+        if (preg_match('/^HTTP\/\S+\s+(\d+)/', $header, $match) === 1) {
+            $status = (int)$match[1];
+            break;
+        }
+    }
+    $lastError = $responseBody === false ? error_get_last() : null;
+
+    return [
+        'status' => $status,
+        'time' => microtime(true) - $started,
+        'error' => is_array($lastError) ? (string)($lastError['message'] ?? '') : '',
+        'body' => is_string($responseBody) ? $responseBody : '',
+    ];
+}
+
+/**
+ * @return array{count:int|null,time:float,status:int|string}
+ */
+function typo3_solr_benchmark_select_count(string $selectUrl, string $siteHash, float $timeout): array
+{
+    $url = $selectUrl . '?' . http_build_query([
+        'q' => '*:*',
+        'fq' => 'siteHash:"' . $siteHash . '"',
+        'rows' => 0,
+        'wt' => 'json',
+    ], '', '&', PHP_QUERY_RFC3986);
+    $result = typo3_solr_benchmark_request($url, 'GET', null, $timeout);
+    $decoded = json_decode($result['body'], true);
+
+    return [
+        'count' => is_array($decoded) ? (int)($decoded['response']['numFound'] ?? 0) : null,
+        'time' => $result['time'],
+        'status' => $result['status'],
+    ];
+}
+
+/**
+ * @param array{status:int|string,time:float,error:string,body:string} $result
+ */
+function typo3_solr_benchmark_print_request(string $label, array $result): void
+{
+    echo sprintf(
+        "%s http=%s seconds=%.3f%s\n",
+        $label,
+        (string)$result['status'],
+        $result['time'],
+        $result['error'] !== '' ? ' error=' . typo3_solr_redact($result['error']) : '',
+    );
+    flush();
+}
+
+/**
+ * @param float[] $values
+ */
+function typo3_solr_benchmark_print_stats(string $label, array $values): void
+{
+    sort($values);
+    $count = count($values);
+    if ($count === 0) {
+        echo $label . " count=0\n\n";
+        return;
+    }
+
+    $sum = array_sum($values);
+    $median = $values[(int)floor(($count - 1) / 2)];
+    $p95 = $values[(int)min($count - 1, ceil($count * 0.95) - 1)];
+    echo sprintf(
+        "%s count=%d min=%.3f median=%.3f mean=%.3f p95=%.3f max=%.3f\n\n",
+        $label,
+        $count,
+        min($values),
+        $median,
+        $sum / $count,
+        $p95,
+        max($values),
+    );
+    flush();
 }
 
 /**
