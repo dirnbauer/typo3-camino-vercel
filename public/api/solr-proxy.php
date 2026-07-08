@@ -27,8 +27,8 @@ if (!is_string($serviceUrl) || $serviceUrl === '') {
 
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/api/solr-proxy/';
 $targetUrl = typo3_solr_proxy_target_url($serviceUrl, $requestUri);
-$timeout = typo3_solr_proxy_float_env('TYPO3_SOLR_APP_PROXY_REQUEST_TIMEOUT', 20.0, 1.0, 60.0);
-$deadline = microtime(true) + typo3_solr_proxy_float_env('TYPO3_SOLR_APP_PROXY_TOTAL_TIMEOUT', 35.0, 1.0, 90.0);
+$timeout = typo3_solr_proxy_float_env('TYPO3_SOLR_APP_PROXY_REQUEST_TIMEOUT', 10.0, 1.0, 60.0);
+$deadline = microtime(true) + typo3_solr_proxy_float_env('TYPO3_SOLR_APP_PROXY_TOTAL_TIMEOUT', 55.0, 1.0, 90.0);
 $body = file_get_contents('php://input');
 $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 $headers = typo3_solr_proxy_request_headers($targetUrl);
@@ -201,11 +201,7 @@ function typo3_solr_proxy_request(string $url, string $method, array $headers, s
  */
 function typo3_solr_proxy_should_retry(array $response): bool
 {
-    if (in_array($response['status'], [0, 502, 503, 504], true)) {
-        return true;
-    }
-
-    return $response['status'] === 500 && str_contains($response['body'], 'Starting');
+    return in_array($response['status'], [0, 500, 502, 503, 504], true);
 }
 
 function typo3_solr_proxy_float_env(string $name, float $default, float $min, float $max): float

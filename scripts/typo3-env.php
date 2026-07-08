@@ -507,6 +507,39 @@ function typo3_vercel_locking_configuration(bool $isVercelRuntime): array
     ];
 }
 
+function typo3_vercel_internal_solr_proxy_enabled(): bool
+{
+    if (!typo3_vercel_bool_env('TYPO3_SOLR_ENABLED', false)) {
+        return false;
+    }
+
+    if (!typo3_vercel_bool_env('TYPO3_SOLR_APP_PROXY_ENABLED', true)) {
+        return false;
+    }
+
+    foreach (['TYPO3_SOLR_SERVICE_URL', 'SOLR_SERVICE_URL', 'TYPO3_SOLR_INTERNAL_URL', 'SOLR_INTERNAL_URL'] as $name) {
+        if (typo3_vercel_env($name) !== null) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function typo3_vercel_http_configuration(): array
+{
+    if (!typo3_vercel_internal_solr_proxy_enabled()) {
+        return [];
+    }
+
+    $timeout = typo3_vercel_int_env('TYPO3_SOLR_HTTP_TIMEOUT', 60, 5, 90);
+
+    return [
+        'connect_timeout' => typo3_vercel_int_env('TYPO3_SOLR_HTTP_CONNECT_TIMEOUT', 5, 1, 15),
+        'timeout' => $timeout,
+    ];
+}
+
 function typo3_vercel_settings(): array
 {
     $database = typo3_vercel_database_config();
@@ -561,6 +594,7 @@ function typo3_vercel_settings(): array
             'webp_quality' => typo3_vercel_int_env('TYPO3_GFX_WEBP_QUALITY', 85, 1, 100),
             'avif_quality' => typo3_vercel_int_env('TYPO3_GFX_AVIF_QUALITY', 75, 1, 100),
         ],
+        'HTTP' => typo3_vercel_http_configuration(),
         'LOG' => typo3_vercel_log_configuration(),
         'MAIL' => [
             'transport' => typo3_vercel_env('TYPO3_MAIL_TRANSPORT', 'sendmail'),

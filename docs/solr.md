@@ -141,8 +141,34 @@ depend on cross-instance runtime writes. The service starts a tiny readiness
 proxy on the Vercel service port immediately, then starts Solr in the same
 container. The proxy waits until `core_en` answers and the demo documents are
 seeded before it forwards Solr requests. This avoids TYPO3's backend Solr module
-hitting a half-started service during cold start. The first Solr request can
-still wait several seconds while Vercel starts the service.
+hitting a half-started Solr process after the service container is running.
+
+That Solr-container proxy is not enough by itself on Vercel. During a deep cold
+start, Vercel's internal service gateway can answer the TYPO3 app with
+HTTP `500 Starting...` before the Solr service container gets the request. Code
+inside the Solr container cannot catch that response because the request has not
+reached it yet.
+
+For the internal Vercel demo service, the TYPO3 app therefore uses a second,
+loopback-only app proxy:
+
+```text
+TYPO3/EXT:solr
+  -> http://127.0.0.1:<PORT>/api/solr-proxy.php/solr/core_en/...
+  -> Vercel internal service binding TYPO3_SOLR_SERVICE_URL
+  -> Solr service container readiness proxy
+  -> Apache Solr core_en
+```
+
+`scripts/apply-solr-config.php` writes that loopback proxy into the generated
+TYPO3 site config when `TYPO3_SOLR_SERVICE_URL` is present and
+`TYPO3_SOLR_APP_PROXY_ENABLED` is not disabled. The proxy is not public by
+default: direct requests through the public Vercel domain return `404`.
+
+The app proxy retries internal-service HTTP `500`, `502`, `503`, and `504`
+responses for a bounded warmup window. TYPO3's global HTTP timeout is also
+raised for this internal-proxy mode so EXT:solr's backend module does not give
+up before the proxy can finish warming the service.
 
 Local development:
 
@@ -441,6 +467,14 @@ Live production deployment checked on 2026-07-08:
   documents, and only then forwards Solr requests. This was changed after
   TYPO3's backend Solr module showed a first-hit connection error while the
   service was still starting.
+- The first readiness proxy did not fully solve the backend module failure.
+  Vercel can return `500 Starting...` from the internal service gateway before
+  the request reaches the Solr container. The final demo architecture adds
+  `public/api/solr-proxy.php` in the TYPO3 app container and points EXT:solr at
+  that loopback URL, so app-side code can retry those gateway startup responses.
+- For the internal proxy mode, `scripts/typo3-env.php` raises TYPO3's global
+  HTTP timeout for EXT:solr. Without that, the proxy can still be correct but
+  TYPO3's HTTP client may give up too early during a deep cold start.
 
 Important limitation: the internal Vercel Solr service stores the index in
 runtime `/tmp`. The startup seed makes the static demo searchable, but this is
@@ -572,8 +606,10 @@ The service uses:
 - configset `ext_solr_14_0_0`
 - enabled cores `core_en` and `core_de`
 - a startup seed for the six static Camino demo documents
-- a startup readiness proxy so TYPO3 does not reach Solr before `core_en` is
-  reachable and seeded
+- a Solr-container readiness proxy so requests do not reach Solr before
+  `core_en` is reachable and seeded
+- an app-container retry proxy for Vercel's internal `500 Starting...` service
+  gateway responses
 
 This is still not a production Solr architecture by default.
 

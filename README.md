@@ -119,10 +119,12 @@ Measured on 2026-07-08 after adding the internal demo Solr service, `/search`
 can return `200` once the Solr service is warm. The service now self-seeds the
 six Camino demo search documents on startup because runtime writes to a
 separate Vercel Solr service can hit a different fresh service instance. First
-Solr-touching requests still have real cold-start cost and can surface a
-temporary nginx `502` from the internal service. The repo therefore includes a
-small Camino search renderer that catches warmup failures instead of showing a
-TYPO3 exception. Warm `/` and `/search` requests stayed fast.
+Solr-touching requests still have real cold-start cost. Vercel can return
+HTTP `500 Starting...` from the internal service gateway before the Solr
+container can answer. The repo therefore routes TYPO3's internal demo Solr
+connection through a loopback-only app proxy that retries those startup
+responses, and the Camino search renderer still catches warmup failures instead
+of showing a TYPO3 exception. Warm `/` and `/search` requests stayed fast.
 See [docs/solr.md](docs/solr.md).
 
 For a product-manager level summary of what worked, what was coded, what got

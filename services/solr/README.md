@@ -50,6 +50,13 @@ showing a false connection error on the first cold request. The tradeoff is that
 the first Solr-touching request waits for the Vercel Solr container to finish
 cold start.
 
+Important: this service-side proxy cannot catch Vercel's own internal service
+gateway response while the service is still starting. In that earlier phase the
+TYPO3 app can receive HTTP `500 Starting...` before the request reaches this
+container. The TYPO3 app therefore also includes `public/api/solr-proxy.php`, a
+loopback-only retry proxy that EXT:solr uses for the internal Vercel demo
+service.
+
 In live testing, protected Solr probes could see the six seeded documents, but
 first Solr-touching requests after scale-to-zero can still take several
 seconds. This is acceptable only for the experimental demo service.
