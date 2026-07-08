@@ -383,6 +383,9 @@ Live production deployment checked on 2026-07-08:
 - The demo renderer uses short internal Solr HTTP timeouts. Override the
   default 6 second per-attempt timeout with `TYPO3_SOLR_DEMO_REQUEST_TIMEOUT`
   if needed; values are clamped between 1 and 10 seconds.
+- The Vercel PHP image includes the PHP cURL extension and the renderer prefers
+  cURL over PHP streams for internal Solr calls, because cURL handles timeout
+  and connection-close behavior more predictably here.
 - The protected setup endpoint created or confirmed `/search`.
 - Runtime indexing against the internal Vercel Solr service can write
   successfully but then read `numFound: 0` because updates and selects may reach

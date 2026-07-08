@@ -154,6 +154,45 @@ final class SolrSearchContent
      */
     private function request(string $url, float $timeout): array
     {
+        if (function_exists('curl_init')) {
+            return $this->curlRequest($url, $timeout);
+        }
+
+        return $this->streamRequest($url, $timeout);
+    }
+
+    /**
+     * @return array{status:int,body:string}
+     */
+    private function curlRequest(string $url, float $timeout): array
+    {
+        $handle = curl_init($url);
+        if ($handle === false) {
+            return ['status' => 0, 'body' => ''];
+        }
+
+        curl_setopt_array($handle, [
+            CURLOPT_CONNECTTIMEOUT_MS => (int)min(2000, max(500, $timeout * 1000)),
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_HTTPHEADER => ['Connection: close'],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_TIMEOUT_MS => (int)max(1000, $timeout * 1000),
+        ]);
+
+        $body = curl_exec($handle);
+        $status = (int)curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
+        curl_close($handle);
+
+        return ['status' => $status, 'body' => is_string($body) ? $body : ''];
+    }
+
+    /**
+     * @return array{status:int,body:string}
+     */
+    private function streamRequest(string $url, float $timeout): array
+    {
         $context = stream_context_create([
             'http' => [
                 'ignore_errors' => true,
