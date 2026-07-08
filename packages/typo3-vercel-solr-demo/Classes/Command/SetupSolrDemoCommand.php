@@ -443,8 +443,13 @@ final class SetupSolrDemoCommand extends Command
         $created = $task === null;
 
         if ($task === null) {
+            $existingTaskUid = $this->findIndexQueueSchedulerTaskUidByDescription($rootPageId);
             /** @var IndexQueueWorkerTask $task */
             $task = GeneralUtility::makeInstance(IndexQueueWorkerTask::class);
+            if ($existingTaskUid > 0) {
+                $task->setTaskUid($existingTaskUid);
+                $created = false;
+            }
         }
 
         $task->setRootPageId($rootPageId);
@@ -503,6 +508,33 @@ final class SetupSolrDemoCommand extends Command
         }
 
         return null;
+    }
+
+    private function findIndexQueueSchedulerTaskUidByDescription(int $rootPageId): int
+    {
+        $connection = $this->connectionPool->getConnectionForTable('tx_scheduler_task');
+        $queryBuilder = $connection->createQueryBuilder();
+        $queryBuilder->getRestrictions()->removeAll();
+        $uid = $queryBuilder
+            ->select('uid')
+            ->from('tx_scheduler_task')
+            ->where(
+                $queryBuilder->expr()->eq('tasktype', $queryBuilder->createNamedParameter(IndexQueueWorkerTask::class)),
+                $queryBuilder->expr()->like(
+                    'description',
+                    $queryBuilder->createNamedParameter(sprintf(
+                        'EXT:solr index queue worker for Camino root page %d %%',
+                        $rootPageId,
+                    )),
+                ),
+                $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
+            )
+            ->orderBy('uid', 'ASC')
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchOne();
+
+        return $uid === false ? 0 : (int)$uid;
     }
 
     private function persistIndexQueueSchedulerTask(IndexQueueWorkerTask $task, bool $created): bool
@@ -567,8 +599,11 @@ final class SetupSolrDemoCommand extends Command
     {
         foreach (['parameters', 'execution_details'] as $jsonField) {
             $value = $fields[$jsonField] ?? [];
-            if (!is_string($value)) {
-                $fields[$jsonField] = json_encode($value, JSON_THROW_ON_ERROR);
+            if (is_string($value)) {
+                $decoded = json_decode($value, true);
+                $fields[$jsonField] = json_last_error() === JSON_ERROR_NONE ? $decoded : [];
+            } else {
+                $fields[$jsonField] = $value;
             }
         }
 
@@ -1102,7 +1137,7 @@ final class SetupSolrDemoCommand extends Command
         $connection = $this->connectionPool->getConnectionForTable('tt_content');
         $queryBuilder = $connection->createQueryBuilder();
         $rows = $queryBuilder
-            ->select('uid', 'pid', 'CType', 'list_type', 'hidden', 'deleted', 'colPos', 'header', 'pi_flexform')
+            ->select('uid', 'pid', 'CType', 'hidden', 'deleted', 'colPos', 'header', 'pi_flexform')
             ->from('tt_content')
             ->where(
                 $queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($searchPageUid, Connection::PARAM_INT)),
@@ -1118,11 +1153,10 @@ final class SetupSolrDemoCommand extends Command
 
         foreach ($rows as $row) {
             $output->writeln(sprintf(
-                'search-content uid=%d pid=%d CType=%s list_type=%s hidden=%d deleted=%d colPos=%d flexformBytes=%d header=%s',
+                'search-content uid=%d pid=%d CType=%s hidden=%d deleted=%d colPos=%d flexformBytes=%d header=%s',
                 (int)$row['uid'],
                 (int)$row['pid'],
                 (string)($row['CType'] ?? ''),
-                (string)($row['list_type'] ?? ''),
                 (int)($row['hidden'] ?? 0),
                 (int)($row['deleted'] ?? 0),
                 (int)($row['colPos'] ?? 0),
