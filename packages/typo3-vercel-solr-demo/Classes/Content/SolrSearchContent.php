@@ -94,15 +94,16 @@ final class SolrSearchContent
         $url = $coreUrl . '/select?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
 
         $lastBody = '';
+        $timeout = $this->requestTimeout();
         foreach ([1, 2] as $attempt) {
-            $response = $this->request($url, 25.0);
+            $response = $this->request($url, $timeout);
             if ($response['status'] === 200 && $response['body'] !== '') {
                 $lastBody = $response['body'];
                 break;
             }
 
             if ($attempt === 1 && in_array($response['status'], [0, 502, 503, 504], true)) {
-                sleep(2);
+                sleep(1);
                 continue;
             }
 
@@ -120,6 +121,12 @@ final class SolrSearchContent
         }
 
         return ['ok' => true, 'documents' => array_values(array_filter($documents, 'is_array'))];
+    }
+
+    private function requestTimeout(): float
+    {
+        $timeout = (float)(getenv('TYPO3_SOLR_DEMO_REQUEST_TIMEOUT') ?: 6.0);
+        return max(1.0, min(10.0, $timeout));
     }
 
     private function solrCoreUrl(): ?string
@@ -150,6 +157,9 @@ final class SolrSearchContent
         $context = stream_context_create([
             'http' => [
                 'ignore_errors' => true,
+                'method' => 'GET',
+                'header' => "Connection: close\r\n",
+                'protocol_version' => 1.1,
                 'timeout' => $timeout,
             ],
             'ssl' => [
