@@ -160,7 +160,9 @@ What this means today:
   TYPO3 `hash`, `pages`, and `rootline` caches.
 - Optional EXT:solr 14.0 beta integration for Apache Solr 10. Production should
   use managed Solr. The repo also includes an internal Vercel Solr container
-  service for demos only.
+  service for demos only. The demo service can be enabled without changing the
+  Camino frontend; full Solr site sets are opt-in with
+  `TYPO3_SOLR_APPLY_SITE_SET=1`.
 - Optional Vercel CDN caching for anonymous public frontend HTML.
 - Vercel memory/CPU can be raised on Pro/Enterprise in the dashboard or project
   API. The public demo project uses the performance CPU class and `fra1`.
@@ -179,7 +181,8 @@ What this means today:
 - Vercel's deployment File API is not a replacement for Vercel Blob. It uploads
   deployment/build files, not runtime TYPO3 editor uploads.
 - The included Vercel Solr container service is demo-only. Its index state is
-  runtime state, not durable production storage.
+  runtime state, not durable production storage. It is useful for experiments,
+  not for production search indexes.
 - This starter is not a GDPR/legal compliance guarantee.
 
 ## Quick Demo

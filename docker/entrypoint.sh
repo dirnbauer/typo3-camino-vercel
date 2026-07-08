@@ -119,6 +119,29 @@ apply_solr_config() {
   fi
 }
 
+apply_database_defaults() {
+  if [ -n "${DATABASE_URL:-}" ] || [ -n "${POSTGRES_URL:-}" ] || [ -n "${MYSQL_URL:-}" ]; then
+    return
+  fi
+
+  if [ -z "${TYPO3_DB_DRIVER:-}" ]; then
+    if [ "${VERCEL:-}" = "1" ] || [ -n "${VERCEL_URL:-}" ]; then
+      export TYPO3_DB_DRIVER="pdo_sqlite"
+    else
+      return
+    fi
+  fi
+
+  case "${TYPO3_DB_DRIVER}" in
+    sqlite|pdo_sqlite)
+      export TYPO3_DB_DRIVER="pdo_sqlite"
+      if [ -z "${TYPO3_DB_DBNAME:-}" ]; then
+        export TYPO3_DB_DBNAME="${TYPO3_DB_PATH:-/tmp/typo3/camino.sqlite}"
+      fi
+      ;;
+  esac
+}
+
 run_extension_setup() {
   vendor/bin/typo3 extension:setup --no-interaction
 }
@@ -160,6 +183,8 @@ if [ -z "${TYPO3_ENCRYPTION_KEY:-}" ]; then
   export TYPO3_ENCRYPTION_KEY="$(php -r 'echo bin2hex(random_bytes(48));')"
   echo "TYPO3_ENCRYPTION_KEY was not set; generated an ephemeral key for this container. Set a stable key for production." >&2
 fi
+
+apply_database_defaults
 
 prepare_runtime_directory var /tmp/typo3/var
 

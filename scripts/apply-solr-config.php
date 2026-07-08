@@ -36,7 +36,10 @@ foreach ($siteConfigPaths as $siteConfigPath) {
         exit(1);
     }
 
-    solr_apply_site_dependencies($site);
+    $applySiteSet = solr_bool_env('TYPO3_SOLR_APPLY_SITE_SET', false);
+    if ($applySiteSet) {
+        solr_apply_site_dependencies($site);
+    }
     solr_apply_site_base($site);
 
     $site['solr_enabled_read'] = true;
@@ -57,7 +60,11 @@ foreach ($siteConfigPaths as $siteConfigPath) {
 
     $site['languages'] = solr_apply_language_cores((array)($site['languages'] ?? []), $read['core']);
     file_put_contents($siteConfigPath, Yaml::dump($site, 6, 2, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE));
-    fwrite(STDOUT, sprintf("Applied TYPO3 Solr site config to %s.\n", $siteConfigPath));
+    fwrite(STDOUT, sprintf(
+        "Applied TYPO3 Solr connection config to %s.%s\n",
+        $siteConfigPath,
+        $applySiteSet ? ' Solr site set dependencies are enabled.' : ' Solr site set dependencies are disabled.'
+    ));
 }
 
 function solr_env(string $name, ?string $default = null): ?string

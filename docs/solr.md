@@ -38,6 +38,11 @@ scripts/apply-solr-config.php
 The Vercel entrypoint runs that script only when Solr env vars are present.
 Nothing changes for normal deploys without Solr.
 
+By default, the script writes Solr connection settings only. It does not inject
+EXT:solr frontend site set dependencies into the Camino site unless
+`TYPO3_SOLR_APPLY_SITE_SET=1` is set. This keeps the Camino demo frontend stable
+while still allowing the internal Solr service to run for experiments.
+
 Experimental Vercel demo service:
 
 ```text
@@ -72,6 +77,7 @@ TYPO3_SOLR_ENABLED=1
 TYPO3_SOLR_SITE_BASE=https://your-project.vercel.app/
 TYPO3_SOLR_URL=https://user:password@solr.example.com:443/solr/core_en
 TYPO3_SOLR_SITE_IDENTIFIER=camino
+TYPO3_SOLR_APPLY_SITE_SET=1
 TYPO3_SOLR_INCLUDE_STYLESHEETS=1
 ```
 
@@ -144,6 +150,7 @@ TYPO3_SOLR_ENABLED=1
 TYPO3_SOLR_SITE_BASE=https://your-project.vercel.app/
 TYPO3_SOLR_SITE_IDENTIFIER=camino
 TYPO3_SOLR_CORE=core_en
+TYPO3_SOLR_APPLY_SITE_SET=0
 ```
 
 Do not set `TYPO3_SOLR_URL` for the internal demo service. Vercel injects
@@ -158,7 +165,7 @@ vercel env add TYPO3_SOLR_ENABLED production --value 1 --force --yes
 vercel env add TYPO3_SOLR_SITE_BASE production --value "https://typo3-camino-vercel.vercel.app/" --force --yes
 vercel env add TYPO3_SOLR_SITE_IDENTIFIER production --value camino --force --yes
 vercel env add TYPO3_SOLR_CORE production --value core_en --force --yes
-vercel env add TYPO3_SOLR_INCLUDE_STYLESHEETS production --value 1 --force --yes
+vercel env add TYPO3_SOLR_APPLY_SITE_SET production --value 0 --force --yes
 vercel env add TYPO3_EXTENSION_SETUP_ON_BOOT production --value 0 --force --yes
 vercel deploy --prod --regions fra1
 ```
@@ -171,8 +178,11 @@ one-time extension setup cycle from the production section first.
 
 `scripts/apply-solr-config.php` updates `config/sites/<site>/config.yaml` with:
 
-- site set dependency `apache-solr-for-typo3/solr`
-- optional site set dependency `apache-solr-for-typo3/solr-stylesheets`
+- optional site set dependency `apache-solr-for-typo3/solr` when
+  `TYPO3_SOLR_APPLY_SITE_SET=1`
+- optional site set dependency `apache-solr-for-typo3/solr-stylesheets` when
+  both `TYPO3_SOLR_APPLY_SITE_SET=1` and
+  `TYPO3_SOLR_INCLUDE_STYLESHEETS=1`
 - read Solr connection settings
 - optional write Solr connection settings
 - per-language `solr_core_read`
@@ -203,8 +213,13 @@ ddev exec env \
   TYPO3_SOLR_ENABLED=1 \
   TYPO3_SOLR_URL=http://typo3-solr:8983/solr/core_en \
   TYPO3_SOLR_SITE_BASE=https://typo3-camino-vercel.ddev.site/ \
+  TYPO3_SOLR_APPLY_SITE_SET=0 \
   php scripts/apply-solr-config.php
 ```
+
+Set `TYPO3_SOLR_APPLY_SITE_SET=1` only when you are intentionally testing the
+EXT:solr frontend plugin/site set integration, and verify the Camino frontend
+afterward.
 
 Run TYPO3 extension setup:
 

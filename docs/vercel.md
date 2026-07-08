@@ -102,11 +102,14 @@ TYPO3_SOLR_ENABLED=1
 TYPO3_SOLR_SITE_BASE=https://your-project.vercel.app/
 TYPO3_SOLR_SITE_IDENTIFIER=camino
 TYPO3_SOLR_CORE=core_en
+TYPO3_SOLR_APPLY_SITE_SET=0
 ```
 
 This uses the Vercel service binding `TYPO3_SOLR_SERVICE_URL` and the internal
 `solr` service from `vercel.json`. Do not use it as production Solr because the
-Solr index is runtime state, not durable managed storage.
+Solr index is runtime state, not durable managed storage. Keep
+`TYPO3_SOLR_APPLY_SITE_SET=0` for the Camino demo frontend; set it to `1` only
+when you intentionally add and test the EXT:solr frontend site sets.
 
 Generate secrets locally:
 
