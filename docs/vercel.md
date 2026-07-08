@@ -48,6 +48,10 @@ On boot, `docker/entrypoint.sh` copies a pre-seeded Camino SQLite database into
 `/tmp`. This makes the frontend render immediately for Vercel smoke tests. It is
 not durable and should not be used for content you care about.
 
+The image build runs TYPO3 extension setup before storing that seed database, so
+demo-mode SQLite already contains schema for installed packages such as EXT:solr.
+Keep `TYPO3_EXTENSION_SETUP_ON_BOOT=0` for normal demo deployments.
+
 If `TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=1` and
 `TYPO3_SETUP_ADMIN_PASSWORD` is set, the entrypoint updates the `admin` backend
 user during startup. Use this for one deploy after rotating the password, then
@@ -130,7 +134,9 @@ user or added as encrypted Vercel environment variables.
 8. Set `TYPO3_AUTO_SETUP=0` after successful database initialization.
 9. Set `TYPO3_BOOTSTRAP_EMPTY_DATABASE=0` for stricter production startup.
 10. If extensions were added after the database was created, set
-   `TYPO3_EXTENSION_SETUP_ON_BOOT=1` for one deploy.
+   `TYPO3_EXTENSION_SETUP_ON_BOOT=1` for one deploy. This is mainly for durable
+   external databases; the built-in SQLite demo seed already includes installed
+   extension schema.
 11. Redeploy so the new env values are applied.
 12. After extension setup has run, set `TYPO3_EXTENSION_SETUP_ON_BOOT=0` and
     redeploy.

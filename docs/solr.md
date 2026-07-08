@@ -91,6 +91,12 @@ Why: extension setup can write database schema and package state. It should not
 run on every cold container start unless you are deliberately changing
 extensions.
 
+For the built-in seeded SQLite demo, the container image already runs TYPO3
+extension setup while creating the seed database. Keep
+`TYPO3_EXTENSION_SETUP_ON_BOOT=0` for normal demo deployments. Use the
+setup-on-boot cycle above only for a durable external database that was created
+before the Solr package/schema was present.
+
 ## Environment Variables
 
 Single URL form:
@@ -153,14 +159,13 @@ vercel env add TYPO3_SOLR_SITE_BASE production --value "https://typo3-camino-ver
 vercel env add TYPO3_SOLR_SITE_IDENTIFIER production --value camino --force --yes
 vercel env add TYPO3_SOLR_CORE production --value core_en --force --yes
 vercel env add TYPO3_SOLR_INCLUDE_STYLESHEETS production --value 1 --force --yes
-vercel env add TYPO3_EXTENSION_SETUP_ON_BOOT production --value 1 --force --yes
-vercel deploy --prod --regions fra1
 vercel env add TYPO3_EXTENSION_SETUP_ON_BOOT production --value 0 --force --yes
 vercel deploy --prod --regions fra1
 ```
 
-The first deploy lets TYPO3 run extension setup against the database. The second
-deploy returns startup to the normal faster path.
+The seeded SQLite demo DB in the image already contains extension schema. For an
+existing durable database that was created before EXT:solr was present, run the
+one-time extension setup cycle from the production section first.
 
 ## What The Script Writes
 

@@ -144,7 +144,8 @@ What this means today:
 ## What Works
 
 - Free one-click Vercel smoke deploy with a pre-seeded Camino SQLite demo
-  database.
+  database. The image build runs TYPO3 extension setup so the seed DB already
+  includes tables for installed extensions such as EXT:solr.
 - Deploy Button-created Vercel Blob store for durable editor uploads.
 - Stable backend login when a durable SQL database is configured.
 - TYPO3 14.3 Composer install with Camino and the current TYPO3 CMS system
