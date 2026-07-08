@@ -148,12 +148,15 @@ curl -fsS \
 ```
 
 That endpoint creates/updates `/search`, flushes TYPO3 caches after setup, and
-can attempt a bounded demo index batch. For the built-in Vercel Solr service,
-runtime indexing is skipped by default because writes are not durable/sticky
-enough for reliable search results; the reliable demo search data comes from
-the Solr service startup seed. Set `TYPO3_SOLR_INDEX_ON_SETUP=1` only for
-deliberate bounded indexing tests or external managed Solr. Use an external
-worker and managed Solr for large or production reindexes.
+can attempt a bounded demo index batch. It uses a dedicated
+`vercel_solr_demo_results` content element for the demo search page so the
+stock EXT:solr result plugin cannot turn an internal Vercel Solr warmup into a
+frontend TYPO3 error. For the built-in Vercel Solr service, runtime indexing is
+skipped by default because writes are not durable/sticky enough for reliable
+search results; the reliable demo search data comes from the Solr service
+startup seed. Set `TYPO3_SOLR_INDEX_ON_SETUP=1` only for deliberate bounded
+indexing tests or external managed Solr. Use an external worker and managed
+Solr for large or production reindexes.
 
 `vercel.json` includes a daily Vercel Cron entry for
 `/api/cron/typo3-scheduler.php`. Vercel sends `Authorization: Bearer

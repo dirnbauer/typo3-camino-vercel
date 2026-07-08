@@ -86,7 +86,7 @@ final class SolrSearchContent
 
         $params = [
             'q' => $query,
-            'fq' => 'siteHash:vercel-demo AND type:pages',
+            'fq' => $this->filterQuery(),
             'rows' => '10',
             'fl' => 'id,title,content,url,uid',
             'wt' => 'json',
@@ -129,6 +129,20 @@ final class SolrSearchContent
         return max(1.0, min(10.0, $timeout));
     }
 
+    private function filterQuery(): string
+    {
+        $siteHash = getenv('TYPO3_SOLR_DEMO_SITE_HASH');
+        if ($siteHash === false || $siteHash === '') {
+            $siteHash = $this->usesInternalVercelSolrService() ? 'vercel-demo' : '';
+        }
+
+        if ($siteHash !== '') {
+            return 'siteHash:"' . addcslashes($siteHash, '"\\') . '" AND type:pages';
+        }
+
+        return 'type:pages';
+    }
+
     private function solrCoreUrl(): ?string
     {
         $core = getenv('TYPO3_SOLR_CORE') ?: getenv('SOLR_CORE') ?: 'core_en';
@@ -147,6 +161,18 @@ final class SolrSearchContent
         }
 
         return null;
+    }
+
+    private function usesInternalVercelSolrService(): bool
+    {
+        foreach (['TYPO3_SOLR_SERVICE_URL', 'SOLR_SERVICE_URL', 'TYPO3_SOLR_INTERNAL_URL', 'SOLR_INTERNAL_URL'] as $name) {
+            $value = getenv($name);
+            if (is_string($value) && $value !== '') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

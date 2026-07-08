@@ -36,7 +36,8 @@ use TYPO3\CMS\Scheduler\Execution;
 )]
 final class SetupSolrDemoCommand extends Command
 {
-    private const SEARCH_PLUGIN_CTYPE = 'solr_pi_results';
+    private const SEARCH_PLUGIN_CTYPE = 'vercel_solr_demo_results';
+    private const LEGACY_SEARCH_PLUGIN_CTYPES = ['solr_pi_results'];
 
     public function __construct(
         private readonly ConnectionPool $connectionPool,
@@ -199,7 +200,16 @@ final class SetupSolrDemoCommand extends Command
             ->from('tt_content')
             ->where(
                 $queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($searchPageUid, Connection::PARAM_INT)),
-                $queryBuilder->expr()->eq('CType', $queryBuilder->createNamedParameter(self::SEARCH_PLUGIN_CTYPE)),
+                $queryBuilder->expr()->or(
+                    $queryBuilder->expr()->eq('CType', $queryBuilder->createNamedParameter(self::SEARCH_PLUGIN_CTYPE)),
+                    ...array_map(
+                        static fn (string $contentType): string => $queryBuilder->expr()->eq(
+                            'CType',
+                            $queryBuilder->createNamedParameter($contentType),
+                        ),
+                        self::LEGACY_SEARCH_PLUGIN_CTYPES,
+                    ),
+                ),
                 $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
             )
             ->setMaxResults(1)
@@ -1007,6 +1017,42 @@ final class SetupSolrDemoCommand extends Command
         }
 
         $this->writeQueueStatistics($site, $output, 'diagnostic snapshot');
+        $this->writeSearchContentDiagnostics($searchPageUid, $output);
+    }
+
+    private function writeSearchContentDiagnostics(int $searchPageUid, OutputInterface $output): void
+    {
+        $connection = $this->connectionPool->getConnectionForTable('tt_content');
+        $queryBuilder = $connection->createQueryBuilder();
+        $rows = $queryBuilder
+            ->select('uid', 'pid', 'CType', 'list_type', 'hidden', 'deleted', 'colPos', 'header', 'pi_flexform')
+            ->from('tt_content')
+            ->where(
+                $queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($searchPageUid, Connection::PARAM_INT)),
+            )
+            ->orderBy('sorting', 'ASC')
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        if ($rows === []) {
+            $output->writeln(sprintf('TYPO3 Solr diagnostics: search page %d has no content rows.', $searchPageUid));
+            return;
+        }
+
+        foreach ($rows as $row) {
+            $output->writeln(sprintf(
+                'search-content uid=%d pid=%d CType=%s list_type=%s hidden=%d deleted=%d colPos=%d flexformBytes=%d header=%s',
+                (int)$row['uid'],
+                (int)$row['pid'],
+                (string)($row['CType'] ?? ''),
+                (string)($row['list_type'] ?? ''),
+                (int)($row['hidden'] ?? 0),
+                (int)($row['deleted'] ?? 0),
+                (int)($row['colPos'] ?? 0),
+                strlen((string)($row['pi_flexform'] ?? '')),
+                trim((string)($row['header'] ?? '')),
+            ));
+        }
     }
 
     /**

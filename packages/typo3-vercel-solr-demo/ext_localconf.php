@@ -16,10 +16,12 @@ ExtensionManagementUtility::addTypoScript(
 # the internal Vercel demo Solr service a cold service instance can surface as a
 # frontend exception. This small Camino demo renderer still queries Solr, but it
 # catches service warmup and renders a controlled page.
-tt_content.solr_pi_results = USER_INT
-tt_content.solr_pi_results {
+tt_content.vercel_solr_demo_results = USER_INT
+tt_content.vercel_solr_demo_results {
   userFunc = Webconsulting\Typo3VercelSolrDemo\Content\SolrSearchContent->render
 }
+
+tt_content.solr_pi_results < tt_content.vercel_solr_demo_results
 
 tt_content.solr_pi_search = EXTBASEPLUGIN
 tt_content.solr_pi_search {

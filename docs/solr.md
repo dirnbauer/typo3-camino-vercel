@@ -51,18 +51,20 @@ webconsulting/typo3-vercel-solr-demo
 webconsulting/typo3-vercel-solr-demo-stylesheets
 ```
 
-That site set imports EXT:solr TypoScript and maps the `solr_pi_results`
-content element to a small Camino demo renderer:
+That site set imports EXT:solr TypoScript and maps a dedicated
+`vercel_solr_demo_results` content element to a small Camino demo renderer:
 
 ```text
 Webconsulting\Typo3VercelSolrDemo\Content\SolrSearchContent
 ```
 
-The renderer still queries Solr, but it filters to the self-seeded
-`siteHash:vercel-demo` documents and catches Vercel service warmup failures so
-the page does not render a TYPO3 exception. This is deliberately demo-specific.
-For normal production TYPO3 search, use the stock EXT:solr frontend plugin with
-a managed Solr endpoint.
+The renderer still queries Solr. With the internal Vercel Solr service it
+filters to the self-seeded `siteHash:"vercel-demo"` documents and catches
+Vercel service warmup failures so the page does not render a TYPO3 exception.
+With an external managed Solr connection it searches normal `type:pages`
+documents unless `TYPO3_SOLR_DEMO_SITE_HASH` is set explicitly. This is still
+deliberately demo-specific. For normal production TYPO3 search, use the stock
+EXT:solr frontend plugin with a managed Solr endpoint.
 
 The local site set also maps the auxiliary EXT:solr plugin content element
 types (`solr_pi_search`, `solr_pi_frequentlysearched`) directly to Extbase
@@ -88,8 +90,8 @@ It provides the TYPO3 CLI command:
 vendor/bin/typo3 webconsulting:solr-demo:setup
 ```
 
-The command creates a `/search` page, adds the standard EXT:solr results
-content element (`solr_pi_results`), stores `search.targetPage` in the content
+The command creates a `/search` page, adds or migrates the demo results content
+element (`vercel_solr_demo_results`), stores `search.targetPage` in the content
 element FlexForm, initializes the EXT:solr index queue, and can process a small
 queue batch. It can also create or update the real EXT:solr Index Queue Worker
 Scheduler task when called with `--scheduler-task`.
@@ -340,7 +342,8 @@ vendor/bin/typo3 webconsulting:solr-demo:setup --scheduler-task --limit=50 --sch
 The endpoint:
 
 - creates or updates the `/search` page
-- creates or updates the `solr_pi_results` content element
+- creates or updates the `vercel_solr_demo_results` content element
+- migrates an older `solr_pi_results` demo row to the dedicated demo CType
 - stores the Solr target page in the content element FlexForm
 - flushes TYPO3 caches so stale route/page caches do not hide the new page
 - initializes the EXT:solr `pages` index queue when runtime indexing is enabled
@@ -376,10 +379,13 @@ Live production deployment checked on 2026-07-08:
 - A first frontend `/search?tx_solr[q]=Camino` request against the stock
   EXT:solr result plugin could still hit a temporary internal-service nginx
   `502` and render a TYPO3 error.
-- The repo now maps the demo `solr_pi_results` content element to
+- The repo now maps the demo `vercel_solr_demo_results` content element to
   `Webconsulting\Typo3VercelSolrDemo\Content\SolrSearchContent`, a small
   Camino-specific renderer that still queries Solr but catches service warmup
   and avoids a frontend exception.
+- Older demo content rows using `solr_pi_results` are migrated by the protected
+  setup endpoint so the stock EXT:solr result plugin no longer controls the
+  Vercel demo search page response status.
 - The demo renderer uses short internal Solr HTTP timeouts. Override the
   default 6 second per-attempt timeout with `TYPO3_SOLR_DEMO_REQUEST_TIMEOUT`
   if needed; values are clamped between 1 and 10 seconds.

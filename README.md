@@ -178,8 +178,9 @@ What this means today:
   command and protected setup endpoint. Runtime indexing is skipped by default
   for the internal service; managed Solr can enable it with
   `TYPO3_SOLR_INDEX_ON_SETUP=1`.
-  The demo `/search` page uses a small Camino renderer that queries Solr and
-  handles Vercel service warmup without showing a TYPO3 exception.
+  The demo `/search` page uses a dedicated `vercel_solr_demo_results` content
+  element with a small Camino renderer that queries Solr and handles Vercel
+  service warmup without showing a TYPO3 exception.
   Frontend search needs
   `TYPO3_SOLR_APPLY_SITE_SET=1`; create the demo search page with the protected
   endpoint after deploy, not during container boot. The default Solr site set is
