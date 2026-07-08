@@ -57,7 +57,9 @@
 			text/plain \
 			text/xml
 	</IfModule>
-	BrotliCompressionQuality 5
+	# BrotliCompressionQuality is only valid in server/vhost context and is set in
+	# the Apache config baked by Dockerfile.vercel; it must not appear here or
+	# Apache refuses to start when this file is Include'd into the <Directory> block.
 </IfModule>
 
 <IfModule mod_deflate.c>

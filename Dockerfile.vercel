@@ -47,6 +47,9 @@ RUN apt-get update \
         "KeepAlive On" \
         "MaxKeepAliveRequests 100" \
         "KeepAliveTimeout 2" \
+        "<IfModule mod_brotli.c>" \
+        "    BrotliCompressionQuality 5" \
+        "</IfModule>" \
         "<Directory ${APACHE_DOCUMENT_ROOT}>" \
         "    Options FollowSymLinks" \
         "    AllowOverride None" \
