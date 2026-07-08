@@ -34,6 +34,11 @@ Redis profile. Redis is still only cache storage here; TYPO3 content and
 backend sessions need a durable SQL database, and uploaded files need Blob or
 S3-compatible object storage.
 
+The daily Vercel Cron route is safe for the internal Solr demo service: it
+returns a skip instead of running non-durable EXT:solr runtime indexing. For
+managed/external Solr, the same route runs TYPO3's normal Scheduler command so
+small index batches can be processed outside editor requests.
+
 This starter includes TYPO3 14 FAL drivers named `vercel_blob` for Vercel Blob
 and `vercel_s3` for S3-compatible object storage. When
 `TYPO3_OBJECT_STORAGE_ENABLED=1` and a driver is configured, the entrypoint

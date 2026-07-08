@@ -112,6 +112,21 @@ disable it. Add `scheduler=1` to the protected endpoint or set
 `TYPO3_SOLR_SCHEDULER_TASK=1` to create/update the EXT:solr Index Queue Worker
 task. This is for small demo/batch indexing, not multi-hour jobs.
 
+Protected Vercel Scheduler endpoint:
+
+```text
+public/api/cron/typo3-scheduler.php
+```
+
+`vercel.json` schedules this endpoint daily. With a managed/external Solr
+connection, it runs TYPO3's real `scheduler:run` command, so EXT:solr Index
+Queue Worker tasks can process small batches. With the internal Vercel Solr
+demo service, the endpoint returns a safe skip by default because the Solr
+service self-seeds the Camino demo index on startup and runtime writes to that
+service are not durable. Set `TYPO3_SOLR_RUN_INTERNAL_SCHEDULER=1` or call the
+protected endpoint with `runInternalSolr=1` only when deliberately testing that
+non-durable demo path.
+
 Experimental Vercel demo service:
 
 ```text

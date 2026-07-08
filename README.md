@@ -171,6 +171,9 @@ What this means today:
 - A daily Vercel Cron entry that calls the protected TYPO3 Scheduler endpoint.
   It is intentionally daily so free/Hobby clones still deploy; Pro projects can
   change it to a faster schedule for small queue batches.
+  With the internal Vercel Solr demo service, the endpoint returns a safe skip
+  because that service self-seeds its demo index. With managed/external Solr,
+  it runs the real TYPO3 Scheduler tasks for indexing.
 - Optional Redis cache through Vercel Marketplace Redis/Redis Cloud for shared
   TYPO3 `hash`, `pages`, and `rootline` caches.
 - Optional EXT:solr 14.0 beta integration for Apache Solr 10. Production should
