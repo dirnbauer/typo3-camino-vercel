@@ -128,7 +128,13 @@ of showing a TYPO3 exception. Warm `/` and `/search` requests stayed fast.
 Latest live check after the proxy fix: full protected Solr probe returned
 `200` for cores, ping, and select in about 0.56s warm; public `/search` returned
 six Camino results in about 7s during the post-deploy warmup window.
-See [docs/solr.md](docs/solr.md).
+
+Measured on 2026-07-09: warm direct Solr search is fast enough for the demo
+(100-doc benchmark: search median 0.071s, update+commit median 0.106s), but the
+uncached public TYPO3 search page still has Vercel/container outliers
+(22-request MISS sample: median 1.29s, p95 10.33s). Verdict: Solr itself is
+fast; full search-page p95 is demo/prototype-grade, not strict production-grade.
+See [docs/performance.md](docs/performance.md) and [docs/solr.md](docs/solr.md).
 
 For a product-manager level summary of what worked, what was coded, what got
 faster, and what Vercel could improve, see

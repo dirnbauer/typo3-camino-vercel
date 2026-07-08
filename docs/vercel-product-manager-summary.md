@@ -26,11 +26,18 @@ Current live check against `https://typo3-camino-vercel.vercel.app`:
   0.083-0.157s.
 - Earlier deploy-time checks saw similar cold spikes: `/` about 12.4s and
   `/typo3/` about 10.6s.
+- Search/Solr benchmark on 2026-07-09: warm direct Solr was fast
+  (100-doc search median 0.071s, update+commit median 0.106s), but the full
+  uncached TYPO3 `/search?tx_solr[q]=Camino` page still showed a 1.29s median
+  and 10.33s p95 over 22 MISS requests.
 
 Short answer to "is it fast now?":
 
 - Warm frontend: yes.
 - Warm backend login surface: yes, for a demo.
+- Warm direct Solr: yes, for this demo scale.
+- Full uncached public search-page p95: no, still too noisy for strict
+  production latency expectations.
 - Cold starts: no, still the visible weakness.
 - Durable files: yes, when Vercel Blob is connected.
 - Durable content and stable backend login: yes, when a real database is used.

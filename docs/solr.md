@@ -482,6 +482,28 @@ Live production deployment checked on 2026-07-08:
 - Public `/search?tx_solr[q]=Camino` returned HTTP `200` with six result entries
   in about 7.0s during the post-deploy warmup window.
 
+Live benchmark on 2026-07-09:
+
+- The protected benchmark endpoint writes synthetic documents into `core_en`,
+  commits them, counts them, updates one document repeatedly, runs repeated
+  searches, and deletes the benchmark documents again.
+- First post-deploy benchmark request took 25.22s total because the first
+  Solr-touching cleanup call took 17.44s. This is the cold-start/startup class.
+- Warm direct Solr benchmark with 20 documents: add+commit 0.263s,
+  update+commit median 0.114s, search median 0.075s.
+- Warm direct Solr benchmark with 100 documents: add+commit 0.286s,
+  update+commit median 0.106s, search median 0.071s.
+- The TYPO3 setup/index endpoint confirmed `/search`, flushed caches, seeded 6
+  queue items, wrote+committed 6 Camino page documents, and verified 6/6 docs.
+  First run took 6.89s; warm run took 2.19s.
+- The public TYPO3 search page is slower and noisier than direct Solr. In a
+  22-request sample of uncached `x-vercel-cache: MISS` requests to
+  `/search?tx_solr[q]=Camino`, all returned HTTP `200`, but timing was min
+  0.306s, median 1.290s, mean 3.723s, p95 10.326s, max 12.907s.
+- Verdict: direct Solr indexing/update/search is fast enough when warm for this
+  demo scale. Full public search-page p95 is not strict-production-fast yet
+  because cold/semi-cold Vercel PHP/TYPO3 request outliers still dominate.
+
 Important limitation: the internal Vercel Solr service stores the index in
 runtime `/tmp`. The startup seed makes the static demo searchable, but this is
 still only acceptable for this demo/experiment path. Production search needs a

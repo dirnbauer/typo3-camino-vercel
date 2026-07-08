@@ -108,6 +108,69 @@ password. The login page and login preflight still exercise the TYPO3 backend
 container, database/session setup, PHP runtime, and uncached backend response
 path.
 
+## Search And Solr Benchmark
+
+Measured on 2026-07-09 against
+`https://typo3-camino-vercel.vercel.app` immediately after deploying the
+protected Solr benchmark endpoint.
+
+Method:
+
+- direct Solr benchmark used
+  `/api/cron/typo3-solr-demo.php?action=benchmark`
+- the endpoint is protected by `CRON_SECRET`
+- it writes synthetic benchmark documents through the same loopback Solr proxy
+  that TYPO3 uses for the internal Vercel Solr service
+- it commits, counts, updates one document repeatedly, searches repeatedly, and
+  deletes the benchmark documents again
+- the direct Solr numbers measure Solr/proxy/write behavior, not Fluid/TYPO3
+  frontend rendering
+- TYPO3 indexing was measured with the protected setup endpoint and
+  `index=1&limit=50`
+- public search was measured as sequential uncached requests to
+  `/search?tx_solr[q]=Camino`; every sampled response was `x-vercel-cache: MISS`
+
+All benchmarked requests returned HTTP `200`.
+
+| Test | Result |
+| --- | --- |
+| First post-deploy direct Solr 20-doc benchmark, total request | 25.22s |
+| First Solr-touching operation in that run | cleanup took 17.44s, showing the cold-start/startup penalty |
+| Same first run, direct Solr add+commit 20 docs | 1.06s |
+| Same first run, direct Solr update+commit 5 times | median 0.151s, p95 0.222s |
+| Same first run, direct Solr search 10 times | median 0.080s, p95 0.124s |
+| Warm direct Solr add+commit 20 docs | 0.263s |
+| Warm direct Solr update+commit 5 times | median 0.114s, p95 0.128s |
+| Warm direct Solr search 10 times | median 0.075s, p95 0.116s |
+| Warm direct Solr add+commit 100 docs | 0.286s |
+| Warm direct Solr update+commit 10 times | median 0.106s, p95 0.137s |
+| Warm direct Solr search 20 times | median 0.071s, p95 0.082s |
+| TYPO3 setup/index endpoint, first run | 6.89s to confirm `/search`, flush caches, seed 6 Camino queue items, write+commit 6 page docs |
+| TYPO3 setup/index endpoint, warm run | 2.19s for the same 6-page path |
+| Public TYPO3 search page, 22 sequential MISS requests | min 0.306s, median 1.290s, mean 3.723s, p95 10.326s, max 12.907s |
+
+Verdict:
+
+- **Direct Solr search and Solr document updates are fast enough when warm.**
+  The internal Vercel Solr demo service answered warm searches in about
+  70-80 ms and committed small update batches in about 100-140 ms.
+- **TYPO3 demo indexing is fast enough for this six-page Camino demo.** The
+  warm protected setup/index pass finished in 2.19s.
+- **The full public TYPO3 search page is not consistently fast yet.** It can be
+  fast after warmup, with several sampled requests around 0.3-0.47s, but the
+  same uncached search URL also produced 5-13s outliers.
+- **The remaining issue is not Solr query speed.** The bad p95 belongs to the
+  full Vercel/PHP/TYPO3 request path and cold or semi-cold container behavior.
+- **Good enough:** demos, prototypes, and selected low/medium traffic sites
+  where occasional slow first search requests are acceptable.
+- **Not good enough as-is:** strict production search with predictable p95
+  latency, large indexes, or heavy editor/search traffic.
+
+Production recommendation: use a managed/external Solr endpoint with durable
+index storage, keep TYPO3 and Solr close to the database region, process indexing
+in small Scheduler batches, and use an always-warm strategy or a platform with
+minimum instances if predictable search p95 matters.
+
 ## Runtime Region
 
 `vercel.json` pins deployments to `fra1`:
