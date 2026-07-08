@@ -351,6 +351,8 @@ The endpoint:
   runtime indexing is enabled
 - creates or updates the EXT:solr Index Queue Worker Scheduler task when
   `scheduler=1`, `TYPO3_SOLR_SCHEDULER_TASK=1`, or `--scheduler-task` is used
+- persists that Scheduler task in TYPO3 14's normal JSON field format, so the
+  protected Vercel endpoint can create it without a backend form submission
 - falls back to direct Camino demo page indexing when the beta EXT:solr queue
   worker cannot render Camino pages in the Vercel context and runtime indexing
   is enabled

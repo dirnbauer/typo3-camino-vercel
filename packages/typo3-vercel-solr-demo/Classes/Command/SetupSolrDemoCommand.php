@@ -29,6 +29,7 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Scheduler\Domain\Repository\SchedulerTaskRepository;
 use TYPO3\CMS\Scheduler\Execution;
+use TYPO3\CMS\Scheduler\Service\TaskService;
 
 #[AsCommand(
     name: 'webconsulting:solr-demo:setup',
@@ -457,7 +458,7 @@ final class SetupSolrDemoCommand extends Command
             $documentsToIndexLimit,
         ));
 
-        $success = $created ? $taskRepository->add($task) : $taskRepository->update($task);
+        $success = $this->persistIndexQueueSchedulerTask($task, $created);
         if (!$success) {
             throw new \RuntimeException('Could not create or update the EXT:solr scheduler task.', 1773312920);
         }
@@ -502,6 +503,82 @@ final class SetupSolrDemoCommand extends Command
         }
 
         return null;
+    }
+
+    private function persistIndexQueueSchedulerTask(IndexQueueWorkerTask $task, bool $created): bool
+    {
+        /** @var TaskService $taskService */
+        $taskService = GeneralUtility::makeInstance(TaskService::class);
+        $fields = $this->normalizeSchedulerTaskFields($taskService->getFieldsForRecord($task));
+        $connection = $this->connectionPool->getConnectionForTable('tx_scheduler_task');
+
+        if ($created) {
+            $connection->insert(
+                'tx_scheduler_task',
+                [
+                    'pid' => 0,
+                    'crdate' => time(),
+                    'deleted' => 0,
+                    'priority' => 100,
+                    'serialized_task_object' => '',
+                    'serialized_executions' => '',
+                    'lastexecution_time' => 0,
+                    'lastexecution_failure' => '',
+                    'lastexecution_context' => '',
+                ] + $fields,
+            );
+            $task->setTaskUid((int)$connection->lastInsertId());
+            if ($task->getTaskUid() <= 0) {
+                $task->setTaskUid($this->findPersistedIndexQueueSchedulerTaskUid($fields['description']));
+            }
+            return $task->getTaskUid() > 0;
+        }
+
+        $connection->update('tx_scheduler_task', $fields, ['uid' => $task->getTaskUid()]);
+        return true;
+    }
+
+    private function findPersistedIndexQueueSchedulerTaskUid(string $description): int
+    {
+        $connection = $this->connectionPool->getConnectionForTable('tx_scheduler_task');
+        $queryBuilder = $connection->createQueryBuilder();
+        $queryBuilder->getRestrictions()->removeAll();
+        $uid = $queryBuilder
+            ->select('uid')
+            ->from('tx_scheduler_task')
+            ->where(
+                $queryBuilder->expr()->eq('tasktype', $queryBuilder->createNamedParameter(IndexQueueWorkerTask::class)),
+                $queryBuilder->expr()->eq('description', $queryBuilder->createNamedParameter($description)),
+                $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
+            )
+            ->orderBy('uid', 'DESC')
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchOne();
+
+        return $uid === false ? 0 : (int)$uid;
+    }
+
+    /**
+     * @param array<string, mixed> $fields
+     * @return array<string, mixed>
+     */
+    private function normalizeSchedulerTaskFields(array $fields): array
+    {
+        foreach (['parameters', 'execution_details'] as $jsonField) {
+            $value = $fields[$jsonField] ?? [];
+            if (!is_string($value)) {
+                $fields[$jsonField] = json_encode($value, JSON_THROW_ON_ERROR);
+            }
+        }
+
+        $fields['task_group'] = (int)($fields['task_group'] ?? 0);
+        $fields['disable'] = (int)($fields['disable'] ?? 0);
+        $fields['nextexecution'] = (int)($fields['nextexecution'] ?? time());
+        $fields['description'] = (string)($fields['description'] ?? '');
+        $fields['tasktype'] = (string)($fields['tasktype'] ?? IndexQueueWorkerTask::class);
+
+        return $fields;
     }
 
     /**
