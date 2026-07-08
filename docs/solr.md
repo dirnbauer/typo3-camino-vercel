@@ -390,16 +390,31 @@ Live production deployment checked on 2026-07-08:
 
 - The public alias points to a ready Vercel deployment with both `app` and
   `solr` container outputs.
-- `GET /` returned `200` in about 0.3s while warm.
+- `GET /` returned `200`. A cold post-deploy hit took about 14.6s; a later
+  warm hit took about 2.5s in the same test window.
+- Protected runtime diagnostics returned `200` and confirmed `var`,
+  `public/fileadmin`, `public/typo3temp`, and `/tmp/typo3/var/lock` are
+  writable runtime paths.
+- The protected setup endpoint returned `200`, created/confirmed `/search`,
+  updated Scheduler task uid `1`, and skipped runtime indexing because the
+  internal Vercel Solr demo service is self-seeded.
+- The protected Scheduler endpoint returned `200`. For the internal Vercel
+  Solr demo service it intentionally skips EXT:solr runtime indexing; with
+  managed/external Solr it runs TYPO3's real `scheduler:run`.
 - Protected Solr probes returned `200` and saw the six self-seeded Camino demo
-  documents, but Solr-touching requests took about 20s during service warmup.
-- A first frontend `/search?tx_solr[q]=Camino` request against the stock
-  EXT:solr result plugin could still hit a temporary internal-service nginx
-  `502` and render a TYPO3 error.
+  documents. During a fresh Solr service cold start, an immediate probe can
+  still miss the service until `core_en` is ready.
+- Public `/search?tx_solr[q]=Camino` returned `200` with no TYPO3 Oops. The
+  final warm result check returned six result entries in about 0.57s:
+  `Camino`, `Camino Route Comparison`, `Packing List`, `Imprint`, `FAQs`, and
+  `Privacy`.
 - The repo now maps the demo `vercel_solr_demo_results` content element to
   `Webconsulting\Typo3VercelSolrDemo\Content\SolrSearchContent`, a small
   Camino-specific renderer that still queries Solr but catches service warmup
   and avoids a frontend exception.
+- The renderer is marked with TYPO3 14's `#[AsAllowedCallable]` attribute.
+  Without that, TYPO3 rejects TypoScript `userFunc` calls before the renderer's
+  own error handling can run.
 - Older demo content rows using `solr_pi_results` are migrated by the protected
   setup endpoint so the stock EXT:solr result plugin no longer controls the
   Vercel demo search page response status.
