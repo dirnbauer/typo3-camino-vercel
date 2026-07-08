@@ -71,10 +71,13 @@ final class BlobDriver extends AbstractHierarchicalFilesystemDriver implements S
     {
         $this->access = strtolower(trim((string)($this->configuration['access'] ?? 'public'))) === 'private' ? 'private' : 'public';
         $this->tokenEnvName = trim((string)($this->configuration['tokenEnvName'] ?? 'BLOB_READ_WRITE_TOKEN')) ?: 'BLOB_READ_WRITE_TOKEN';
-        $this->token = $this->resolveToken();
         $this->storeId = $this->normalizeStoreId($this->configuration['storeId'] ?? null)
             ?? $this->normalizeStoreId(getenv('BLOB_STORE_ID') ?: null)
-            ?? $this->parseStoreIdFromReadWriteToken($this->token);
+            ?? '';
+        $this->token = $this->resolveToken();
+        if ($this->storeId === '') {
+            $this->storeId = $this->parseStoreIdFromReadWriteToken($this->token);
+        }
         if ($this->storeId === '') {
             throw new InvalidConfigurationException(
                 'Vercel Blob storage requires a store id. Set BLOB_STORE_ID or configure storeId.',
@@ -939,7 +942,19 @@ final class BlobDriver extends AbstractHierarchicalFilesystemDriver implements S
             return $configuredToken;
         }
 
-        foreach ([$this->tokenEnvName, 'BLOB_READ_WRITE_TOKEN', 'VERCEL_OIDC_TOKEN'] as $envName) {
+        if ($this->tokenEnvName !== 'BLOB_READ_WRITE_TOKEN') {
+            $customEnvToken = getenv($this->tokenEnvName);
+            if (is_string($customEnvToken) && trim($customEnvToken) !== '') {
+                return trim($customEnvToken);
+            }
+        }
+
+        $oidcToken = getenv('VERCEL_OIDC_TOKEN');
+        if ($this->storeId !== '' && is_string($oidcToken) && trim($oidcToken) !== '') {
+            return trim($oidcToken);
+        }
+
+        foreach (array_unique([$this->tokenEnvName, 'BLOB_READ_WRITE_TOKEN']) as $envName) {
             $value = getenv($envName);
             if (is_string($value) && trim($value) !== '') {
                 return trim($value);
@@ -947,7 +962,7 @@ final class BlobDriver extends AbstractHierarchicalFilesystemDriver implements S
         }
 
         throw new InvalidConfigurationException(
-            'Vercel Blob storage requires BLOB_READ_WRITE_TOKEN or VERCEL_OIDC_TOKEN.',
+            'Vercel Blob storage requires BLOB_READ_WRITE_TOKEN, or VERCEL_OIDC_TOKEN with BLOB_STORE_ID.',
             1720100102
         );
     }

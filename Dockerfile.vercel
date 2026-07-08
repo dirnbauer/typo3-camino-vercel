@@ -93,7 +93,7 @@ RUN set -eu; \
     cp /var/www/html/var/seed/camino.sqlite /usr/local/share/typo3-seed/camino.sqlite; \
     rm -rf var/* public/typo3temp/*
 
-RUN chmod +x docker/entrypoint.sh scripts/bootstrap-typo3.php scripts/apply-admin-password.php scripts/apply-object-storage.php \
+RUN chmod +x docker/entrypoint.sh scripts/bootstrap-typo3.php scripts/apply-admin-password.php scripts/apply-object-storage.php scripts/apply-solr-config.php \
     && mkdir -p var public/fileadmin/_temp_ public/fileadmin/user_upload public/typo3temp config/system \
     && chown -R www-data:www-data var public/fileadmin public/typo3temp config
 

@@ -26,9 +26,11 @@ Required pieces:
    through a Vercel Marketplace Redis integration when shared cache state
    matters across runtime instances.
 6. **Frontend cache:** optional Vercel CDN cache for anonymous public HTML only.
-7. **Cold-start mitigation:** Vercel Cron or an external uptime monitor calls a
+7. **Search:** external managed Apache Solr 10 when EXT:solr search is needed.
+   Do not keep production Solr index state inside the TYPO3 Vercel container.
+8. **Cold-start mitigation:** Vercel Cron or an external uptime monitor calls a
    lightweight endpoint and, when needed, the TYPO3 backend login route.
-8. **Scheduler:** TYPO3 Scheduler runs through the protected HTTP cron endpoint,
+9. **Scheduler:** TYPO3 Scheduler runs through the protected HTTP cron endpoint,
    not a Linux daemon inside the container.
 
 This is the shape already used by the public demo, except that keepalive is not

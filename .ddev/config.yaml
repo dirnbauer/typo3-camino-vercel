@@ -1,0 +1,24 @@
+name: typo3-camino-vercel
+type: typo3
+docroot: public
+php_version: "8.4"
+webserver_type: apache-fpm
+xdebug_enabled: false
+additional_hostnames: []
+additional_fqdns: []
+database:
+    type: mariadb
+    version: "11.8"
+use_dns_when_possible: true
+composer_version: "2"
+web_environment:
+    - TYPO3_CONTEXT=Development/DDEV
+    - TYPO3_DB_DRIVER=mysqli
+    - TYPO3_DB_HOST=db
+    - TYPO3_DB_PORT=3306
+    - TYPO3_DB_DBNAME=db
+    - TYPO3_DB_USERNAME=db
+    - TYPO3_DB_PASSWORD=db
+    - TYPO3_TRUSTED_HOSTS_PATTERN=.*[.]ddev[.]site|localhost(:[0-9]+)?|127[.]0[.]0[.]1(:[0-9]+)?
+corepack_enable: false
+disable_settings_management: true

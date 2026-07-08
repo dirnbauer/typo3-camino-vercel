@@ -3,6 +3,10 @@
 This starter requires the current Composer-installable TYPO3 CMS 14.3 system
 package set directly in `composer.json`, plus Camino.
 
+It also includes `apache-solr-for-typo3/solr` at `^14.0@beta` for optional
+Apache Solr search integration. TYPO3 14.3 currently maps to EXT:solr
+14.0.0-beta3, Apache Solr 10.0.0, and configset `ext_solr_14_0_0`.
+
 The added system packages are:
 
 - `typo3/cms-adminpanel`

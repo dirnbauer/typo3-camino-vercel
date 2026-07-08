@@ -194,11 +194,27 @@ The driver supports two credential modes:
 - read/write token mode through `BLOB_READ_WRITE_TOKEN`
 - OIDC/store-id mode through `VERCEL_OIDC_TOKEN` and `BLOB_STORE_ID`
 
-The normal connected-store path is `BLOB_READ_WRITE_TOKEN`.
+For connected Vercel projects, OIDC plus `BLOB_STORE_ID` is preferred when it
+is present because the OIDC token is short-lived and rotated by Vercel. The
+driver falls back to `BLOB_READ_WRITE_TOKEN` for local development, manual
+CLI/API use, and older connected-store setups.
 
 The FlexForm configuration stores `tokenEnvName`, for example
 `BLOB_READ_WRITE_TOKEN`. It does not store the token value. The token value must
 come from Vercel environment variables at runtime.
+
+## Why Not The Vercel File API?
+
+The Vercel deployment File API is not a better storage backend for TYPO3 FAL.
+It uploads build/deployment files before creating a Vercel deployment. TYPO3
+uploads happen at runtime after editors log in, so they need object storage.
+
+Vercel Sandbox filesystem APIs are also not a replacement for Blob in this
+project. They belong to Sandbox sessions, not the production Function/container
+runtime used by this TYPO3 site.
+
+Use Vercel Blob for the all-Vercel path. Use S3-compatible storage only when
+you need an S3 ecosystem provider such as Cloudflare R2, AWS S3, or MinIO.
 
 ## Public Versus Private Blob Stores
 

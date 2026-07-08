@@ -20,6 +20,11 @@ This project installs:
 typo3/cms-scheduler
 ```
 
+EXT:solr indexing tasks also depend on TYPO3 Scheduler. The extension can be
+installed in this project, but Vercel still does not provide a Linux cron daemon
+inside the container. Use the protected HTTP cron endpoint below or an external
+cron caller for indexing queues.
+
 It also includes a protected HTTP endpoint:
 
 ```text

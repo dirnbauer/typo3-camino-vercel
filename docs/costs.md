@@ -73,6 +73,23 @@ Important Redis cost notes:
 - Redis does not remove the need for a durable SQL database or Blob/S3 object
   storage.
 
+## Solr Search Cost Notes
+
+Vercel does not currently provide managed Apache Solr as a first-party or
+Marketplace storage service for this starter. A Docker Solr service can be used
+locally in DDEV and may be useful as a disposable experiment, but production
+TYPO3 search needs durable Solr index storage.
+
+Practical production choices:
+
+- hosted Solr provider with TYPO3 support, for example hosted-solr.com,
+  OpenSolr, SearchStax, or a TYPO3 host that offers Solr
+- self-managed Solr 10 on always-on infrastructure with backups and monitoring
+
+Expect Solr to add a separate monthly cost. Publicly listed entry plans checked
+during this work were roughly 10-15 EUR/month for small hosted Solr services,
+but provider plans change often and must be checked before a client quote.
+
 ## Practical Recommendation
 
 For the cheapest test:

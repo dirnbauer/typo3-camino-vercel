@@ -63,6 +63,7 @@ For a real test site, add:
 
 - a durable database through `DATABASE_URL`
 - Vercel Blob storage from the Deploy Button, or S3-compatible object storage
+- optional external Apache Solr for TYPO3 search
 
 For a stable backend login, the durable database is required. For durable
 editor uploads, Blob or S3-compatible object storage is required. If you accept
@@ -156,6 +157,9 @@ What this means today:
 - Vercel region pinning and runtime-local TYPO3 caches for faster warm requests.
 - Optional Redis cache through Vercel Marketplace Redis/Redis Cloud for shared
   TYPO3 `hash`, `pages`, and `rootline` caches.
+- Optional EXT:solr 14.0 beta integration for an external Apache Solr 10
+  endpoint. Vercel does not provide managed Apache Solr; use managed Solr for
+  production, or DDEV Solr locally.
 - Optional Vercel CDN caching for anonymous public frontend HTML.
 - Vercel memory/CPU can be raised on Pro/Enterprise in the dashboard or project
   API. The public demo project uses the performance CPU class and `fra1`.
@@ -168,6 +172,10 @@ What this means today:
 - SQLite is demo-only on Vercel. It is not reliable for TYPO3 backend sessions.
 - Editor uploads are not durable if the Blob store is skipped and no
   S3-compatible object storage is configured.
+- Vercel's deployment File API is not a replacement for Vercel Blob. It uploads
+  deployment/build files, not runtime TYPO3 editor uploads.
+- A Solr Docker container on Vercel is not production storage. Solr needs
+  durable index state, so production search should use external managed Solr.
 - This starter is not a GDPR/legal compliance guarantee.
 
 ## Quick Demo
@@ -217,6 +225,19 @@ vercel deploy --prod --scope webconsulting --regions fra1 --yes
 
 For a fork under your own Vercel account, omit `--scope webconsulting` or
 replace it with your own team scope.
+
+## Local Development With DDEV
+
+This repo includes a DDEV setup for local TYPO3 work:
+
+```bash
+ddev start
+ddev composer install
+```
+
+DDEV is configured for PHP 8.4, matching the Vercel container. It also includes
+a local Solr service pinned to the TYPO3 14 compatible EXT:solr 14 configset.
+See [docs/solr.md](docs/solr.md) for the local Solr commands.
 
 ## Production Shape
 
@@ -328,6 +349,7 @@ See [docs/costs.md](docs/costs.md) for the current caveats.
 - [Database setup](docs/database.md)
 - [Object storage and durable uploads](docs/object-storage.md)
 - [Redis cache on Vercel](docs/redis-cache.md)
+- [Solr search](docs/solr.md)
 - [Included TYPO3 packages](docs/typo3-packages.md)
 - [Backend login and sessions](docs/backend-login.md)
 - [Performance notes](docs/performance.md)

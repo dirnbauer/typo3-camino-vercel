@@ -1,0 +1,5 @@
+FROM typo3solr/ext-solr:14.0.0-beta3
+
+ENV SOLR_JAVA_MEM="-Xms512m -Xmx512m"
+
+CMD ["sh", "-c", "exec solr-foreground -p ${PORT:-8983}"]

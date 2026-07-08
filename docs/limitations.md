@@ -52,6 +52,14 @@ variables from provider SDKs are not enough for TYPO3's native Redis backend.
 Redis does not remove Vercel container cold starts. It can improve warm shared
 cache behavior, but it is not an always-on runtime control.
 
+## Solr
+
+EXT:solr is installed as an optional Composer package, but Vercel does not
+provide managed Apache Solr for this starter. Production search should use an
+external managed Solr 10 service. A Solr Docker image on Vercel would still
+need durable index state and operational protection, so it is not enabled by
+default.
+
 ## Marketplace Status
 
 This repository is prepared as a Vercel template candidate, but it has not been

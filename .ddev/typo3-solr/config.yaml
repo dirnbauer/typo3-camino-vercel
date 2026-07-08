@@ -1,0 +1,12 @@
+# TYPO3 14.3 uses EXT:solr 14.0 beta with configset ext_solr_14_0_0.
+
+config: "vendor/apache-solr-for-typo3/solr/Resources/Private/Solr/solr.xml"
+typo3lib: "vendor/apache-solr-for-typo3/solr/Resources/Private/Solr/typo3lib"
+configsets:
+  - name: "ext_solr_14_0_0"
+    path: "vendor/apache-solr-for-typo3/solr/Resources/Private/Solr/configsets/ext_solr_14_0_0"
+    cores:
+      - name: "core_en"
+        schema: "english/schema.xml"
+      - name: "core_de"
+        schema: "german/schema.xml"

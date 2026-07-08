@@ -4,8 +4,123 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "cc7bd2b02c9e0540727eb75bbe34f0a1",
+    "content-hash": "a3d2b442f0b9d94da0bf0a2c8f9c39bd",
     "packages": [
+        {
+            "name": "apache-solr-for-typo3/solr",
+            "version": "14.0.0-beta3",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/TYPO3-Solr/ext-solr.git",
+                "reference": "3d6be20f967d239c47052cd06ceb17702a7c42cf"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/TYPO3-Solr/ext-solr/zipball/3d6be20f967d239c47052cd06ceb17702a7c42cf",
+                "reference": "3d6be20f967d239c47052cd06ceb17702a7c42cf",
+                "shasum": ""
+            },
+            "require": {
+                "ext-dom": "*",
+                "ext-json": "*",
+                "ext-libxml": "*",
+                "ext-pdo": "*",
+                "ext-simplexml": "*",
+                "php": "^8.2",
+                "solarium/solarium": "6.4.1",
+                "typo3/cms-backend": "*",
+                "typo3/cms-core": "^v14.3.0",
+                "typo3/cms-extbase": "*",
+                "typo3/cms-fluid": "*",
+                "typo3/cms-frontend": "*",
+                "typo3/cms-install": "*",
+                "typo3/cms-reports": "*",
+                "typo3/cms-scheduler": "*",
+                "typo3/cms-tstemplate": "*"
+            },
+            "replace": {
+                "apache-solr-for-typo3/solrfluid": "*",
+                "apache-solr-for-typo3/solrfluidgrouping": "*",
+                "typo3-ter/solr": "self.version",
+                "typo3-ter/solrfluid": "*",
+                "typo3-ter/solrfluidgrouping": "*"
+            },
+            "require-dev": {
+                "brianium/paratest": "^7.8.5",
+                "dg/bypass-finals": "^1.9",
+                "phpstan/phpstan": "^1.11",
+                "phpstan/phpstan-phpunit": "^1.3",
+                "phpunit/phpunit": "^11.5.55",
+                "typo3/cms-fluid-styled-content": "*",
+                "typo3/coding-standards": "v0.8.0",
+                "typo3/testing-framework": "^9.5.0"
+            },
+            "type": "typo3-cms-extension",
+            "extra": {
+                "typo3/cms": {
+                    "web-dir": ".Build/Web",
+                    "extension-key": "solr"
+                },
+                "TYPO3-Solr": {
+                    "ext-solrfal": [],
+                    "stack-for-ci": {
+                        "sclable/xml-lint": "*"
+                    },
+                    "version-matrix": {
+                        "ext-tika": "^14.0",
+                        "configset": "ext_solr_14_0_0",
+                        "Apache-Solr": [
+                            "10.0.0"
+                        ],
+                        "ext-solrfal": "^14.0",
+                        "ext-solrconsole": "^14.0",
+                        "ext-solrdebugtools": "^14.0"
+                    }
+                },
+                "branch-alias": {
+                    "dev-main": "14.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "ApacheSolrForTypo3\\Solr\\": "Classes/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-3.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "dkd Internet Service GmbH",
+                    "email": "info@dkd.de",
+                    "homepage": "https://www.dkd.de"
+                }
+            ],
+            "description": "Apache Solr for TYPO3 - Apache Solr for TYPO3 is the enterprise search server you were looking for with special features such as Faceted Search or Synonym Support and incredibly fast response times of results within milliseconds.",
+            "homepage": "https://www.typo3-solr.com",
+            "keywords": [
+                "TYPO3 CMS",
+                "search",
+                "solr",
+                "typo3"
+            ],
+            "support": {
+                "docs": "https://docs.typo3.org/p/apache-solr-for-typo3/solr/main/en-us/",
+                "email": "info@dkd.de",
+                "forum": "https://talk.typo3.org",
+                "issues": "https://github.com/TYPO3-Solr/ext-solr/issues",
+                "slack": "https://typo3.slack.com/archives/C02FF05Q4",
+                "source": "https://github.com/TYPO3-Solr/ext-solr"
+            },
+            "funding": [
+                {
+                    "url": "https://www.typo3-solr.com/",
+                    "type": "custom"
+                }
+            ],
+            "time": "2026-05-20T13:26:35+00:00"
+        },
         {
             "name": "aws/aws-crt-php",
             "version": "v1.2.7",
@@ -1353,6 +1468,68 @@
             "time": "2026-06-23T15:21:08+00:00"
         },
         {
+            "name": "halaxa/json-machine",
+            "version": "1.2.6",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/halaxa/json-machine.git",
+                "reference": "8bf0b0ff6ff60ab480778eaa5ad7d505b442c2d4"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/halaxa/json-machine/zipball/8bf0b0ff6ff60ab480778eaa5ad7d505b442c2d4",
+                "reference": "8bf0b0ff6ff60ab480778eaa5ad7d505b442c2d4",
+                "shasum": ""
+            },
+            "require": {
+                "php": "7.2 - 8.5"
+            },
+            "require-dev": {
+                "ext-json": "*",
+                "friendsofphp/php-cs-fixer": "^3.0",
+                "phpstan/phpstan": "^1.10",
+                "phpunit/phpunit": "^8.0"
+            },
+            "suggest": {
+                "ext-json": "To run JSON Machine out of the box without custom decoders.",
+                "guzzlehttp/guzzle": "To run example with GuzzleHttp"
+            },
+            "type": "library",
+            "autoload": {
+                "files": [
+                    "src/functions.php"
+                ],
+                "psr-4": {
+                    "JsonMachine\\": "src/"
+                },
+                "exclude-from-classmap": [
+                    "src/autoloader.php"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "Apache-2.0"
+            ],
+            "authors": [
+                {
+                    "name": "Filip Halaxa",
+                    "email": "filip@halaxa.cz"
+                }
+            ],
+            "description": "Efficient, easy-to-use and fast JSON pull parser",
+            "support": {
+                "issues": "https://github.com/halaxa/json-machine/issues",
+                "source": "https://github.com/halaxa/json-machine/tree/1.2.6"
+            },
+            "funding": [
+                {
+                    "url": "https://ko-fi.com/G2G57KTE4",
+                    "type": "other"
+                }
+            ],
+            "time": "2025-12-05T14:53:09+00:00"
+        },
+        {
             "name": "lolli42/finediff",
             "version": "1.1.2",
             "source": {
@@ -2397,6 +2574,79 @@
                 "source": "https://github.com/ralouphie/getallheaders/tree/develop"
             },
             "time": "2019-03-08T08:55:37+00:00"
+        },
+        {
+            "name": "solarium/solarium",
+            "version": "6.4.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/solariumphp/solarium.git",
+                "reference": "5ed828fc441510e6ea10e5f6fa1bfeb7739fb952"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/solariumphp/solarium/zipball/5ed828fc441510e6ea10e5f6fa1bfeb7739fb952",
+                "reference": "5ed828fc441510e6ea10e5f6fa1bfeb7739fb952",
+                "shasum": ""
+            },
+            "require": {
+                "composer-runtime-api": ">=2.0",
+                "ext-json": "*",
+                "halaxa/json-machine": "^1.1",
+                "php": "^8.1",
+                "psr/event-dispatcher": "^1.0",
+                "psr/http-client": "^1.0",
+                "psr/http-factory": "^1.0",
+                "symfony/event-dispatcher-contracts": "^2.0 || ^3.0"
+            },
+            "require-dev": {
+                "2tvenom/cborencode": "^1.0",
+                "escapestudios/symfony2-coding-standard": "^3.11",
+                "ext-curl": "*",
+                "ext-iconv": "*",
+                "nyholm/psr7": "^1.8",
+                "php-http/guzzle7-adapter": "^1.0",
+                "phpstan/extension-installer": "^1.4",
+                "phpstan/phpstan": "^2.1",
+                "phpstan/phpstan-deprecation-rules": "^2.0",
+                "phpstan/phpstan-phpunit": "^2.0",
+                "phpunit/phpunit": "^10.5",
+                "rawr/phpunit-data-provider": "^3.3",
+                "roave/security-advisories": "dev-master",
+                "spomky-labs/cbor-php": "^3.1",
+                "symfony/event-dispatcher": "^5.0 || ^6.0 || ^7.0"
+            },
+            "suggest": {
+                "spomky-labs/cbor-php": "Needed to use CBOR formatted requests with Solr 9.3+"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Solarium\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "BSD-3-Clause"
+            ],
+            "authors": [
+                {
+                    "name": "See GitHub contributors",
+                    "homepage": "https://github.com/solariumphp/solarium/contributors"
+                }
+            ],
+            "description": "PHP Solr client",
+            "homepage": "http://www.solarium-project.org",
+            "keywords": [
+                "php",
+                "search",
+                "solr"
+            ],
+            "support": {
+                "issues": "https://github.com/solariumphp/solarium/issues",
+                "source": "https://github.com/solariumphp/solarium/tree/6.4.1"
+            },
+            "time": "2025-10-18T17:49:40+00:00"
         },
         {
             "name": "symfony/cache",
@@ -8590,7 +8840,9 @@
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "apache-solr-for-typo3/solr": 10
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {},

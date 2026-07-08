@@ -55,6 +55,11 @@ storage.
 Vercel Blob is the Vercel-native object storage path for editor uploads in this
 starter. It uses the included `vercel_blob` FAL driver and the Vercel Blob API.
 
+Do not replace Blob with Vercel's deployment File API. That API is for
+deployment artifacts, not runtime CMS uploads. Sandbox Drives are also a
+different product and are not the production filesystem for this Vercel
+container project.
+
 Do not solve this by writing editor uploads to `public/fileadmin` on Vercel.
 That only works until the container restarts or a second instance handles a
 request.

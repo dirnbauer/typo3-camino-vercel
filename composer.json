@@ -14,6 +14,7 @@
         "sort-packages": true
     },
     "require": {
+        "apache-solr-for-typo3/solr": "^14.0@beta",
         "typo3/cms-adminpanel": "^14.3",
         "typo3/cms-backend": "^14.3",
         "typo3/cms-belog": "^14.3",

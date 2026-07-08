@@ -25,6 +25,29 @@ Supported storage targets:
 Vercel Blob is not S3-compatible, so it uses the separate
 `typo3_vercel_blob_storage` extension instead of the S3 driver.
 
+## Vercel Blob Versus The Vercel File APIs
+
+Use Vercel Blob for TYPO3 uploads.
+
+The Vercel deployment File API (`POST /v2/files`) is for uploading files before
+creating a Vercel deployment. It is not runtime storage for CMS uploads and it
+does not behave like a persistent `fileadmin` volume.
+
+The Vercel Sandbox filesystem APIs and Sandbox Drives are for Vercel Sandbox
+sessions. They are useful for agent/code-execution workflows, but they are not
+the production filesystem of this TYPO3 container project.
+
+For TYPO3 FAL, the correct Vercel-native product is still Vercel Blob:
+
+- it is designed for images, videos, and other uploaded files
+- it is available on all Vercel plans
+- the Deploy Button can create a public Blob store for each clone
+- this repo includes the `vercel_blob` FAL driver for it
+
+The Blob driver now follows Vercel's safer connected-store model: explicit or
+custom token configuration first, then OIDC with `BLOB_STORE_ID` when Vercel
+provides it, then `BLOB_READ_WRITE_TOKEN` as a fallback.
+
 The public demo deployment uses this Vercel Blob path. New projects cloned from
 the Deploy Button can create their own Vercel Blob store during deployment. If
 you skip that storage step, configure a Blob store or S3-compatible bucket
