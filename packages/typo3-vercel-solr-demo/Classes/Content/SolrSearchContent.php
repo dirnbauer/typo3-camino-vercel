@@ -9,10 +9,24 @@ final class SolrSearchContent
     /**
      * @param array<string, mixed> $configuration
      */
-    public function render(string $content, array $configuration): string
+    public function render(mixed $content = '', array $configuration = []): string
     {
         unset($content, $configuration);
 
+        try {
+            return $this->renderSearch();
+        } catch (\Throwable $exception) {
+            error_log(sprintf(
+                'TYPO3 Vercel Solr demo renderer failed: %s: %s',
+                $exception::class,
+                $exception->getMessage(),
+            ));
+            return $this->renderUnavailable();
+        }
+    }
+
+    private function renderSearch(): string
+    {
         $query = $this->searchQuery();
         $html = [];
         $html[] = '<div class="tx_solr container">';
@@ -30,9 +44,7 @@ final class SolrSearchContent
 
         $result = $this->querySolr($query);
         if ($result['ok'] !== true) {
-            $html[] = '<div class="alert alert-warning mt-3" role="status">';
-            $html[] = 'Search is warming up. Please retry in a moment.';
-            $html[] = '</div>';
+            $html[] = $this->warmingMarkup();
             $html[] = '</div>';
             return implode("\n", $html);
         }
@@ -63,6 +75,26 @@ final class SolrSearchContent
         $html[] = '</div>';
 
         return implode("\n", $html);
+    }
+
+    private function renderUnavailable(): string
+    {
+        return implode("\n", [
+            '<div class="tx_solr container">',
+            '<form action="/search" method="get" class="tx-solr-search-form">',
+            '<div class="input-group">',
+            '<input type="text" class="tx-solr-q form-control" name="tx_solr[q]" value="' . $this->escape($this->searchQuery()) . '" maxlength="50" autocomplete="off" />',
+            '<button class="btn btn-primary tx-solr-submit" type="submit">Search</button>',
+            '</div>',
+            '</form>',
+            $this->warmingMarkup(),
+            '</div>',
+        ]);
+    }
+
+    private function warmingMarkup(): string
+    {
+        return '<div class="alert alert-warning mt-3" role="status">Search is warming up. Please retry in a moment.</div>';
     }
 
     private function searchQuery(): string
