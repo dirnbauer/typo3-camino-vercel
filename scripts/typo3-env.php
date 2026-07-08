@@ -537,6 +537,9 @@ function typo3_vercel_settings(): array
                 'frontend.cache.autoTagging' => true,
                 'security.system.enforceAllowedFileExtensions' => true,
             ],
+            'productionExceptionHandler' => typo3_vercel_bool_env('TYPO3_LOG_PRODUCTION_EXCEPTIONS', $isVercelRuntime)
+                ? 'Webconsulting\\Typo3VercelStorage\\Error\\VercelProductionExceptionHandler'
+                : 'TYPO3\\CMS\\Core\\Error\\ProductionExceptionHandler',
             'sitename' => typo3_vercel_env('TYPO3_PROJECT_NAME', 'TYPO3 Camino'),
             'systemMaintainers' => [1],
             // The pattern must be wrapped in a single non-capturing group. TYPO3 evaluates

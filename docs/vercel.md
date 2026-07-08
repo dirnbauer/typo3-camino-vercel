@@ -95,6 +95,17 @@ REDIS_URL=<provided-by-vercel-marketplace-redis>
 Use Redis only with a real `redis://` or `rediss://` TCP/TLS endpoint. REST-only
 Redis variables are not enough for TYPO3's native Redis backend.
 
+Production error logging:
+
+```dotenv
+TYPO3_LOG_PRODUCTION_EXCEPTIONS=1
+```
+
+On Vercel this is enabled by default. TYPO3 still shows the normal production
+error page to visitors, but the exception class, code, file, line, URL path, and
+message are written to Vercel runtime logs. This is intentionally not the same
+as `TYPO3_DEBUG=1`; do not enable public debug output on production URLs.
+
 Optional internal demo Solr service:
 
 ```dotenv

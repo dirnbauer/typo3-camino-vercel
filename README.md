@@ -164,6 +164,8 @@ What this means today:
   Camino frontend; full Solr site sets are opt-in with
   `TYPO3_SOLR_APPLY_SITE_SET=1`.
 - Optional Vercel CDN caching for anonymous public frontend HTML.
+- Production exception summaries go to Vercel runtime logs without exposing
+  debug stack traces to visitors.
 - Vercel memory/CPU can be raised on Pro/Enterprise in the dashboard or project
   API. The public demo project uses the performance CPU class and `fra1`.
   Hobby/free test deployments use Vercel's fixed size.
