@@ -68,6 +68,17 @@ Technical solution:
 See [production-hardening.md](production-hardening.md) for the concrete
 settings, cron shape, and decision rule.
 
+Solr-specific remark:
+
+The Vercel-internal Solr container is useful as a demo of service bindings and
+container-to-container HTTP, but it should not be presented as production Solr
+for TYPO3. Warm Solr itself was fast in the benchmark; the production gap is
+durability and predictability. Solr needs a durable index, stable cores, clear
+backup/restore behavior, and ideally an always-on/minimum-instance service
+model. Without that, the practical production recommendation remains external
+managed Solr close to the Vercel region, with Vercel Cron/Scheduler only
+processing small index batches.
+
 ## Before And After
 
 These are directional numbers from the live demo, not lab-grade benchmarks.
@@ -163,6 +174,11 @@ These are directional numbers from the live demo, not lab-grade benchmarks.
   `rediss://` TCP/TLS plus `ext-redis`.
 - **Vercel Blob was easier than S3 for users, but required TYPO3-specific
   code:** Blob is not S3-compatible, so an actual TYPO3 FAL driver was needed.
+- **Solr worked technically, but exposed a product boundary:** a Vercel service
+  container can run Solr for a demo, and warm Solr requests are fast, but the
+  internal service does not provide durable Solr index storage or predictable
+  always-on behavior. That makes it an experiment/demo feature, not a managed
+  search product.
 - **The WordPress pattern was right:** code in the image, content in a DB,
   uploads in object storage. TYPO3 can follow the same pattern, but needs
   TYPO3-specific setup and docs.
@@ -190,6 +206,10 @@ This repository now contains a working TYPO3-on-Vercel starter:
 - Redis provider/env support for `REDIS_URL`, `TYPO3_REDIS_URL`,
   component-style Redis variables, and `TYPO3_REDIS_REQUIRED=1` fail-fast
   production mode.
+- EXT:solr 14 beta integration for TYPO3 14.3, plus an internal Vercel Solr
+  demo service, app-side retry proxy, protected benchmark endpoint, protected
+  setup/index endpoint, Scheduler integration, and Camino-specific search
+  renderer that avoids frontend exceptions during service warmup.
 - GraphicsMagick and Ghostscript support for TYPO3 image processing.
 - Vercel Scheduler/Cron-compatible endpoint for TYPO3 Scheduler tasks.
 - Documentation for free demo mode, durable database setup, object storage,
@@ -225,6 +245,9 @@ This repository now contains a working TYPO3-on-Vercel starter:
   strategies to reduce multi-minute builds.
 - Vercel Blob documentation should include non-Node server examples, especially
   PHP token handling and public URL patterns.
+- Search/CMS templates need first-party guidance for Solr-like services:
+  durable index storage, service warmup behavior, networking, backups, and the
+  boundary between "container service demo" and "managed production search."
 - The missing product feature for strict TYPO3-on-Vercel is a minimum-instances
   or always-warm control for paid Container Image workloads.
 
