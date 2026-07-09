@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  php:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: curl, dom, gd, intl, mbstring, mysqli, pdo_mysql, pdo_pgsql, pgsql, redis, xmlwriter, zip
+          coverage: none
+      - uses: ramsey/composer-install@v3
+      - run: Build/Scripts/runTests.sh -s all
+
+  containers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.vercel
+          push: false
+          cache-from: type=gha,scope=typo3
+          cache-to: type=gha,mode=max,scope=typo3
+      - uses: docker/build-push-action@v6
+        with:
+          context: services/solr
+          file: services/solr/Dockerfile.vercel
+          push: false
+          cache-from: type=gha,scope=solr
+          cache-to: type=gha,mode=max,scope=solr

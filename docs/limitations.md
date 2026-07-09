@@ -35,8 +35,8 @@ Current practical limits:
 - Hobby: maximum invocation duration is 300 seconds.
 - Pro/Enterprise: default duration is 300 seconds and can be raised up to 800
   seconds for normal function workloads.
-- Vercel's 1800 second extended duration is beta and documented for selected
-  Node.js/Python runtimes. Do not assume it applies to this PHP Apache container
+- Extended duration features can be runtime-specific betas. Do not assume they
+  apply to this PHP Container Image
   service.
 - Cron invokes an HTTP path and inherits the same invocation limits.
 - Hobby Cron can run only once per day with per-hour precision. Pro/Enterprise
@@ -86,6 +86,13 @@ public Blob store for normal frontend images and downloads. Private Blob stores
 need a custom delivery/proxy strategy and are not the default for TYPO3 public
 assets.
 
+Normal TYPO3 uploads pass through the Function request body and are limited to
+4 MB by this image, below Vercel's 4.5 MB total request limit. Blob can hold
+larger objects, but that requires a separate direct-upload integration.
+
+Blob and S3/R2 are object storage. Neither can be mounted as a Solr Lucene
+volume or used as TYPO3's SQL database.
+
 ## Redis
 
 Redis is supported for TYPO3 `hash`, `pages`, and `rootline` caches. It needs a
@@ -94,6 +101,14 @@ variables from provider SDKs are not enough for TYPO3's native Redis backend.
 
 Redis does not remove Vercel container cold starts. It can improve warm shared
 cache behavior, but it is not an always-on runtime control.
+
+## Cold Starts
+
+The Pro profile warms TYPO3 frontend/backend and Solr every three minutes, and
+the smaller images reduce activation work. This prevents the usual five-minute
+idle scale-down path when cron runs normally. It does not reserve a minimum
+instance and cannot guarantee zero cold starts during deploys, scale-out,
+eviction, or delayed cron. Hobby cannot run the frequent cron.
 
 ## Solr
 

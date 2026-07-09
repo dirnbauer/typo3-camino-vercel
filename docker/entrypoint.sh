@@ -8,10 +8,15 @@ export TMPDIR="${TMPDIR:-/tmp/typo3/tmp}"
 export TMP="${TMP:-$TMPDIR}"
 export TEMP="${TEMP:-$TMPDIR}"
 export MAGICK_TEMPORARY_PATH="${MAGICK_TEMPORARY_PATH:-/tmp/typo3/gm}"
-export GRAPHICSMAGICK_TMPDIR="${GRAPHICSMAGICK_TMPDIR:-$MAGICK_TEMPORARY_PATH}"
 
-sed -ri "s/^Listen .*/Listen ${PORT}/" /etc/apache2/ports.conf
-sed -ri "s/<VirtualHost \*:[0-9]+>/<VirtualHost *:${PORT}>/" /etc/apache2/sites-available/*.conf
+if [ -f /etc/apache2/ports.conf ]; then
+  sed -ri "s/^Listen .*/Listen ${PORT}/" /etc/apache2/ports.conf
+  sed -ri "s/<VirtualHost \*:[0-9]+>/<VirtualHost *:${PORT}>/" /etc/apache2/sites-available/*.conf
+fi
+
+if [ -f /etc/nginx/nginx.conf ]; then
+  sed -ri "s/listen [0-9]+ default_server;/listen ${PORT} default_server;/" /etc/nginx/nginx.conf
+fi
 
 prepare_runtime_directory() {
   local source_path="$1"

@@ -12,8 +12,9 @@ for the current duration limits:
 - Hobby: 300 seconds maximum.
 - Pro/Enterprise: 300 seconds default, configurable up to 800 seconds for
   normal function workloads.
-- The 1800 second extended duration is beta and documented for selected
-  Node.js/Python runtimes, not this PHP Apache container path.
+- Extended durations can be beta and documented for selected runtimes; do not
+  assume a runtime-specific beta duration applies to this PHP
+  Container Image path.
 
 Use one of these instead:
 
@@ -94,16 +95,19 @@ cron jobs are limited to once per day and can run within the selected hour
 rather than exactly at the selected minute. A more frequent cron expression in
 the public template would make Hobby deployments fail.
 
-On Pro/Enterprise, change the schedule only after you have configured a durable
-database and a durable Solr endpoint. For small Solr queues, this is a practical
-starting point:
+`vercel.pro.json` is the supported Pro profile. It adds a three-minute warm-up
+and runs Scheduler every 15 minutes:
 
 ```json
 {
   "crons": [
     {
+      "path": "/api/cron/typo3-warmup.php",
+      "schedule": "*/3 * * * *"
+    },
+    {
       "path": "/api/cron/typo3-scheduler.php",
-      "schedule": "*/5 * * * *"
+      "schedule": "*/15 * * * *"
     }
   ]
 }
@@ -145,20 +149,21 @@ Do not:
 - Leave the cron endpoint without `CRON_SECRET`.
 - Use frontend page requests to trigger maintenance tasks.
 
-## Optional Keepalive
+## Pro Warm-Up
 
-The project also includes a lightweight endpoint:
+The protected `/api/cron/typo3-warmup.php` endpoint checks database and Redis,
+performs local loopback requests to `/` and `/typo3/`, and pings Solr. This
+warms the real TYPO3 frontend/backend code paths before Vercel's documented
+five-minute production idle scale-down window.
 
-```text
-/_vercel_keepalive.php
+Deploy it with:
+
+```bash
+vercel deploy --prod -A vercel.pro.json
 ```
 
-It does not run TYPO3 Scheduler and does not touch the database. It only keeps
-the PHP/Apache container path warm when called by Vercel Cron on Pro or by an
-external uptime scheduler.
-
-Do not add a frequent keepalive cron to the public template. Vercel Hobby cron
-jobs can run only once per day, so `*/5 * * * *` would fail for free deploys.
+Do not copy this schedule into `vercel.json`. Hobby permits cron only once per
+day, so the public one-click profile must remain daily.
 
 ## Sources
 

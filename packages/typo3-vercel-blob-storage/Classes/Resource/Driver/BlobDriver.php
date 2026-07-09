@@ -22,6 +22,7 @@ use TYPO3\CMS\Core\Resource\Exception\InvalidFileNameException;
 use TYPO3\CMS\Core\Resource\FolderInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
+use Webconsulting\Typo3VercelBlobStorage\Authentication\BlobCredentials;
 use Webconsulting\Typo3VercelBlobStorage\Client\VercelBlobClient;
 
 /**
@@ -37,7 +38,9 @@ final class BlobDriver extends AbstractHierarchicalFilesystemDriver implements S
     private string $prefix = '';
     private ?string $publicBaseUrl = null;
     private string $defaultFolder = '/user_upload/';
-    private ?int $cacheControlMaxAge = 31536000;
+    private ?int $cacheControlMaxAge = 3600;
+    private ?int $processedCacheControlMaxAge = 31536000;
+    private string $processingFolder = '_processed_';
     private ?VercelBlobClient $client = null;
 
     /**
@@ -71,13 +74,12 @@ final class BlobDriver extends AbstractHierarchicalFilesystemDriver implements S
     {
         $this->access = strtolower(trim((string)($this->configuration['access'] ?? 'public'))) === 'private' ? 'private' : 'public';
         $this->tokenEnvName = trim((string)($this->configuration['tokenEnvName'] ?? 'BLOB_READ_WRITE_TOKEN')) ?: 'BLOB_READ_WRITE_TOKEN';
-        $this->storeId = $this->normalizeStoreId($this->configuration['storeId'] ?? null)
-            ?? $this->normalizeStoreId(getenv('BLOB_STORE_ID') ?: null)
-            ?? '';
-        $this->token = $this->resolveToken();
-        if ($this->storeId === '') {
-            $this->storeId = $this->parseStoreIdFromReadWriteToken($this->token);
-        }
+        $this->storeId = BlobCredentials::resolveStoreId($this->configuration['storeId'] ?? null, $this->tokenEnvName) ?? '';
+        $this->token = BlobCredentials::resolveToken(
+            $this->configuration['token'] ?? null,
+            $this->tokenEnvName,
+            $this->storeId !== '',
+        ) ?? '';
         if ($this->storeId === '') {
             throw new InvalidConfigurationException(
                 'Vercel Blob storage requires a store id. Set BLOB_STORE_ID or configure storeId.',
@@ -88,8 +90,13 @@ final class BlobDriver extends AbstractHierarchicalFilesystemDriver implements S
         $this->apiUrl = rtrim((string)($this->configuration['apiUrl'] ?? 'https://vercel.com/api/blob'), '/') ?: 'https://vercel.com/api/blob';
         $this->prefix = $this->normalizePrefix((string)($this->configuration['prefix'] ?? ''));
         $this->publicBaseUrl = $this->normalizePublicBaseUrl($this->configuration['publicBaseUrl'] ?? null);
-        $cacheControlMaxAge = trim((string)($this->configuration['cacheControlMaxAge'] ?? '31536000'));
+        $cacheControlMaxAge = trim((string)($this->configuration['cacheControlMaxAge'] ?? '3600'));
         $this->cacheControlMaxAge = $cacheControlMaxAge === '' ? null : max(0, (int)$cacheControlMaxAge);
+        $processedCacheControlMaxAge = trim((string)($this->configuration['processedCacheControlMaxAge'] ?? '31536000'));
+        $this->processedCacheControlMaxAge = $processedCacheControlMaxAge === ''
+            ? null
+            : max(0, (int)$processedCacheControlMaxAge);
+        $this->processingFolder = trim((string)($this->configuration['processingFolder'] ?? '_processed_'), '/');
         $this->defaultFolder = $this->canonicalizeAndCheckFolderIdentifier(
             '/' . trim((string)($this->configuration['defaultFolder'] ?? 'user_upload'), '/') . '/'
         );
@@ -559,6 +566,20 @@ final class BlobDriver extends AbstractHierarchicalFilesystemDriver implements S
             return $this->client;
         }
 
+        if ($this->token === '') {
+            $this->token = BlobCredentials::resolveToken(
+                $this->configuration['token'] ?? null,
+                $this->tokenEnvName,
+                true,
+            ) ?? '';
+        }
+        if ($this->token === '') {
+            throw new InvalidConfigurationException(
+                'Vercel Blob storage requires BLOB_READ_WRITE_TOKEN or the per-request Vercel OIDC token.',
+                1720100102
+            );
+        }
+
         $this->client = new VercelBlobClient(
             $this->storeId,
             $this->access,
@@ -740,7 +761,7 @@ final class BlobDriver extends AbstractHierarchicalFilesystemDriver implements S
             $this->keyFromFileIdentifier($fileIdentifier),
             $localFilePath,
             $this->detectContentType($fileIdentifier, $localFilePath),
-            $this->cacheControlMaxAge
+            $this->cacheControlMaxAgeForIdentifier($fileIdentifier)
         );
     }
 
@@ -750,7 +771,7 @@ final class BlobDriver extends AbstractHierarchicalFilesystemDriver implements S
             $this->keyFromFileIdentifier($fileIdentifier),
             $contents,
             $this->detectContentType($fileIdentifier),
-            $this->cacheControlMaxAge
+            $this->cacheControlMaxAgeForIdentifier($fileIdentifier)
         );
     }
 
@@ -804,7 +825,7 @@ final class BlobDriver extends AbstractHierarchicalFilesystemDriver implements S
     private function listKeys(string $prefix, ?int $limit = null): array
     {
         $keys = [];
-        foreach ($this->client()->listPathnames($prefix) as $object) {
+        foreach ($this->client()->listPathnames($prefix, $limit) as $object) {
             $key = $object['pathname'];
             if ($key !== '') {
                 $keys[] = $key;
@@ -935,56 +956,14 @@ final class BlobDriver extends AbstractHierarchicalFilesystemDriver implements S
         return $this->identifierFromKey($folderKey . $firstSegment . '/', true);
     }
 
-    private function resolveToken(): string
+    private function cacheControlMaxAgeForIdentifier(string $fileIdentifier): ?int
     {
-        $configuredToken = $this->normalizeNullableString($this->configuration['token'] ?? null);
-        if ($configuredToken !== null) {
-            return $configuredToken;
+        $identifier = ltrim($fileIdentifier, '/');
+        if ($this->processingFolder !== '' && str_starts_with($identifier, $this->processingFolder . '/')) {
+            return $this->processedCacheControlMaxAge;
         }
 
-        if ($this->tokenEnvName !== 'BLOB_READ_WRITE_TOKEN') {
-            $customEnvToken = getenv($this->tokenEnvName);
-            if (is_string($customEnvToken) && trim($customEnvToken) !== '') {
-                return trim($customEnvToken);
-            }
-        }
-
-        $oidcToken = getenv('VERCEL_OIDC_TOKEN');
-        if ($this->storeId !== '' && is_string($oidcToken) && trim($oidcToken) !== '') {
-            return trim($oidcToken);
-        }
-
-        foreach (array_unique([$this->tokenEnvName, 'BLOB_READ_WRITE_TOKEN']) as $envName) {
-            $value = getenv($envName);
-            if (is_string($value) && trim($value) !== '') {
-                return trim($value);
-            }
-        }
-
-        throw new InvalidConfigurationException(
-            'Vercel Blob storage requires BLOB_READ_WRITE_TOKEN, or VERCEL_OIDC_TOKEN with BLOB_STORE_ID.',
-            1720100102
-        );
-    }
-
-    private function normalizeStoreId(mixed $value): ?string
-    {
-        if (!is_string($value)) {
-            return null;
-        }
-
-        $value = trim($value);
-        if ($value === '') {
-            return null;
-        }
-
-        return str_starts_with($value, 'store_') ? substr($value, 6) : $value;
-    }
-
-    private function parseStoreIdFromReadWriteToken(string $token): string
-    {
-        $parts = explode('_', $token);
-        return $this->normalizeStoreId($parts[3] ?? '') ?? '';
+        return $this->cacheControlMaxAge;
     }
 
     private function normalizePrefix(string $prefix): string

@@ -61,6 +61,7 @@ Important files:
 ```text
 packages/typo3-vercel-blob-storage/ext_localconf.php
 packages/typo3-vercel-blob-storage/Classes/Client/VercelBlobClient.php
+packages/typo3-vercel-blob-storage/Classes/Authentication/BlobCredentials.php
 packages/typo3-vercel-blob-storage/Classes/Resource/Driver/BlobDriver.php
 packages/typo3-vercel-blob-storage/Configuration/Resource/Driver/BlobDriverFlexForm.xml
 scripts/apply-object-storage.php
@@ -194,10 +195,11 @@ The driver supports two credential modes:
 - read/write token mode through `BLOB_READ_WRITE_TOKEN`
 - OIDC/store-id mode through `VERCEL_OIDC_TOKEN` and `BLOB_STORE_ID`
 
-For connected Vercel projects, OIDC plus `BLOB_STORE_ID` is preferred when it
-is present because the OIDC token is short-lived and rotated by Vercel. The
-driver falls back to `BLOB_READ_WRITE_TOKEN` for local development, manual
-CLI/API use, and older connected-store setups.
+For normal connected Vercel requests, the request OIDC header plus
+`BLOB_STORE_ID` is preferred because the credential is short-lived and rotated
+by Vercel. The driver exports the request token for protected child CLI calls.
+It falls back to `BLOB_READ_WRITE_TOKEN` for local development, manual CLI/API
+use, older connected-store setups, and jobs where request OIDC is unavailable.
 
 The FlexForm configuration stores `tokenEnvName`, for example
 `BLOB_READ_WRITE_TOKEN`. It does not store the token value. The token value must
@@ -215,6 +217,18 @@ runtime used by this TYPO3 site.
 
 Use Vercel Blob for the all-Vercel path. Use S3-compatible storage only when
 you need an S3 ecosystem provider such as Cloudflare R2, AWS S3, or MinIO.
+
+## Upload Size Limit
+
+Vercel Functions impose a 4.5 MB total request-body limit. The PHP container
+uses a 4 MB upload limit to leave room for multipart metadata. Blob itself can
+store much larger objects, but the normal TYPO3 backend upload travels through
+PHP first. Increasing `upload_max_filesize` does not bypass Vercel's limit.
+
+A future direct browser-to-Blob adapter could support larger media. It would
+need an authenticated upload-token endpoint, TYPO3 permission checks, file
+validation, and a final FAL metadata registration step. That is not part of the
+current extension.
 
 ## Public Versus Private Blob Stores
 
@@ -426,8 +440,9 @@ TYPO3_EXTENSION_SETUP_ON_BOOT=0
 TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=0
 ```
 
-For a warmer backend on Pro, call `/_vercel_keepalive.php` with Vercel Cron or
-an external scheduler. Hobby cron is too limited for frequent keepalive.
+For a warmer backend on Pro, deploy `vercel.pro.json`. Its protected warm-up
+primes `/` and `/typo3/` every three minutes. Hobby cron is too limited for
+this schedule.
 
 ## Security Notes
 

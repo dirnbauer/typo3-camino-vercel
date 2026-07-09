@@ -25,6 +25,22 @@ Important Hobby constraints for this starter:
 
 For commercial/client work, expect Vercel Pro or higher.
 
+### Pro Warm-Up Cost
+
+The three-minute Pro warm-up runs 20 times per hour, 480 times per day, or
+about 14,400 times in a 30-day month. A warm invocation checks DB/Redis, primes
+frontend and backend through local loopback, and pings Solr.
+
+At current active-CPU and provisioned-memory pricing, the expected incremental
+usage for this small demo is usually cents to low single-digit dollars per
+month before plan credits. This is an estimate because duration, CPU class,
+Solr activation, and concurrency affect the bill. Use Vercel Observability and
+the current `fra1` rates for an actual forecast. The fixed Pro subscription is
+the larger prerequisite.
+
+Hobby cannot use this schedule because its cron limit is once per day. A free
+demo can be durable, but it cannot use the built-in frequent cold-start warmer.
+
 ## Database Options
 
 | Provider | Type | Free testing note |
@@ -120,7 +136,7 @@ For a durable free demo with persistent uploads:
 
 The file-storage part can be one-click now: the README Deploy Button asks
 Vercel to create a public Blob store, and this starter auto-enables the Blob
-FAL driver when Vercel provides the Blob token. The database part is still not
+FAL driver when Vercel provides Blob OIDC/store credentials. The database part is still not
 one-click. A fully durable TYPO3 demo needs a real database connection in
 `DATABASE_URL`. The public demo deployment is already configured with Vercel
 Blob, a durable database, and Redis cache as a working example.

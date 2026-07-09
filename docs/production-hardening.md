@@ -21,21 +21,20 @@ Required pieces:
 3. **Files:** Vercel Blob through the included `vercel_blob` FAL driver, or
    S3-compatible storage through `vercel_s3`.
 4. **Temporary runtime state:** TYPO3 `var`, `fileadmin`, `typo3temp`, PHP temp,
-   sessions, and GraphicsMagick temp paths stay in `/tmp`.
+   sessions, and ImageMagick temp paths stay in `/tmp`.
 5. **Caches:** runtime-local TYPO3 file caches for small demos, or Redis
    through a Vercel Marketplace Redis integration when shared cache state
    matters across runtime instances.
 6. **Frontend cache:** optional Vercel CDN cache for anonymous public HTML only.
 7. **Search:** external managed Apache Solr 10 when EXT:solr search is needed.
    Do not keep production Solr index state inside the TYPO3 Vercel container.
-8. **Cold-start mitigation:** Vercel Cron or an external uptime monitor calls a
-   lightweight endpoint and, when needed, the TYPO3 backend login route.
+8. **Cold-start mitigation:** deploy `vercel.pro.json`; its protected warm-up
+   primes frontend, backend, DB, Redis, and Solr every three minutes.
 9. **Scheduler:** TYPO3 Scheduler runs through the protected HTTP cron endpoint,
    not a Linux daemon inside the container.
 
-This is the shape already used by the public demo, except that keepalive is not
-enabled by default because the public template must also work for free Hobby
-deployments.
+This is the shape used by the public demo. The default `vercel.json` remains
+Hobby-compatible, so Pro projects must deploy with `-A vercel.pro.json`.
 
 ## Target Architecture B: Strict Production
 
@@ -119,53 +118,44 @@ The public demo measured Redis-enabled warm backend login responses around
 0.11-0.17 seconds, but cold requests can still be around 10-13 seconds. The
 practical mitigation is to keep the relevant runtime path warm.
 
-For Pro projects, add a keepalive cron only in real projects, not in the public
-template:
+For Pro projects, use the included profile:
 
 ```json
 {
   "crons": [
     {
-      "path": "/_vercel_keepalive.php",
-      "schedule": "*/5 * * * *"
+      "path": "/api/cron/typo3-warmup.php",
+      "schedule": "*/3 * * * *"
     }
   ]
 }
 ```
 
-For backend editor comfort, also warm the actual TYPO3 backend route with an
-external uptime monitor:
-
-```text
-GET https://<project>.vercel.app/typo3/
-every 5 minutes
-```
-
-Why both can be useful:
-
-- `/_vercel_keepalive.php` is cheap and keeps the PHP/Apache container path
-  active.
-- `/typo3/` exercises TYPO3 backend bootstrap and database/session plumbing.
+Use the protected `/api/cron/typo3-warmup.php` endpoint from
+`vercel.pro.json`. It performs local loopback requests to both `/` and
+`/typo3/`, then checks database, Redis, and Solr. This primes the actual TYPO3
+code paths rather than merely returning a cheap PHP response.
 
 Do not rely on this for hard realtime guarantees. It is a mitigation, not an
 SLA feature. If strict first-hit latency is required, use Architecture B until
 Vercel offers a minimum-instances or always-warm option for Container Images.
 
-## What To Improve Next In This Repo
+## Remaining Engineering Work
 
-The next useful engineering improvements are:
+The runtime image, Pro warm-up profile, protected deep health endpoint, Blob
+write probe, and benchmark documentation are implemented. Remaining useful
+work is:
 
-1. **Build-speed base image:** publish a base image with the PHP extensions,
-   GraphicsMagick, Ghostscript, Apache modules, and Composer already installed.
-   This should reduce multi-minute clean builds.
-2. **Warmup profile doc/command:** provide an optional `vercel` cron snippet for
-   Pro users without enabling it for Hobby clones.
-3. **Health endpoint:** add a protected health endpoint that can optionally
-   verify database and object storage. Keep the current public keepalive cheap.
-4. **Backend measurement script:** commit a small script that measures cold and
-   warm `/`, `/typo3/`, preflight, and Redis-enabled timings separately.
-5. **Blob backup:** document or add a cron-safe Blob backup path for production
-   users who need export/restore guarantees.
+1. **Direct large uploads:** add a browser-to-Blob flow for media above the
+   Vercel 4.5 MB Function body limit, with TYPO3 permission and metadata checks.
+2. **Blob backup/export:** automate inventory and restore tests for projects
+   that require independent file backups.
+3. **External worker example:** provide a complete multi-hour Solr reindex job
+   for an always-on runner.
+4. **Live regression benchmark:** run a deployment-tagged warm/cold suite in CI
+   without accidentally keeping the target warm before the cold sample.
+5. **Stable EXT:solr 14:** remove beta compatibility fallbacks after the stable
+   PostgreSQL-safe release is verified.
 
 ## Decision Rule
 
@@ -175,7 +165,7 @@ Use Vercel-native TYPO3 when:
 - editors can tolerate the occasional cold backend hit
 - content lives in a real DB
 - uploads live in Blob/S3
-- cache and keepalive are configured deliberately
+- cache and the protected Pro warm-up are configured deliberately
 
 Use hybrid/always-on TYPO3 when:
 

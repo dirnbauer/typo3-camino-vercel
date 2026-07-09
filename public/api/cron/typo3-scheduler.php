@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+$root = dirname(__DIR__, 3);
+require_once $root . '/scripts/typo3-env.php';
+typo3_vercel_export_request_oidc_token();
+
 $secret = getenv('CRON_SECRET');
 $authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
 
@@ -28,8 +32,6 @@ if (!hash_equals('Bearer ' . $secret, $authorization)) {
     echo "Unauthorized.\n";
     exit;
 }
-
-$root = dirname(__DIR__, 3);
 
 if (typo3_scheduler_should_skip_internal_solr_demo()) {
     http_response_code(200);

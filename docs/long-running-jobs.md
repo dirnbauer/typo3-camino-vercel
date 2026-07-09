@@ -16,7 +16,7 @@ These are platform limits to design around:
 | Area | Hobby | Pro / Enterprise | Impact For TYPO3 |
 | --- | ---: | ---: | --- |
 | Function/container invocation duration | 300s max | 300s default, 800s max | One Scheduler HTTP run must finish before this. |
-| Extended max duration | Not available | 1800s beta for selected Node.js/Python runtimes | Do not rely on this for the PHP Apache container. |
+| Extended max duration | Not assumed | Beta limits can be runtime-specific | Do not rely on an undocumented PHP Container Image exception. |
 | Cron frequency | once per day | once per minute | Hobby is not useful for frequent indexing queues. |
 | Cron precision | within the selected hour | per minute | Hobby is not exact enough for production queues. |
 | Writable runtime filesystem | `/tmp` scratch only | `/tmp` scratch only | Job progress must live in DB/Solr/object storage, not local files. |
@@ -113,28 +113,31 @@ It runs:
 vendor/bin/typo3 scheduler:run --no-interaction
 ```
 
-On Pro/Enterprise, a once-per-minute cron can process small queue chunks over
-time:
+The included `vercel.pro.json` starts with a 15-minute cadence:
 
 ```json
 {
   "crons": [
     {
       "path": "/api/cron/typo3-scheduler.php",
-      "schedule": "* * * * *"
+      "schedule": "*/15 * * * *"
     }
   ]
 }
 ```
 
-The committed template uses the safer daily cron so Hobby/free deployments do
-not fail. For a real managed-Solr project on Pro, change the cron cadence only
-after measuring one Scheduler batch.
+The default profile uses the safer daily cron so Hobby/free deployments do not
+fail. For a real managed-Solr project on Pro, change the Pro cadence only after
+measuring one Scheduler batch.
 
 Only use this when each Scheduler run is comfortably below the invocation limit.
 If one run can exceed the next cron interval, reduce the Solr batch size or move
 the job to an external worker. Overlapping Scheduler runs are a real operational
 risk.
+
+Do not target the internal Vercel Solr demo service with a large queue. Its
+index is transient and can differ between instances. Chunking makes execution
+fit Vercel; it does not make that Solr index durable.
 
 ### Option C: Manual One-Time Indexing
 

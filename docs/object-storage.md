@@ -44,9 +44,10 @@ For TYPO3 FAL, the correct Vercel-native product is still Vercel Blob:
 - the Deploy Button can create a public Blob store for each clone
 - this repo includes the `vercel_blob` FAL driver for it
 
-The Blob driver now follows Vercel's safer connected-store model: explicit or
-custom token configuration first, then OIDC with `BLOB_STORE_ID` when Vercel
-provides it, then `BLOB_READ_WRITE_TOKEN` as a fallback.
+The Blob driver follows Vercel's connected-store model. An explicitly configured
+credential remains an operator override; normal requests prefer the short-lived
+Vercel OIDC token with `BLOB_STORE_ID`, then use `BLOB_READ_WRITE_TOKEN` as a
+compatibility fallback for older connections and non-request CLI work.
 
 The public demo deployment uses this Vercel Blob path. New projects cloned from
 the Deploy Button can create their own Vercel Blob store during deployment. If
@@ -157,9 +158,8 @@ vercel env add TYPO3_BLOB_PREFIX production --value typo3/ --yes
 vercel deploy --prod
 ```
 
-The connected Blob store provides `BLOB_READ_WRITE_TOKEN` automatically. If the
-project uses OIDC instead of a read/write token, Vercel provides
-`VERCEL_OIDC_TOKEN` and `BLOB_STORE_ID`; the driver supports both modes.
+New connected stores can use request-scoped OIDC and `BLOB_STORE_ID`; older
+connections may provide `BLOB_READ_WRITE_TOKEN`. The driver supports both.
 
 Optional Blob variables:
 
@@ -180,6 +180,16 @@ TYPO3_BLOB_STORAGE_NAME=Vercel Blob uploads
 Use a public Blob store for normal TYPO3 images and downloads. Private Blob
 stores do not produce public FAL URLs and are not the right default for public
 frontend assets.
+
+### Upload Size
+
+Vercel Functions reject complete request bodies above 4.5 MB before PHP runs.
+The container therefore sets `post_max_size` and `upload_max_filesize` to 4 MB.
+This is independent of Blob capacity: a normal TYPO3 backend upload still
+passes through PHP before the FAL driver writes it to Blob.
+
+Larger media requires a separate direct browser-to-Blob upload flow. That flow
+is not implemented by the standard TYPO3 FAL upload widget in this starter.
 
 ## S3-Compatible Setup
 
@@ -292,6 +302,17 @@ After deployment:
    `TYPO3_S3_PUBLIC_BASE_URL`.
 8. Redeploy the Vercel project.
 9. Confirm the uploaded file is still available.
+
+An operator can also run the authenticated write health probe:
+
+```bash
+curl -fsS \
+  -H "Authorization: Bearer $CRON_SECRET" \
+  'https://your-project.vercel.app/api/health.php?deep=1&write=1'
+```
+
+The Blob check performs put, read, and delete and removes its test object. A
+read-only deep check lists the configured prefix without writing.
 
 You can also confirm the storage record from the database:
 

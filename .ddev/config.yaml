@@ -19,6 +19,8 @@ web_environment:
     - TYPO3_DB_DBNAME=db
     - TYPO3_DB_USERNAME=db
     - TYPO3_DB_PASSWORD=db
-    - TYPO3_TRUSTED_HOSTS_PATTERN=.*[.]ddev[.]site|localhost(:[0-9]+)?|127[.]0[.]0[.]1(:[0-9]+)?
+    # Development-only stable key. Production must use its own random secret.
+    - TYPO3_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    - TYPO3_TRUSTED_HOSTS_PATTERN=(?:.*[.]ddev[.]site|localhost(:[0-9]+)?|127[.]0[.]0[.]1(:[0-9]+)?)
 corepack_enable: false
 disable_settings_management: true

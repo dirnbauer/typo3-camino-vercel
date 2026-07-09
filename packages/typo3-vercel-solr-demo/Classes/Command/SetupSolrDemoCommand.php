@@ -88,9 +88,7 @@ final class SetupSolrDemoCommand extends Command
             $this->normalizeDemoPagesForIndexing($rootPageId, $searchPageUid, $output);
         }
 
-        if ($changed || (bool)$input->getOption('flush-caches')) {
-            $this->flushCaches($output);
-        }
+        $flushCaches = $changed || (bool)$input->getOption('flush-caches');
 
         if ((bool)$input->getOption('diagnose')) {
             $this->writePageDiagnostics($rootPageId, $searchPageUid, $output);
@@ -126,6 +124,13 @@ final class SetupSolrDemoCommand extends Command
                 max(60, $this->intOption($input, 'scheduler-interval', 300)),
                 $output,
             );
+        }
+
+        // The command changes page records, so only frontend/page caches need to
+        // be cleared. Flushing every cache here would clear cache.core without
+        // TYPO3's matching DI-cache lifecycle and break the next HTTP request.
+        if ($flushCaches) {
+            $this->flushCaches($output);
         }
 
         return Command::SUCCESS;
@@ -342,8 +347,8 @@ final class SetupSolrDemoCommand extends Command
     {
         /** @var CacheManager $cacheManager */
         $cacheManager = GeneralUtility::makeInstance(CacheManager::class);
-        $cacheManager->flushCaches();
-        $output->writeln('TYPO3 caches were flushed after Solr demo setup.');
+        $cacheManager->flushCachesInGroup('pages');
+        $output->writeln('TYPO3 page caches were flushed after Solr demo setup.');
     }
 
     /**

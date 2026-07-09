@@ -131,14 +131,15 @@ final class SolrSearchContent
 
         $lastBody = '';
         $timeout = $this->requestTimeout();
-        foreach ([1, 2] as $attempt) {
+        $attempts = $this->usesInternalVercelSolrService() ? [1] : [1, 2];
+        foreach ($attempts as $attempt) {
             $response = $this->request($url, $timeout);
             if ($response['status'] === 200 && $response['body'] !== '') {
                 $lastBody = $response['body'];
                 break;
             }
 
-            if ($attempt === 1 && in_array($response['status'], [0, 502, 503, 504], true)) {
+            if ($attempt < count($attempts) && in_array($response['status'], [0, 502, 503, 504], true)) {
                 sleep(1);
                 continue;
             }
@@ -161,8 +162,8 @@ final class SolrSearchContent
 
     private function requestTimeout(): float
     {
-        $default = $this->usesInternalVercelSolrService() && $this->appProxyEnabled() ? 30.0 : 6.0;
-        $max = $this->usesInternalVercelSolrService() && $this->appProxyEnabled() ? 60.0 : 10.0;
+        $default = $this->usesInternalVercelSolrService() ? 5.0 : 6.0;
+        $max = $this->usesInternalVercelSolrService() ? 8.0 : 10.0;
         $timeout = (float)(getenv('TYPO3_SOLR_DEMO_REQUEST_TIMEOUT') ?: $default);
         return max(1.0, min($max, $timeout));
     }
@@ -190,9 +191,6 @@ final class SolrSearchContent
             ?: getenv('SOLR_INTERNAL_URL');
 
         if (is_string($serviceUrl) && $serviceUrl !== '') {
-            if ($this->appProxyEnabled()) {
-                return rtrim($this->appProxyBaseUrl(), '/') . '/solr/' . rawurlencode($core);
-            }
             return rtrim($serviceUrl, '/') . '/solr/' . rawurlencode($core);
         }
 
@@ -214,22 +212,6 @@ final class SolrSearchContent
         }
 
         return false;
-    }
-
-    private function appProxyEnabled(): bool
-    {
-        $value = getenv('TYPO3_SOLR_APP_PROXY_ENABLED');
-        if ($value === false || $value === '') {
-            return true;
-        }
-
-        return in_array(strtolower((string)$value), ['1', 'true', 'yes', 'on'], true);
-    }
-
-    private function appProxyBaseUrl(): string
-    {
-        $port = getenv('TYPO3_SOLR_APP_PROXY_PORT') ?: getenv('PORT') ?: '80';
-        return 'http://127.0.0.1:' . (int)$port . '/api/solr-proxy.php';
     }
 
     /**

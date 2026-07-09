@@ -1,192 +1,170 @@
 # Apache Solr Search
 
-## Short Answer
+## Decision
 
-Vercel does not currently provide a managed Apache Solr service for TYPO3.
+The repository supports two Solr modes:
 
-This repo supports EXT:solr, but production Solr should run outside the TYPO3
-Vercel container on a managed Solr provider or on always-on infrastructure with
-durable storage, backups, monitoring, and access control.
+| Mode | Purpose | Index durability |
+|---|---|---|
+| Internal Vercel Solr service | Demo, experiments, integration tests | No; self-seeded on each instance |
+| External Solr 10 endpoint | Real indexing and production search | Provider/volume dependent |
 
-## Current TYPO3 Compatibility
+Vercel does not currently provide managed Apache Solr or a persistent mounted
+service volume suitable for Solr's live Lucene index. Production Solr should
+run on a managed provider or always-on infrastructure with durable storage,
+backups, monitoring, and access control.
 
-Checked for TYPO3 14.3:
+## Version Set
 
-- TYPO3: `14.3`
-- EXT:solr: `14.0.0-beta3`
-- Apache Solr: `10.0.0`
-- Solr configset: `ext_solr_14_0_0`
-- Composer package: `apache-solr-for-typo3/solr:^14.0@beta`
+The Composer lock and service image currently use:
 
-EXT:solr 14 is still a beta line. That is the current compatible line for
-TYPO3 14.3, so this starter pins the Composer constraint to `^14.0@beta`.
+- TYPO3 CMS `14.3.4`
+- EXT:solr `14.0.0-beta3`
+- Apache Solr `10.0.0`
+- EXT:solr configset `ext_solr_14_0_0`
+- Composer constraint `apache-solr-for-typo3/solr:^14.0@beta`
 
-## What Was Added To This Repo
+EXT:solr 14 is still a beta dependency. Recheck the official version matrix and
+switch to a stable constraint when a compatible stable release is published.
 
-Composer:
+## What Is Included
 
-```text
-apache-solr-for-typo3/solr:^14.0@beta
-```
+- EXT:solr and its TYPO3 backend modules
+- a Camino-compatible site set and search renderer
+- a CLI command that creates `/search`, configures the content element,
+  initializes the queue, indexes a bounded set, and creates a Scheduler task
+- a protected setup/diagnostic/benchmark endpoint
+- a protected TYPO3 Scheduler endpoint
+- a DDEV Solr 10 service for local development
+- a separate Vercel Container Image service running real Solr 10
+- a private service binding from TYPO3 to Solr
+- a bounded retry proxy for Vercel service activation responses
+- six self-seeded Camino demo documents for the non-durable service
 
-Runtime config writer:
+## Internal Vercel Service
 
-```text
-scripts/apply-solr-config.php
-```
-
-The Vercel entrypoint runs that script only when Solr env vars are present.
-Nothing changes for normal deploys without Solr.
-
-By default, the script writes Solr connection settings only. It does not inject
-EXT:solr frontend site set dependencies into the Camino site unless
-`TYPO3_SOLR_APPLY_SITE_SET=1` is set. This keeps the Camino demo frontend stable
-while still allowing the internal Solr service to run for experiments.
-
-When frontend search is enabled, this repo uses a small local site set by
-default:
-
-```text
-webconsulting/typo3-vercel-solr-demo
-webconsulting/typo3-vercel-solr-demo-stylesheets
-```
-
-That site set imports EXT:solr TypoScript and maps a dedicated
-`vercel_solr_demo_results` content element to a small Camino demo renderer:
+`vercel.json` and `vercel.pro.json` define two services:
 
 ```text
-Webconsulting\Typo3VercelSolrDemo\Content\SolrSearchContent
+app  --private TYPO3_SOLR_SERVICE_URL binding-->  solr
 ```
 
-The renderer still queries Solr. With the internal Vercel Solr service it
-filters to the self-seeded `siteHash:"vercel-demo"` documents and catches
-Vercel service warmup failures so the page does not render a TYPO3 exception.
-With an external managed Solr connection it searches normal `type:pages`
-documents unless `TYPO3_SOLR_DEMO_SITE_HASH` is set explicitly. This is still
-deliberately demo-specific. For normal production TYPO3 search, use the stock
-EXT:solr frontend plugin with a managed Solr endpoint.
+The Solr service is not exposed through a public rewrite. Its image:
 
-The local site set also maps the auxiliary EXT:solr plugin content element
-types (`solr_pi_search`, `solr_pi_frequentlysearched`) directly to Extbase
-plugin rendering without depending on `typo3/fluid-styled-content`. The local
-demo extension applies the same mapping in `ext_localconf.php`, after EXT:solr
-registers its plugins. This matters because TYPO3's default Extbase plugin
-mapping expects a `Generic` Fluid Styled Content template, while Camino ships
-its own content rendering. The official EXT:solr site set depends on Fluid
-Styled Content, which conflicts with Camino's rendering assumptions and can
-turn Camino pages into missing template errors after a TYPO3 cache flush. You
-can still opt into the official set with `TYPO3_SOLR_SITE_SET`, but do not do
-that for this Camino starter.
+1. takes the official EXT:solr 14 config from
+   `typo3solr/ext-solr:14.0.0-beta3`
+2. runs it on `solr:10.0-slim`
+3. copies only the required `analysis-extras`, `langid`, `language-models`,
+   `scripting`, `clustering`, and `extraction` modules
+4. enables only the English `core_en` demo core
+5. uses a 256 MB initial and 512 MB maximum Java heap
+6. stores writable state below `/tmp/solr-home`
 
-Demo search setup package:
+The service-local nginx binds the Vercel port immediately while Java starts.
+It exposes internal health paths:
 
 ```text
-packages/typo3-vercel-solr-demo/
+/__health/live
+/__health/ready
 ```
 
-It provides the TYPO3 CLI command:
+Readiness returns success only after `core_en` answers a query. Startup logs
+contain structured `startup` and `ready` records with the measured duration.
+
+Local image results from the overhaul:
+
+| Metric | Old service | Current service |
+|---|---:|---:|
+| Docker image size | about 843 MB | about 589 MB |
+| Local readiness | 4.13-4.62s | 1.94-3.21s; 2.48s median over 5 starts |
+
+## Why The Demo Self-Seeds
+
+Vercel can start several Solr service instances. Their `/tmp` filesystems are
+not shared, so an update can reach one instance and the next select can reach a
+fresh instance with zero documents.
+
+The service avoids a broken demo by inserting the same six Camino documents
+when every instance becomes ready. This makes static demo search repeatable,
+but it does not make editor-driven runtime indexing durable.
+
+By default, the protected setup endpoint detects the internal service and skips
+the TYPO3 runtime index write. Set `TYPO3_SOLR_INDEX_ON_SETUP=1` only when you
+deliberately want to test that transient path.
+
+## Service Activation And Retry Path
+
+During activation, the Vercel service gateway can answer `500 Starting...`
+before the request reaches the container. Once nginx is running, it can briefly
+return `502` or `503` while Java is still starting.
+
+TYPO3 therefore connects through a loopback-only proxy in the app container:
+
+```text
+EXT:solr
+  -> http://127.0.0.1:<PORT>/api/solr-proxy.php/solr/core_en/...
+  -> private TYPO3_SOLR_SERVICE_URL
+  -> service nginx
+  -> Solr core_en
+```
+
+The proxy retries only startup-class `500`, `502`, `503`, and `504` responses.
+Per-attempt timeout is four seconds and the complete retry window is bounded to
+20 seconds. Public access to the proxy returns `404`.
+
+The Camino renderer makes one bounded internal request and catches service
+startup errors so visitors receive a valid page instead of a TYPO3 exception.
+The Pro warm-up cron pings Solr every three minutes to keep the service active
+alongside TYPO3.
+
+## Enable The Internal Demo
+
+Set production environment variables:
+
+```dotenv
+TYPO3_SOLR_ENABLED=1
+TYPO3_SOLR_SITE_BASE=https://your-project.vercel.app/
+TYPO3_SOLR_SITE_IDENTIFIER=camino
+TYPO3_SOLR_APPLY_SITE_SET=1
+TYPO3_SOLR_SITE_SET=webconsulting/typo3-vercel-solr-demo
+TYPO3_SOLR_INCLUDE_STYLESHEETS=1
+TYPO3_SOLR_STYLESHEET_SITE_SET=webconsulting/typo3-vercel-solr-demo-stylesheets
+TYPO3_SOLR_SEARCH_SLUG=/search
+TYPO3_SOLR_INDEX_ON_SETUP=0
+CRON_SECRET=<long-random-secret>
+```
+
+Do not set `TYPO3_SOLR_URL` for this mode. Vercel injects
+`TYPO3_SOLR_SERVICE_URL` from the service binding.
+
+After deployment, create or repair the `/search` page:
 
 ```bash
-vendor/bin/typo3 webconsulting:solr-demo:setup
+curl -fsS \
+  -H "Authorization: Bearer $CRON_SECRET" \
+  'https://your-project.vercel.app/api/cron/typo3-solr-demo.php?action=setup'
 ```
 
-The command creates a `/search` page, adds or migrates the demo results content
-element (`vercel_solr_demo_results`), stores `search.targetPage` in the content
-element FlexForm, initializes the EXT:solr index queue, and can process a small
-queue batch. It can also create or update the real EXT:solr Index Queue Worker
-Scheduler task when called with `--scheduler-task`.
+Probe cores, ping, and a select request:
 
-Protected Vercel indexing endpoint:
+```bash
+curl -fsS \
+  -H "Authorization: Bearer $CRON_SECRET" \
+  'https://your-project.vercel.app/api/cron/typo3-solr-demo.php?action=probe'
+```
+
+Open:
 
 ```text
-public/api/cron/typo3-solr-demo.php
+/search?tx_solr[q]=camino
 ```
 
-It requires `Authorization: Bearer <CRON_SECRET>` and runs the setup command
-after deploy. With the internal Vercel demo Solr service it creates/updates the
-search page but skips runtime indexing by default, because the Solr service
-self-seeds the static Camino demo documents on startup. With an external
-managed Solr connection, the endpoint runs a small bounded index by default.
-Set `TYPO3_SOLR_INDEX_ON_SETUP=1` to force bounded runtime indexing, or `0` to
-disable it. Add `scheduler=1` to the protected endpoint or set
-`TYPO3_SOLR_SCHEDULER_TASK=1` to create/update the EXT:solr Index Queue Worker
-task. This is for small demo/batch indexing, not multi-hour jobs.
+The expected demo result count is six after the Solr service is ready.
 
-Protected Vercel Scheduler endpoint:
+## External Production Solr
 
-```text
-public/api/cron/typo3-scheduler.php
-```
-
-`vercel.json` schedules this endpoint daily. With a managed/external Solr
-connection, it runs TYPO3's real `scheduler:run` command, so EXT:solr Index
-Queue Worker tasks can process small batches. With the internal Vercel Solr
-demo service, the endpoint returns a safe skip by default because the Solr
-service self-seeds the Camino demo index on startup and runtime writes to that
-service are not durable. Set `TYPO3_SOLR_RUN_INTERNAL_SCHEDULER=1` or call the
-protected endpoint with `runInternalSolr=1` only when deliberately testing that
-non-durable demo path.
-
-Experimental Vercel demo service:
-
-```text
-services/solr/
-```
-
-`vercel.json` wires this service as an internal Vercel service binding named
-`TYPO3_SOLR_SERVICE_URL`. TYPO3 uses that binding only when
-`TYPO3_SOLR_ENABLED=1`. The service self-seeds the static Camino demo
-documents into every runtime instance at startup, so the demo search does not
-depend on cross-instance runtime writes. The service starts nginx on the
-Vercel-exposed port immediately so the service can promote reliably, then starts
-Solr in the same container and seeds the demo documents as soon as `core_en`
-answers.
-
-That service-local nginx is not enough by itself on Vercel. During a deep cold
-start, Vercel's internal service gateway can answer the TYPO3 app with
-HTTP `500 Starting...` before the Solr service container gets the request. After
-the container starts, nginx can also briefly return `502`/`503` while the Solr
-process is still booting.
-
-For the internal Vercel demo service, the TYPO3 app therefore uses a second,
-loopback-only app proxy:
-
-```text
-TYPO3/EXT:solr
-  -> http://127.0.0.1:<PORT>/api/solr-proxy.php/solr/core_en/...
-  -> Vercel internal service binding TYPO3_SOLR_SERVICE_URL
-  -> Solr service container nginx
-  -> Apache Solr core_en
-```
-
-`scripts/apply-solr-config.php` writes that loopback proxy into the generated
-TYPO3 site config when `TYPO3_SOLR_SERVICE_URL` is present and
-`TYPO3_SOLR_APP_PROXY_ENABLED` is not disabled. The proxy is not public by
-default: direct requests through the public Vercel domain return `404`.
-
-The app proxy retries internal-service HTTP `500`, `502`, `503`, and `504`
-responses for a bounded warmup window. TYPO3's global HTTP timeout is also
-raised for this internal-proxy mode so EXT:solr's backend module does not give
-up before the proxy can finish warming the service.
-
-Local development:
-
-```text
-.ddev/config.yaml
-.ddev/docker-compose.typo3-solr.yaml
-.ddev/typo3-solr/config.yaml
-```
-
-DDEV uses PHP 8.4 and a local Solr service pinned to the TYPO3 14 compatible
-Solr/configset line.
-
-## Recommended Production Setup
-
-Use an external managed Solr endpoint close to the Vercel region and database.
-For the public demo's current region (`fra1`), choose a European Solr endpoint
-if possible.
-
-Add these Vercel environment variables:
+Choose a Solr 10 endpoint near the Vercel region. For the current `fra1` app,
+prefer a European Solr region. Configure authentication and TLS:
 
 ```dotenv
 TYPO3_SOLR_ENABLED=1
@@ -201,532 +179,211 @@ TYPO3_SOLR_SEARCH_SLUG=/search
 TYPO3_SOLR_INDEX_ON_SETUP=1
 TYPO3_SOLR_SCHEDULER_TASK=1
 TYPO3_SOLR_SCHEDULER_INTERVAL=300
-CRON_SECRET=<long-random-token-for-protected-setup-endpoints>
+CRON_SECRET=<long-random-secret>
 ```
 
-Then run extension setup once after deploying the package:
+When the extension was added to an existing durable database, run extension
+setup for one deployment:
 
 ```dotenv
 TYPO3_EXTENSION_SETUP_ON_BOOT=1
 ```
 
-After one successful boot, set it back to:
+Set it back to `0` after a successful deploy. Schema setup should not run on
+every cold start.
 
-```dotenv
-TYPO3_EXTENSION_SETUP_ON_BOOT=0
-```
-
-Why: extension setup can write database schema and package state. It should not
-run on every cold container start unless you are deliberately changing
-extensions.
-
-For the built-in seeded SQLite demo, the container image already runs TYPO3
-extension setup while creating the seed database. Keep
-`TYPO3_EXTENSION_SETUP_ON_BOOT=0` for normal demo deployments. Use the
-setup-on-boot cycle above only for a durable external database that was created
-before the Solr package/schema was present.
-
-After deploy, create the `/search` page and seed a small demo index with the
-protected endpoint:
+Call the setup endpoint with a bounded batch and Scheduler task creation:
 
 ```bash
 curl -fsS \
   -H "Authorization: Bearer $CRON_SECRET" \
-  "https://your-project.vercel.app/api/cron/typo3-solr-demo.php?limit=50"
+  'https://your-project.vercel.app/api/cron/typo3-solr-demo.php?action=setup&index=1&scheduler=1&limit=50'
 ```
 
-Do not run this command from public docs or CI logs with the real token printed.
+The normal `/api/cron/typo3-scheduler.php` endpoint then runs TYPO3 Scheduler.
+`vercel.pro.json` calls it every 15 minutes. Keep the Index Queue Worker batch
+small enough to finish within one invocation.
 
-## Environment Variables
+For a normal production site, replace the Camino-specific result renderer with
+the stock EXT:solr frontend plugin after validating the site's TypoScript and
+templates.
 
-Single URL form:
+## Local DDEV Setup
 
-```dotenv
-TYPO3_SOLR_URL=https://user:password@solr.example.com:443/solr/core_en
-```
-
-Split form:
-
-```dotenv
-TYPO3_SOLR_SCHEME=https
-TYPO3_SOLR_HOST=solr.example.com
-TYPO3_SOLR_PORT=443
-TYPO3_SOLR_PATH=/
-TYPO3_SOLR_CORE=core_en
-TYPO3_SOLR_USERNAME=<optional-user>
-TYPO3_SOLR_PASSWORD=<optional-password>
-```
-
-`TYPO3_SOLR_PATH` is the prefix before Solarium's `solr` context. For a normal
-Solr core URL such as `https://solr.example.com/solr/core_en`, the EXT:solr site
-path must be `/`, not `/solr/`. The config writer strips a trailing `/solr/`
-from split-form paths to avoid the broken `/solr/solr/core_en/` request shape.
-
-Optional separate write connection:
-
-```dotenv
-TYPO3_SOLR_USE_WRITE_CONNECTION=1
-TYPO3_SOLR_WRITE_URL=https://user:password@solr-write.example.com:443/solr/core_en
-```
-
-Optional multi-language cores:
-
-```dotenv
-TYPO3_SOLR_CORE_LANGUAGE_0=core_en
-TYPO3_SOLR_CORE_LANGUAGE_1=core_de
-```
-
-Optional all-site application:
-
-```dotenv
-TYPO3_SOLR_SITE_IDENTIFIER=all
-```
-
-Experimental internal Vercel demo service:
-
-```dotenv
-TYPO3_SOLR_ENABLED=1
-TYPO3_SOLR_SITE_BASE=https://your-project.vercel.app/
-TYPO3_SOLR_SITE_IDENTIFIER=camino
-TYPO3_SOLR_CORE=core_en
-TYPO3_SOLR_APPLY_SITE_SET=1
-TYPO3_SOLR_SITE_SET=webconsulting/typo3-vercel-solr-demo
-TYPO3_SOLR_STYLESHEET_SITE_SET=webconsulting/typo3-vercel-solr-demo-stylesheets
-TYPO3_SOLR_SEARCH_SLUG=/search
-TYPO3_SOLR_INDEX_ON_SETUP=0
-CRON_SECRET=<long-random-token-for-protected-setup-endpoints>
-```
-
-Do not set `TYPO3_SOLR_URL` for the internal demo service. Vercel injects
-`TYPO3_SOLR_SERVICE_URL` through the binding from the `app` service to the
-`solr` service. `scripts/apply-solr-config.php` maps that service root to
-`solr_path_read: /` and `solr_core_read: core_en`; Solarium/EXT:solr then
-requests the real core at `/solr/core_en/`.
-
-Enable it on Vercel with:
+DDEV uses PHP 8.4 and the matching Solr 10 configset:
 
 ```bash
-vercel env add TYPO3_SOLR_ENABLED production --value 1 --force --yes
-vercel env add TYPO3_SOLR_SITE_BASE production --value "https://typo3-camino-vercel.vercel.app/" --force --yes
-vercel env add TYPO3_SOLR_SITE_IDENTIFIER production --value camino --force --yes
-vercel env add TYPO3_SOLR_CORE production --value core_en --force --yes
-vercel env add TYPO3_SOLR_APPLY_SITE_SET production --value 1 --force --yes
-vercel env add TYPO3_SOLR_SITE_SET production --value webconsulting/typo3-vercel-solr-demo --force --yes
-vercel env add TYPO3_SOLR_STYLESHEET_SITE_SET production --value webconsulting/typo3-vercel-solr-demo-stylesheets --force --yes
-vercel env add TYPO3_SOLR_SEARCH_SLUG production --value /search --force --yes
-vercel env add TYPO3_SOLR_INDEX_ON_SETUP production --value 0 --force --yes
-vercel env add CRON_SECRET production --sensitive --force
-vercel env add TYPO3_EXTENSION_SETUP_ON_BOOT production --value 0 --force --yes
-vercel deploy --prod --regions fra1
+ddev start
+ddev composer install
+ddev solrctl apply
 ```
 
-The seeded SQLite demo DB in the image already contains extension schema. For an
-existing durable database that was created before EXT:solr was present, run the
-one-time extension setup cycle from the production section first.
-
-## What The Script Writes
-
-`scripts/apply-solr-config.php` updates `config/sites/<site>/config.yaml` with:
-
-- optional site set dependency from `TYPO3_SOLR_SITE_SET` when
-  `TYPO3_SOLR_APPLY_SITE_SET=1`; default:
-  `webconsulting/typo3-vercel-solr-demo`
-- optional stylesheet site set from `TYPO3_SOLR_STYLESHEET_SITE_SET` when both
-  `TYPO3_SOLR_APPLY_SITE_SET=1` and `TYPO3_SOLR_INCLUDE_STYLESHEETS=1`;
-  default: `webconsulting/typo3-vercel-solr-demo-stylesheets`
-- read Solr connection settings
-- optional write Solr connection settings
-- per-language `solr_core_read`
-- optional absolute `base` when `TYPO3_SOLR_SITE_BASE` is set
-
-It does not store secrets in Git. The generated production config happens at
-container boot from Vercel environment variables.
-
-## Create The Search Page And Index
-
-Do not create the frontend search page at Vercel container boot. It works
-locally, but it adds TYPO3 CLI/database work to every cold start and caused
-`INTERNAL_FUNCTION_INVOCATION_FAILED` during testing. This repo intentionally
-does not support boot-time Solr page creation/indexing in the Vercel entrypoint.
-
-Use the protected endpoint after deploy instead. It runs the same TYPO3 CLI
-command inside the Vercel app container, but only when explicitly called:
+Create the page and index the local Camino content:
 
 ```bash
-curl -fsS \
-  -H "Authorization: Bearer $CRON_SECRET" \
-  "https://your-project.vercel.app/api/cron/typo3-solr-demo.php?limit=50"
+ddev exec vendor/bin/typo3 webconsulting:solr-demo:setup \
+  --index \
+  --scheduler-task \
+  --normalize-demo-pages \
+  --flush-caches \
+  --diagnose
 ```
 
-For managed/external Solr, create or update the TYPO3 Scheduler task at the
-same time:
+Useful commands:
 
 ```bash
-curl -fsS \
-  -H "Authorization: Bearer $CRON_SECRET" \
-  "https://your-project.vercel.app/api/cron/typo3-solr-demo.php?limit=50&scheduler=1&schedulerInterval=300"
+ddev logs -s typo3-solr
+ddev exec -s typo3-solr solr --version
+ddev launch :8984
 ```
 
-The setup command flushes TYPO3 caches automatically when it creates or changes
-the search page. The endpoint also normalizes the seeded Camino demo pages for
-indexing. For external managed Solr, it initializes the EXT:solr page queue and
-indexes a bounded batch by default. For the internal Vercel demo Solr service,
-runtime indexing is skipped by default and the service startup seed provides
-the reliable static demo search index.
+The current local validation produced six queue items, processed all six, and
+returned six indexed documents.
 
-Manual CLI form, useful locally or on a worker:
+## Index Queue Shows `pages (0 records)`
 
-```bash
-vendor/bin/typo3 webconsulting:solr-demo:setup --index --limit=50
-vendor/bin/typo3 webconsulting:solr-demo:setup --scheduler-task --limit=50 --scheduler-interval=300
-```
-
-The endpoint:
-
-- creates or updates the `/search` page
-- creates or updates the `vercel_solr_demo_results` content element
-- migrates an older `solr_pi_results` demo row to the dedicated demo CType
-- stores the Solr target page in the content element FlexForm
-- flushes TYPO3 caches so stale route/page caches do not hide the new page
-- initializes the EXT:solr `pages` index queue when runtime indexing is enabled
-- processes up to `limit` queue documents, capped at 200 per request, when
-  runtime indexing is enabled
-- creates or updates the EXT:solr Index Queue Worker Scheduler task when
-  `scheduler=1`, `TYPO3_SOLR_SCHEDULER_TASK=1`, or `--scheduler-task` is used
-- persists that Scheduler task in TYPO3 14's normal JSON field format, so the
-  protected Vercel endpoint can create it without a backend form submission
-- falls back to direct Camino demo page indexing when the beta EXT:solr queue
-  worker cannot render Camino pages in the Vercel context and runtime indexing
-  is enabled
-- retries short Solr `502`/`503` write failures and reports a same-connection
-  post-commit document count when runtime indexing is enabled
-
-For larger sites, call the endpoint repeatedly with a safe limit or use the
-normal TYPO3 Scheduler/worker approach described below.
-
-Important: with the internal Vercel Solr service, the reliable demo search data
-is the self-seeded static Camino index that runs inside each Solr service
-instance at startup. Runtime writes from TYPO3 to a separate Vercel Solr service
-can succeed on one service instance while a later select request reaches
-another fresh instance. That is why production indexing should use external
-managed Solr.
-
-### Current Demo Test Result
-
-Live production deployment checked on 2026-07-08:
-
-- The public alias points to a ready Vercel deployment with both `app` and
-  `solr` container outputs.
-- `GET /` returned `200`. A cold post-deploy hit took about 14.6s; a later
-  warm hit took about 2.5s in the same test window.
-- Protected runtime diagnostics returned `200` and confirmed `var`,
-  `public/fileadmin`, `public/typo3temp`, and `/tmp/typo3/var/lock` are
-  writable runtime paths.
-- The protected setup endpoint returned `200`, created/confirmed `/search`,
-  updated Scheduler task uid `1`, and skipped runtime indexing because the
-  internal Vercel Solr demo service is self-seeded.
-- The protected Scheduler endpoint returned `200`. For the internal Vercel
-  Solr demo service it intentionally skips EXT:solr runtime indexing; with
-  managed/external Solr it runs TYPO3's real `scheduler:run`.
-- Protected Solr probes returned `200` and saw the six self-seeded Camino demo
-  documents.
-- Public `/search?tx_solr[q]=Camino` returned `200` with no TYPO3 Oops. The
-  final warm result check returned six result entries in about 0.57s:
-  `Camino`, `Camino Route Comparison`, `Packing List`, `Imprint`, `FAQs`, and
-  `Privacy`.
-- The repo now maps the demo `vercel_solr_demo_results` content element to
-  `Webconsulting\Typo3VercelSolrDemo\Content\SolrSearchContent`, a small
-  Camino-specific renderer that still queries Solr but catches service warmup
-  and avoids a frontend exception.
-- The renderer is marked with TYPO3 14's `#[AsAllowedCallable]` attribute.
-  Without that, TYPO3 rejects TypoScript `userFunc` calls before the renderer's
-  own error handling can run.
-- Older demo content rows using `solr_pi_results` are migrated by the protected
-  setup endpoint so the stock EXT:solr result plugin no longer controls the
-  Vercel demo search page response status.
-- The demo renderer uses short internal Solr HTTP timeouts. Override the
-  default 6 second per-attempt timeout with `TYPO3_SOLR_DEMO_REQUEST_TIMEOUT`
-  if needed; values are clamped between 1 and 10 seconds.
-- The Vercel PHP image includes the PHP cURL extension and the renderer prefers
-  cURL over PHP streams for internal Solr calls, because cURL handles timeout
-  and connection-close behavior more predictably here.
-- The protected setup endpoint created or confirmed `/search`.
-- Runtime indexing against the internal Vercel Solr service can write
-  successfully but then read `numFound: 0` because updates and selects may reach
-  different fresh service instances.
-- For that reason, the protected setup endpoint skips runtime indexing by
-  default when it detects the internal Vercel Solr service. Set
-  `TYPO3_SOLR_INDEX_ON_SETUP=1` only when deliberately testing bounded runtime
-  indexing or when using managed external Solr.
-- The internal Solr service now self-seeds the static Camino demo search index
-  on startup so each service instance can answer the demo search without
-  relying on cross-instance runtime index state.
-- The Solr service binds nginx immediately for reliable service promotion, then
-  seeds the static demo documents as soon as `core_en` is ready.
-- Vercel can still return `500 Starting...` from the internal service gateway
-  before the request reaches the Solr container. The final demo architecture
-  adds `public/api/solr-proxy.php` in the TYPO3 app container and points EXT:solr
-  at that loopback URL, so app-side code can retry gateway `500` responses and
-  service-local nginx `502`/`503` warmup responses.
-- For the internal proxy mode, `scripts/typo3-env.php` raises TYPO3's global
-  HTTP timeout for EXT:solr. Without that, the proxy can still be correct but
-  TYPO3's HTTP client may give up too early during a deep cold start.
-- Latest live check after deployment `dpl_4VKzjGYrZuTy5vu7bm5HScA7VgtP`:
-  the first cold protected `select` probe returned HTTP `200` after about
-  12.7s, but saw `numFound: 0` while the startup seed was still becoming
-  visible. Five seconds later the same `select` returned HTTP `200` in about
-  0.29s with all six Camino demo documents.
-- The subsequent full protected probe returned HTTP `200` for `cores`, `ping`,
-  and `select` in about 0.56s total. `core_en` reported `numDocs: 6`; `core_de`
-  reported `numDocs: 0`, as expected for the English Camino demo.
-- Public `/search?tx_solr[q]=Camino` returned HTTP `200` with six result entries
-  in about 7.0s during the post-deploy warmup window.
-
-Live benchmark on 2026-07-09:
-
-- The protected benchmark endpoint writes synthetic documents into `core_en`,
-  commits them, counts them, updates one document repeatedly, runs repeated
-  searches, and deletes the benchmark documents again.
-- First post-deploy benchmark request took 25.22s total because the first
-  Solr-touching cleanup call took 17.44s. This is the cold-start/startup class.
-- Warm direct Solr benchmark with 20 documents: add+commit 0.263s,
-  update+commit median 0.114s, search median 0.075s.
-- Warm direct Solr benchmark with 100 documents: add+commit 0.286s,
-  update+commit median 0.106s, search median 0.071s.
-- The TYPO3 setup/index endpoint confirmed `/search`, flushed caches, seeded 6
-  queue items, wrote+committed 6 Camino page documents, and verified 6/6 docs.
-  First run took 6.89s; warm run took 2.19s.
-- The public TYPO3 search page is slower and noisier than direct Solr. In a
-  22-request sample of uncached `x-vercel-cache: MISS` requests to
-  `/search?tx_solr[q]=Camino`, all returned HTTP `200`, but timing was min
-  0.306s, median 1.290s, mean 3.723s, p95 10.326s, max 12.907s.
-- Verdict: direct Solr indexing/update/search is fast enough when warm for this
-  demo scale. Full public search-page p95 is not strict-production-fast yet
-  because cold/semi-cold Vercel PHP/TYPO3 request outliers still dominate.
-
-Important limitation: the internal Vercel Solr service stores the index in
-runtime `/tmp`. The startup seed makes the static demo searchable, but this is
-still only acceptable for this demo/experiment path. Production search needs a
-managed/external Solr 10 endpoint with durable index storage.
-
-### Troubleshooting `pages (0 records)`
-
-Symptom in the TYPO3 backend Solr module:
+This symptom was reproduced with EXT:solr 14 beta on PostgreSQL:
 
 ```text
 Index Queue initialized
 Initialized indexing configurations: pages (0 records)
 ```
 
-This does not necessarily mean Camino has no indexable pages. In the public
-demo, diagnostics found six visible indexable Camino pages while the backend
-still reported zero queue records.
+The beta initializer can build native SQL with an empty-string expression that
+is accepted by MySQL but not PostgreSQL. EXT:solr catches the database error and
+the backend can still report successful initialization with zero rows.
 
-The likely cause on the Neon/PostgreSQL production database is EXT:solr 14 beta
-native queue initialization SQL. The initializer builds a native `INSERT ...
-SELECT` query containing `"" as errors`, which PostgreSQL does not accept as an
-empty string literal. EXT:solr catches that DB exception and still returns
-success, so the backend can show a successful initialization with zero rows.
+The demo extension contains
+`SeedPagesQueueAfterInitialization`, an event listener that checks the official
+result and seeds visible `pages` rows through TYPO3 DBAL only when:
 
-The repo includes
-`Webconsulting\Typo3VercelSolrDemo\EventListener\SeedPagesQueueAfterInitialization`.
-It listens to EXT:solr's `AfterIndexQueueHasBeenInitializedEvent`; if the
-official `pages` initializer reports success but leaves the queue empty, it
-uses TYPO3 DBAL inserts to seed the visible page queue. This keeps the backend
-module, Scheduler, and protected setup endpoint usable on PostgreSQL without
-patching vendor EXT:solr.
+- the requested configuration is `pages`
+- the official initializer returned without queue rows
+- the queue is still empty
 
-What to check:
+The setup command also has a direct six-page demo indexing fallback if the beta
+queue worker remains at zero progress. This is compatibility code for the demo,
+not a replacement for upstream EXT:solr fixes. Re-test and remove it after a
+stable PostgreSQL-safe EXT:solr 14 release.
 
-- The Camino pages must be visible, not deleted, and `no_search = 0`.
-- The `/search` page is intentionally excluded from search with `no_search = 1`.
-- The fallback only runs for the standard `pages` queue and only when the queue
-  is empty after the official initializer.
-- For a long-term production setup, track the EXT:solr 14 stable release and
-  remove this compatibility listener once upstream queue initialization is
-  PostgreSQL-safe.
+Before blaming the initializer, confirm pages are visible, not deleted, and
+have `no_search = 0`. The `/search` result page itself intentionally uses
+`no_search = 1`.
 
-### Troubleshooting `/solr/solr/core_en/`
+## Benchmarks
 
-If the TYPO3 backend says it is trying to contact a URL ending in
-`/solr/solr/core_en/`, the site config path is wrong. The TYPO3 site config
-should look like this for a normal Solr core:
+Warm local results:
 
-```yaml
-solr_path_read: /
-languages:
-  -
-    solr_core_read: core_en
-```
+| Operation | Runs | Median | p95 / max |
+|---|---:|---:|---:|
+| Direct Solr query | 50 | 3.1 ms | 7.0 ms p95 |
+| Update + commit | 20 | 34.3 ms | 38.1 ms p95, 60.5 ms max |
+| TYPO3 rebuild of six pages | 10 | 1.108s | 1.550s max |
+| Complete TYPO3 search page | 30 | 27.2 ms | 28.8 ms p95, 106 ms max |
 
-The path must not contain `/solr/` because Solarium has a separate `context`
-option with the default value `solr`.
+Verdict: normal queries, updates, and small batches are fast enough. Cold
+service activation and durability are the material risks.
 
-## Local Development With DDEV
+The protected endpoint also has `action=benchmark`. It creates synthetic
+documents, measures add/update/search, and deletes them afterward. Use it only
+with `CRON_SECRET`; it writes to the configured core.
 
-Start DDEV and install Composer dependencies inside PHP 8.4:
+## Long-Running Reindexing
 
-```bash
-ddev start
-ddev composer install
-```
+A full site reindex can take hours. Do not run it as one Vercel request.
 
-Create the local Solr core/configset:
+Use this architecture:
 
-```bash
-ddev solrctl apply
-```
+1. Initialize the EXT:solr queue once.
+2. Process a bounded number of items per Scheduler invocation.
+3. Make the operation resumable and idempotent.
+4. Monitor remaining, failed, and indexed queue counts.
+5. For a large initial index, run `vendor/bin/typo3` from an always-on worker,
+   CI job, VM, or the Solr hosting environment against the same SQL database and
+   external Solr endpoint.
 
-Apply local TYPO3 site config for the DDEV Solr service:
+The internal Vercel demo service is not a target for a multi-hour reindex
+because index state can disappear or split across instances.
 
-```bash
-ddev exec env \
-  TYPO3_SOLR_ENABLED=1 \
-  TYPO3_SOLR_URL=http://typo3-solr:8983/solr/core_en \
-  TYPO3_SOLR_SITE_BASE=https://typo3-camino-vercel.ddev.site/ \
-  TYPO3_SOLR_APPLY_SITE_SET=1 \
-  TYPO3_SOLR_SITE_SET=webconsulting/typo3-vercel-solr-demo \
-  TYPO3_SOLR_STYLESHEET_SITE_SET=webconsulting/typo3-vercel-solr-demo-stylesheets \
-  php scripts/apply-solr-config.php
-```
+See [Long-running jobs](long-running-jobs.md).
 
-The local site set is intentionally not the official EXT:solr site set. It
-imports the Solr plugin TypoScript without replacing Camino's content rendering.
+## Is There Any Durable Solr Storage On Vercel?
 
-Run TYPO3 extension setup:
+Not through the products used here:
 
-```bash
-ddev exec vendor/bin/typo3 extension:setup --no-interaction
-ddev exec vendor/bin/typo3 cache:flush
-```
+- **Vercel Blob:** durable object storage, not a mounted POSIX/Lucene volume
+- **S3/R2:** same limitation; object APIs do not implement Lucene filesystem
+  locking, atomic rename, mmap, and low-latency random I/O semantics
+- **Container Registry:** stores immutable image layers, not runtime writes
+- **SQL/Redis:** useful TYPO3 services, not a Solr index filesystem
+- **Function `/tmp`:** writable but local, ephemeral, and not shared
 
-Create the demo search page and index a first small batch:
+Embedding a prebuilt index in an image can publish a read-only snapshot, and
+self-seeding can rebuild a tiny demo. Neither preserves live editor updates.
 
-```bash
-ddev exec vendor/bin/typo3 webconsulting:solr-demo:setup --index --limit=50
-```
+A durable Vercel-native production solution would require a supported
+persistent service volume with backup/restore and predictable attachment to the
+Solr instance. Until Vercel offers that, external managed Solr is the correct
+solution.
 
-Use DDEV's generated service output instead of guessing URLs:
+## Troubleshooting
 
-```bash
-ddev describe
-ddev solr-admin
-```
+### Backend Says Unable To Contact Solr
 
-## Scheduler Requirement
+Check the protected probe first. Then check Vercel logs for:
 
-EXT:solr indexing depends on TYPO3 Scheduler tasks. Vercel does not run a
-Linux cron daemon in this container. Use:
+- service `startup` without a later `ready`
+- `500 Starting...` beyond the 20-second proxy window
+- nginx `502`/`503`
+- wrong core name
+- external TLS/authentication failures
 
-- the protected `/api/cron/typo3-scheduler.php` endpoint
-- the daily Vercel Cron entry already included in `vercel.json`
-- a faster Vercel Cron schedule on Pro/Enterprise when the cadence fits
-- an external HTTPS cron service for more frequent indexing
+Verify `TYPO3_SOLR_ENABLED=1` and redeploy after any environment change.
 
-See [scheduler.md](scheduler.md).
+### URL Contains `/solr/solr/core_en/`
 
-### Large Indexing Jobs
+The configured base path includes `/solr` twice. `TYPO3_SOLR_URL` may include
+the complete `/solr/core_en` URL; the config writer normalizes it. Do not also
+set `TYPO3_SOLR_PATH=/solr/` unless the provider actually has an additional
+prefix.
 
-Indexing a whole website can take minutes or hours depending on page count,
-language count, rendering cost, Solr latency, and whether files are extracted
-with Tika. Do not run that as one Vercel request.
+The generated TYPO3 site connection should normally have base path `/` and
+language core `core_en` for the private service proxy.
 
-Use EXT:solr's Index Queue Worker in chunks:
+### Search Page Is Missing
 
-- queue the content for indexing in the Solr backend module
-- configure "Number of documents to Index" to a bounded value
-- run Scheduler repeatedly until the queue is empty
-- measure one batch and keep it well below Vercel's invocation limit
+Call `action=setup`. The command is idempotent and creates or repairs both the
+page and `vercel_solr_demo_results` content element.
 
-Start with 25-100 documents per batch for normal pages. Use 10-50 for large or
-multi-language sites. Use 1-10 for file/Tika indexing, and prefer an external
-worker for those jobs.
+### Search Returns Zero During A Deploy
 
-For hour-scale full reindexing, run the Scheduler CLI from an external worker
-that has the same production database and Solr environment variables:
+The service may be ready before its startup seed is committed. Retry after a
+few seconds and inspect the protected select probe. The Pro warm-up normally
+completes this before a user searches.
 
-```bash
-vendor/bin/typo3 scheduler:list
-vendor/bin/typo3 scheduler:execute <index-queue-worker-task-id> --no-interaction
-```
+### Scheduler Returns A Safe Skip
 
-See [long-running jobs](long-running-jobs.md).
+That is expected for the internal non-durable service. Runtime indexing is
+disabled by default. External Solr runs the real Scheduler task.
 
-## Can Solr Run As A Vercel Container?
+## Security And Operations
 
-Yes, for this repo's demo path. `vercel.json` defines an internal `solr`
-service and the `app` service has a private service binding to it. The Solr
-service is not exposed by a public rewrite.
-
-```text
-TYPO3 app service
-  -> TYPO3_SOLR_SERVICE_URL binding
-  -> internal Solr service
-```
-
-The service uses:
-
-- `typo3solr/ext-solr:14.0.0-beta3`
-- Apache Solr 10.0.0
-- configset `ext_solr_14_0_0`
-- enabled cores `core_en` and `core_de`
-- a startup seed for the six static Camino demo documents
-- service-local nginx so the Vercel service can bind immediately while Solr
-  starts and seeds
-- an app-container retry proxy for Vercel's internal `500 Starting...` service
-  gateway responses
-
-This is still not a production Solr architecture by default.
-
-Solr needs durable index state in `/var/solr`, predictable startup, private
-networking or strong access control, monitoring, backups, and upgrade handling.
-A disposable Solr container can be useful for experiments, but it is not the
-same as managed Solr.
-
-The Solr service files live here:
-
-```text
-services/solr/
-```
-
-Do not treat this service as production search without solving durability,
-backup/restore, monitoring, memory sizing, and reindex operations first.
-
-## Buying/Choosing A Solr Provider
-
-Practical options:
-
-- hosted-solr.com
-- OpenSolr
-- SearchStax
-- a TYPO3 host or agency-managed Solr service
-- self-managed Solr 10 on an always-on VM/container platform
-
-The cheapest public entry plans checked during this work were roughly
-10-15 EUR/month. Treat that as orientation only. Provider prices, document
-limits, regions, backups, and support levels change.
-
-No paid Solr provider was purchased from this repo because Vercel does not
-offer a first-party managed Apache Solr product here, and buying an external
-provider requires account, billing, region, SLA, and data-processing decisions.
-
-## What Is Not Included
-
-- no production Solr server is deployed by default
-- no Solr credentials are committed
-- no file indexing/Tika setup is enabled
-- no Solr index backup/restore automation is included
-- no multi-hour Vercel worker is included for full reindexing
-- no guarantee that EXT:solr beta is acceptable for every production project
+- Keep external Solr behind TLS and authentication.
+- Do not expose the internal service or app retry proxy through public rewrites.
+- Protect setup, benchmark, diagnostics, and Scheduler with `CRON_SECRET`.
+- Use least-privilege read/write Solr credentials where the provider supports
+  separate roles.
+- Back up and restore-test the external index or maintain a tested complete
+  reindex procedure.
+- Monitor core health, query errors, queue failures, disk growth, heap, and
+  commit latency.
+- Put Solr, Vercel compute, and SQL in nearby regions.
 
 ## References
 
-- EXT:solr version matrix: https://docs.typo3.org/p/apache-solr-for-typo3/solr/main/en-us/Appendix/VersionMatrix.html
-- EXT:solr site sets: https://docs.typo3.org/p/apache-solr-for-typo3/solr/main/en-us/Configuration/SiteSets.html
-- EXT:solr 14 release notes: https://docs.typo3.org/p/apache-solr-for-typo3/solr/main/en-us/Releases/solr-release-14-0.html
-- EXT:solr Packagist package: https://packagist.org/packages/apache-solr-for-typo3/solr
-- Vercel Services: https://vercel.com/docs/services
-- Vercel service bindings: https://vercel.com/docs/services/bindings
-- Vercel Container Images: https://vercel.com/docs/functions/container-images
-- Vercel Container Registry: https://vercel.com/docs/container-registry
-- Scheduler and cron in this repo: scheduler.md
+- [EXT:solr version matrix](https://docs.typo3.org/p/apache-solr-for-typo3/solr/main/en-us/Appendix/VersionMatrix.html)
+- [EXT:solr Scheduler](https://docs.typo3.org/p/apache-solr-for-typo3/solr/main/en-us/Backend/Scheduler.html)
+- [Apache Solr Reference Guide](https://solr.apache.org/guide/solr/latest/)
+- [Vercel Services](https://vercel.com/docs/services)
+- [Vercel Container Images](https://vercel.com/docs/functions/container-images)
+- [Vercel Container Registry](https://vercel.com/docs/container-registry)

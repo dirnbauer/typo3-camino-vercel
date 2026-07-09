@@ -1,0 +1,135 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Webconsulting\Typo3Vercel\Tests\Unit;
+
+use PHPUnit\Framework\TestCase;
+
+final class EnvironmentTest extends TestCase
+{
+    /** @var array<string, string|false> */
+    private array $originalEnvironment = [];
+
+    /** @var array<string, mixed> */
+    private array $originalServer = [];
+
+    protected function setUp(): void
+    {
+        foreach ($this->environmentNames() as $name) {
+            $this->originalEnvironment[$name] = getenv($name);
+            putenv($name);
+            unset($_ENV[$name]);
+        }
+        foreach (['HTTP_X_VERCEL_OIDC_TOKEN', 'X_VERCEL_OIDC_TOKEN'] as $name) {
+            if (array_key_exists($name, $_SERVER)) {
+                $this->originalServer[$name] = $_SERVER[$name];
+            }
+            unset($_SERVER[$name]);
+        }
+    }
+
+    protected function tearDown(): void
+    {
+        foreach ($this->originalEnvironment as $name => $value) {
+            if ($value === false) {
+                putenv($name);
+                unset($_ENV[$name]);
+            } else {
+                putenv($name . '=' . $value);
+                $_ENV[$name] = $value;
+            }
+        }
+        foreach (['HTTP_X_VERCEL_OIDC_TOKEN', 'X_VERCEL_OIDC_TOKEN'] as $name) {
+            if (array_key_exists($name, $this->originalServer)) {
+                $_SERVER[$name] = $this->originalServer[$name];
+            } else {
+                unset($_SERVER[$name]);
+            }
+        }
+    }
+
+    public function testParsesPostgresDatabaseUrl(): void
+    {
+        $database = \typo3_vercel_database_config_from_url(
+            'postgresql://user%40example:p%40ss@db.example.test:5433/camino?sslmode=require'
+        );
+
+        self::assertSame('pdo_pgsql', $database['driver']);
+        self::assertSame('user@example', $database['user']);
+        self::assertSame('p@ss', $database['password']);
+        self::assertSame('db.example.test', $database['host']);
+        self::assertSame(5433, $database['port']);
+        self::assertSame('camino', $database['dbname']);
+        self::assertSame('require', $database['sslmode']);
+    }
+
+    public function testParsesMySqlAndSqliteDatabaseUrls(): void
+    {
+        $mysql = \typo3_vercel_database_config_from_url('mysql://typo3:secret@db.example.test:4000/camino');
+        self::assertSame('mysqli', $mysql['driver']);
+        self::assertSame(4000, $mysql['port']);
+        self::assertSame('camino', $mysql['dbname']);
+
+        $sqlite = \typo3_vercel_database_config_from_url('sqlite:////tmp/typo3/camino.sqlite');
+        self::assertSame('pdo_sqlite', $sqlite['driver']);
+        self::assertSame('/tmp/typo3/camino.sqlite', $sqlite['path']);
+    }
+
+    public function testParsesTlsRedisUrlWithoutLeakingCredentialsIntoHost(): void
+    {
+        $this->setEnv('REDIS_URL', 'rediss://default:p%40ss@redis.example.test:6380/3');
+
+        $options = \typo3_vercel_redis_cache_base_options();
+
+        self::assertIsArray($options);
+        self::assertSame('tls://redis.example.test', $options['hostname']);
+        self::assertSame(6380, $options['port']);
+        self::assertSame(3, $options['database']);
+        self::assertSame('default', $options['username']);
+        self::assertSame('p@ss', $options['password']);
+    }
+
+    public function testExportsRequestScopedOidcTokenForChildProcesses(): void
+    {
+        $_SERVER['HTTP_X_VERCEL_OIDC_TOKEN'] = 'request-token';
+
+        self::assertTrue(\typo3_vercel_export_request_oidc_token());
+        self::assertSame('request-token', getenv('VERCEL_OIDC_TOKEN'));
+    }
+
+    public function testBooleanAndIntegerEnvironmentBounds(): void
+    {
+        $this->setEnv('TEST_BOOLEAN', 'yes');
+        $this->setEnv('TEST_INTEGER', '999');
+
+        self::assertTrue(\typo3_vercel_bool_env('TEST_BOOLEAN', false));
+        self::assertSame(20, \typo3_vercel_int_env('TEST_INTEGER', 5, 1, 20));
+        self::assertSame(5, \typo3_vercel_int_env('MISSING_INTEGER', 5, 1, 20));
+    }
+
+    /** @return list<string> */
+    private function environmentNames(): array
+    {
+        return [
+            'DATABASE_URL',
+            'POSTGRES_URL',
+            'MYSQL_URL',
+            'TYPO3_DB_DRIVER',
+            'REDIS_URL',
+            'TYPO3_REDIS_URL',
+            'VERCEL_OIDC_TOKEN',
+            'HTTP_X_VERCEL_OIDC_TOKEN',
+            'X_VERCEL_OIDC_TOKEN',
+            'TEST_BOOLEAN',
+            'TEST_INTEGER',
+            'MISSING_INTEGER',
+        ];
+    }
+
+    private function setEnv(string $name, string $value): void
+    {
+        putenv($name . '=' . $value);
+        $_ENV[$name] = $value;
+    }
+}

@@ -21,6 +21,8 @@ nbproject/
 # Dependencies and build artifacts
 /vendor/
 /node_modules/
+/.phpunit.cache/
+/.phpunit.result.cache
 
 # TYPO3 runtime state
 /var/
@@ -29,7 +31,6 @@ nbproject/
 /public/*
 !/public/.htaccess
 !/public/index.php
-!/public/_vercel_keepalive.php
 !/public/template-preview.png
 !/public/api/
 !/public/api/**

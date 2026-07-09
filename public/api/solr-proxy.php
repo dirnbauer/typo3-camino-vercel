@@ -27,24 +27,39 @@ if (!is_string($serviceUrl) || $serviceUrl === '') {
 
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/api/solr-proxy/';
 $targetUrl = typo3_solr_proxy_target_url($serviceUrl, $requestUri);
-$timeout = typo3_solr_proxy_float_env('TYPO3_SOLR_APP_PROXY_REQUEST_TIMEOUT', 10.0, 1.0, 60.0);
-$deadline = microtime(true) + typo3_solr_proxy_float_env('TYPO3_SOLR_APP_PROXY_TOTAL_TIMEOUT', 55.0, 1.0, 90.0);
+$timeout = typo3_solr_proxy_float_env('TYPO3_SOLR_APP_PROXY_REQUEST_TIMEOUT', 4.0, 1.0, 15.0);
+$startedAt = microtime(true);
+$deadline = $startedAt + typo3_solr_proxy_float_env('TYPO3_SOLR_APP_PROXY_TOTAL_TIMEOUT', 20.0, 1.0, 60.0);
+$retryDelay = typo3_solr_proxy_float_env('TYPO3_SOLR_APP_PROXY_RETRY_DELAY', 0.25, 0.05, 2.0);
 $body = file_get_contents('php://input');
 $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 $headers = typo3_solr_proxy_request_headers($targetUrl);
 $last = ['status' => 0, 'headers' => [], 'body' => '', 'error' => 'not requested'];
+$attempts = 0;
 
 do {
+    $attempts++;
     $last = typo3_solr_proxy_request($targetUrl, $method, $headers, $body === false ? '' : $body, $timeout);
     if (!typo3_solr_proxy_should_retry($last)) {
         break;
     }
 
-    usleep(750000);
+    usleep((int)($retryDelay * 1_000_000));
 } while (microtime(true) < $deadline);
+
+error_log(json_encode([
+    'level' => $last['status'] >= 500 || $last['status'] === 0 ? 'warning' : 'info',
+    'component' => 'solr-proxy',
+    'event' => 'upstream-request',
+    'path' => parse_url($targetUrl, PHP_URL_PATH),
+    'status' => $last['status'],
+    'attempts' => $attempts,
+    'duration_ms' => (int)round((microtime(true) - $startedAt) * 1000),
+], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
 
 if ($last['status'] === 0) {
     http_response_code(503);
+    header('Retry-After: 2');
     header('Content-Type: text/plain; charset=utf-8');
     echo "Internal Solr service is unavailable: " . $last['error'] . "\n";
     exit;
@@ -201,7 +216,11 @@ function typo3_solr_proxy_request(string $url, string $method, array $headers, s
  */
 function typo3_solr_proxy_should_retry(array $response): bool
 {
-    return in_array($response['status'], [0, 500, 502, 503, 504], true);
+    if (in_array($response['status'], [0, 502, 503, 504], true)) {
+        return true;
+    }
+
+    return $response['status'] === 500 && str_contains(strtolower($response['body']), 'starting');
 }
 
 function typo3_solr_proxy_float_env(string $name, float $default, float $min, float $max): float

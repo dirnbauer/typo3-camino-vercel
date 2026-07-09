@@ -9,6 +9,7 @@ export SOLR_LOGS_DIR="${SOLR_LOGS_DIR:-/tmp/solr-logs}"
 export SOLR_PID_DIR="${SOLR_PID_DIR:-/tmp/solr-pids}"
 export NGINX_CONF="${NGINX_CONF:-/tmp/nginx-solr.conf}"
 export TYPO3_SOLR_SEED_DEMO_DOCS="${TYPO3_SOLR_SEED_DEMO_DOCS:-1}"
+startup_started_ms="$(date +%s%3N)"
 
 mkdir -p "${SOLR_HOME}" "${SOLR_LOGS_DIR}" "${SOLR_PID_DIR}"
 
@@ -18,18 +19,18 @@ fi
 
 chown -R solr:solr "${SOLR_HOME}" "${SOLR_LOGS_DIR}" "${SOLR_PID_DIR}"
 
-echo "Starting TYPO3 Solr on internal port ${SOLR_PORT_LISTEN} with SOLR_HOME=${SOLR_HOME}"
+echo "{\"level\":\"info\",\"component\":\"solr\",\"event\":\"startup\",\"internal_port\":${SOLR_PORT_LISTEN},\"public_port\":${VERCEL_SOLR_PUBLIC_PORT}}"
 
 cat > "${NGINX_CONF}" <<EOF
 pid /tmp/nginx-solr.pid;
-error_log /dev/stderr info;
+error_log /dev/stderr warn;
 
 events {
   worker_connections 256;
 }
 
 http {
-  access_log /dev/stdout;
+  access_log off;
   server_tokens off;
   client_body_temp_path /tmp/nginx-client-body;
   proxy_temp_path /tmp/nginx-proxy;
@@ -42,6 +43,19 @@ http {
 
   server {
     listen ${VERCEL_SOLR_PUBLIC_PORT};
+
+    location = /__health/live {
+      default_type application/json;
+      return 200 '{"status":"live"}';
+    }
+
+    location = /__health/ready {
+      if (!-f /tmp/solr-ready) {
+        return 503 '{"status":"starting"}';
+      }
+      proxy_pass http://127.0.0.1:${SOLR_PORT_LISTEN}/solr/core_en/admin/ping;
+      proxy_set_header Host \$host;
+    }
 
     location / {
       proxy_pass http://127.0.0.1:${SOLR_PORT_LISTEN};
@@ -237,9 +251,11 @@ EOF
 }
 
 (
-  for attempt in $(seq 1 120); do
-    if curl -fsS "http://127.0.0.1:${SOLR_PORT_LISTEN}/solr/core_en/select?q=*:*&rows=0" >/dev/null; then
-      echo "TYPO3 Solr core_en is ready after ${attempt}s"
+  for attempt in $(seq 1 240); do
+    if curl -fsS "http://127.0.0.1:${SOLR_PORT_LISTEN}/solr/core_en/select?q=*:*&rows=0" >/dev/null 2>&1; then
+      ready_ms="$(( $(date +%s%3N) - startup_started_ms ))"
+      touch /tmp/solr-ready
+      echo "{\"level\":\"info\",\"component\":\"solr\",\"event\":\"ready\",\"duration_ms\":${ready_ms}}"
       seed_demo_documents || echo "WARNING: TYPO3 Solr demo document seed failed" >&2
       exit 0
     fi
@@ -249,10 +265,10 @@ EOF
       exit 1
     fi
 
-    sleep 1
+    sleep 0.25
   done
 
-  echo "TYPO3 Solr did not become ready within 120s" >&2
+  echo "TYPO3 Solr did not become ready within 60s" >&2
 ) &
 
 echo "Forwarding Vercel port ${VERCEL_SOLR_PUBLIC_PORT} to Solr port ${SOLR_PORT_LISTEN}"

@@ -1,32 +1,19 @@
-FROM php:8.4-apache-bookworm
+# Alpine keeps the runtime image small enough to materially reduce Vercel
+# Container Image activation time. Build tools remain in this discarded stage.
+FROM php:8.4-fpm-alpine AS php-extensions
 
-ENV APACHE_DOCUMENT_ROOT=/var/www/html/public \
-    COMPOSER_ALLOW_SUPERUSER=1 \
-    LANG=en_US.UTF-8 \
-    LC_ALL=en_US.UTF-8 \
-    TYPO3_CONTEXT=Production/Vercel \
-    TYPO3_DB_DRIVER=pdo_sqlite \
-    TYPO3_DB_DBNAME=/tmp/typo3/camino.sqlite
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        ca-certificates \
-        git \
-        ghostscript \
-        graphicsmagick \
-        libcurl4-openssl-dev \
-        libfreetype6-dev \
-        libicu-dev \
-        libjpeg62-turbo-dev \
-        libonig-dev \
+RUN apk add --no-cache --virtual .build-deps \
+        $PHPIZE_DEPS \
+        curl-dev \
+        freetype-dev \
+        icu-dev \
+        libjpeg-turbo-dev \
         libpng-dev \
-        libpq-dev \
         libwebp-dev \
         libzip-dev \
-        locales \
-        unzip \
-    && sed -i 's/^# *\(en_US.UTF-8 UTF-8\)/\1/' /etc/locale.gen \
-    && locale-gen \
+        linux-headers \
+        oniguruma-dev \
+        postgresql-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j"$(nproc)" \
         exif \
@@ -42,34 +29,43 @@ RUN apt-get update \
         zip \
     && yes '' | pecl install redis \
     && docker-php-ext-enable redis \
-    && a2enmod brotli deflate expires headers remoteip rewrite \
-    && sed -ri -e "s!/var/www/html!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/sites-available/*.conf \
-    && printf '%s\n' \
-        "ServerName localhost" \
-        "KeepAlive On" \
-        "MaxKeepAliveRequests 100" \
-        "KeepAliveTimeout 2" \
-        "<IfModule mod_brotli.c>" \
-        "    BrotliCompressionQuality 5" \
-        "</IfModule>" \
-        "<Directory ${APACHE_DOCUMENT_ROOT}>" \
-        "    Options FollowSymLinks" \
-        "    AcceptPathInfo On" \
-        "    AllowOverride None" \
-        "    Require all granted" \
-        "    Include /var/www/html/public/.htaccess" \
-        "</Directory>" > /etc/apache2/conf-available/typo3.conf \
-    && printf '%s\n' \
-        "<IfModule mpm_prefork_module>" \
-        "    StartServers 8" \
-        "    MinSpareServers 8" \
-        "    MaxSpareServers 16" \
-        "    MaxRequestWorkers 16" \
-        "    MaxConnectionsPerChild 1000" \
-        "</IfModule>" > /etc/apache2/conf-available/typo3-mpm.conf \
-    && a2enconf typo3 \
-    && a2enconf typo3-mpm \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /tmp/pear
+
+FROM php:8.4-fpm-alpine
+
+ENV COMPOSER_ALLOW_SUPERUSER=1 \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    TYPO3_CONTEXT=Production/Vercel \
+    TYPO3_DB_DRIVER=pdo_sqlite \
+    TYPO3_DB_DBNAME=/tmp/typo3/camino.sqlite \
+    TYPO3_SERVER_TYPE=other
+
+RUN apk add --no-cache \
+        bash \
+        ca-certificates \
+        curl \
+        freetype \
+        ghostscript \
+        icu-libs \
+        imagemagick \
+        libcurl \
+        libheif-aom \
+        libjpeg-turbo \
+        libpng \
+        libpq \
+        libwebp \
+        libzip \
+        nginx \
+        oniguruma \
+        tini
+
+COPY --from=php-extensions /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
+COPY --from=php-extensions /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
+
+RUN php -m | grep -q '^redis$' \
+    && php -m | grep -q '^pdo_pgsql$' \
+    && php -m | grep -q '^mysqli$'
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
@@ -77,16 +73,13 @@ WORKDIR /var/www/html
 
 COPY composer.json composer.lock ./
 COPY packages ./packages
-# The runtime image is immutable and read-only (except /tmp), so no classes are
-# created after build: --classmap-authoritative is safe and skips the filesystem
-# fallback Composer otherwise performs on every class_exists() miss.
 RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --classmap-authoritative
 
 COPY . .
+RUN grep -Fq 'return typo3_vercel_settings();' config/system/settings.php
 COPY docker/php.ini /usr/local/etc/php/conf.d/typo3.ini
-
-# Persistent opcache directory, primed below and read at runtime by every instance.
-RUN mkdir -p /usr/local/share/opcache
+COPY docker/nginx.conf /etc/nginx/nginx.conf
+COPY docker/php-fpm.conf /usr/local/etc/php-fpm.d/zz-typo3.conf
 
 RUN set -eu; \
     mkdir -p var/seed public/fileadmin/_temp_ public/fileadmin/user_upload public/typo3temp config/system; \
@@ -110,16 +103,11 @@ RUN set -eu; \
     cp /var/www/html/var/seed/camino.sqlite /usr/local/share/typo3-seed/camino.sqlite; \
     rm -rf var/* public/typo3temp/*
 
-# Prime the shared opcode cache so a new instance's first request loads compiled
-# opcodes from disk instead of recompiling the TYPO3 codebase. Never fails the build.
-RUN php scripts/warm-opcache.php || true; \
-    chmod -R a+rX /usr/local/share/opcache
-
-RUN chmod +x docker/entrypoint.sh scripts/bootstrap-typo3.php scripts/apply-admin-password.php scripts/apply-object-storage.php scripts/apply-solr-config.php scripts/warm-opcache.php \
+RUN chmod +x docker/entrypoint.sh docker/serve.sh scripts/bootstrap-typo3.php scripts/apply-admin-password.php scripts/apply-object-storage.php scripts/apply-solr-config.php \
     && mkdir -p var public/fileadmin/_temp_ public/fileadmin/user_upload public/typo3temp config/system \
     && chown -R www-data:www-data var public/fileadmin public/typo3temp config
 
 EXPOSE 80
 
 ENTRYPOINT ["docker/entrypoint.sh"]
-CMD ["apache2-foreground"]
+CMD ["/sbin/tini", "-g", "--", "docker/serve.sh"]

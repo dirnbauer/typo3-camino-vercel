@@ -16,12 +16,12 @@ Frankfurt. If your database lives elsewhere, change `regions` to the database
 region before deploying. The function should be close to the database first,
 then close to users.
 
-The container starts Apache, serves `public/`, and lets TYPO3 handle normal
-frontend/backend routes. Real files in `public/` can still be called directly,
+The container starts nginx and PHP-FPM, serves `public/`, and lets TYPO3 handle
+normal frontend/backend routes. Real files in `public/` can still be called directly,
 which is why the secured scheduler endpoint lives at
 `/api/cron/typo3-scheduler.php`.
 
-On Vercel, TLS terminates before the request reaches Apache. The runtime config
+On Vercel, TLS terminates before the request reaches nginx. The runtime config
 therefore trusts Vercel's proxy for scheme detection so TYPO3 generates HTTPS
 backend URLs and the backend referrer check keeps working after login. The
 default is:
@@ -69,14 +69,15 @@ durable unless `TYPO3_OBJECT_STORAGE_ENABLED=1` and either `vercel_blob` or
 
 ```dotenv
 TYPO3_CONTEXT=Production/Vercel
-TYPO3_AUTO_SETUP=1
+TYPO3_AUTO_SETUP=0
+TYPO3_BOOTSTRAP_EMPTY_DATABASE=0
 TYPO3_SETUP_DISTRIBUTION=theme_camino
 TYPO3_SETUP_ADMIN_USERNAME=admin
 TYPO3_SETUP_ADMIN_PASSWORD=<long-random-password>
 TYPO3_SETUP_ADMIN_EMAIL=admin@example.com
 TYPO3_PROJECT_NAME=TYPO3 Camino
 TYPO3_ENCRYPTION_KEY=<96-random-hex-chars>
-TYPO3_TRUSTED_HOSTS_PATTERN=(.+\.)?vercel\.app
+TYPO3_TRUSTED_HOSTS_PATTERN=(?:(.+\.)?vercel\.app)
 DATABASE_URL=<durable-postgres-or-mysql-url>
 TYPO3_CACHE_BACKEND=file
 TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=0
@@ -144,7 +145,7 @@ endpoint after deploy:
 ```bash
 curl -fsS \
   -H "Authorization: Bearer $CRON_SECRET" \
-  "https://your-project.vercel.app/api/cron/typo3-solr-demo.php?limit=50"
+  "https://your-project.vercel.app/api/cron/typo3-solr-demo.php?action=setup&limit=50"
 ```
 
 That endpoint creates/updates `/search`, flushes TYPO3 caches after setup, and
@@ -171,14 +172,31 @@ curl -fsS \
   "https://your-project.vercel.app/api/cron/typo3-solr-demo.php?limit=50&scheduler=1&schedulerInterval=300"
 ```
 
-Then change the cron schedule in `vercel.json` to a measured batch cadence, for
-example `*/5 * * * *`, and redeploy. Do not use a faster schedule unless one
-Scheduler run finishes well before the next one starts.
+Then deploy `vercel.pro.json`, which runs Scheduler every 15 minutes. Do not use
+a faster schedule unless one Scheduler run finishes well before the next one
+starts.
 
-Operational caveat: the internal Solr service can take around 20s to answer a
-first Solr-touching request after scale-to-zero. The repo's Camino demo search
-renderer catches that warmup path and avoids a TYPO3 frontend exception, but it
-does not make the Vercel Solr service a durable production search backend.
+Operational caveat: the internal Solr service still has an independent cold
+start after scale-to-zero. The app proxy retries startup responses for at most
+20 seconds and the Camino renderer avoids a TYPO3 frontend exception. The Pro
+warm-up pings Solr every three minutes; none of this makes its index durable.
+
+## Pro Cold-Start Profile
+
+The default `vercel.json` is Hobby-safe. `vercel.pro.json` adds:
+
+- `/api/cron/typo3-warmup.php` every three minutes
+- `/api/cron/typo3-scheduler.php` every 15 minutes
+
+The warm-up performs local loopback requests to both `/` and `/typo3/`, then
+checks database, Redis, and Solr. Configure `CRON_SECRET` and deploy with:
+
+```bash
+vercel deploy --prod -A vercel.pro.json --scope webconsulting --yes
+```
+
+Git-based Vercel deployments read `vercel.json`. Run the Pro command after a
+push when the public demo must retain its frequent warm-up schedule.
 
 Generate secrets locally:
 
@@ -199,7 +217,7 @@ user or added as encrypted Vercel environment variables.
    uploaded files.
 3. Add the production environment variables above.
 4. Add a durable database if this is not a disposable test.
-5. Deploy.
+5. Deploy with `-A vercel.pro.json` when this is a Pro latency-sensitive site.
 6. Confirm the frontend loads.
 7. Open `/typo3` and sign in with the configured admin credentials only after
    `DATABASE_URL` points to a durable database.

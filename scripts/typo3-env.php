@@ -57,6 +57,23 @@ function typo3_vercel_is_vercel_runtime(): bool
         || typo3_vercel_env('VERCEL_URL') !== null;
 }
 
+function typo3_vercel_export_request_oidc_token(): bool
+{
+    foreach (['HTTP_X_VERCEL_OIDC_TOKEN', 'X_VERCEL_OIDC_TOKEN'] as $name) {
+        $value = $_SERVER[$name] ?? getenv($name);
+        if (!is_string($value) || trim($value) === '') {
+            continue;
+        }
+
+        $value = trim($value);
+        putenv('VERCEL_OIDC_TOKEN=' . $value);
+        $_ENV['VERCEL_OIDC_TOKEN'] = $value;
+        return true;
+    }
+
+    return false;
+}
+
 function typo3_vercel_database_config(): array
 {
     $url = typo3_vercel_env('DATABASE_URL')
@@ -532,10 +549,10 @@ function typo3_vercel_http_configuration(): array
         return [];
     }
 
-    $timeout = typo3_vercel_int_env('TYPO3_SOLR_HTTP_TIMEOUT', 60, 5, 90);
+    $timeout = typo3_vercel_int_env('TYPO3_SOLR_HTTP_TIMEOUT', 20, 5, 30);
 
     return [
-        'connect_timeout' => typo3_vercel_int_env('TYPO3_SOLR_HTTP_CONNECT_TIMEOUT', 5, 1, 15),
+        'connect_timeout' => typo3_vercel_int_env('TYPO3_SOLR_HTTP_CONNECT_TIMEOUT', 2, 1, 10),
         'timeout' => $timeout,
     ];
 }
@@ -585,7 +602,7 @@ function typo3_vercel_settings(): array
         'GFX' => [
             'processor_enabled' => typo3_vercel_bool_env('TYPO3_GFX_PROCESSOR_ENABLED', true),
             'processor_path' => typo3_vercel_env('TYPO3_GFX_PROCESSOR_PATH', '/usr/bin/'),
-            'processor' => typo3_vercel_env('TYPO3_GFX_PROCESSOR', 'GraphicsMagick'),
+            'processor' => typo3_vercel_env('TYPO3_GFX_PROCESSOR', 'ImageMagick'),
             'processor_effects' => typo3_vercel_bool_env('TYPO3_GFX_PROCESSOR_EFFECTS', false),
             'processor_colorspace' => typo3_vercel_env('TYPO3_GFX_PROCESSOR_COLORSPACE', ''),
             'processor_stripColorProfileByDefault' => true,

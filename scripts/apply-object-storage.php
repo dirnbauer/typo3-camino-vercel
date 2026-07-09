@@ -115,13 +115,17 @@ try {
     exit(1);
 }
 
-if (typo3_vercel_bool_env('TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT', true)) {
+if (typo3_vercel_bool_env('TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT', true)
+    && ($driverName !== 'vercel_blob' || typo3_vercel_blob_boot_token_available($configuration))
+) {
     typo3_vercel_verify_object_storage(
         $driverName,
         $configuration,
         $storageUid,
         $processingFolder
     );
+} elseif ($driverName === 'vercel_blob' && !typo3_vercel_blob_boot_token_available($configuration)) {
+    fwrite(STDOUT, "Vercel Blob uses request-scoped OIDC; remote verification is deferred until an HTTP request supplies the OIDC header.\n");
 }
 
 fwrite(STDOUT, sprintf(
@@ -246,9 +250,27 @@ function typo3_vercel_blob_object_storage_configuration(): array
         'publicBaseUrl' => typo3_vercel_env('TYPO3_BLOB_PUBLIC_BASE_URL', ''),
         'apiUrl' => typo3_vercel_env('TYPO3_BLOB_API_URL') ?? typo3_vercel_env('VERCEL_BLOB_API_URL', 'https://vercel.com/api/blob'),
         'defaultFolder' => typo3_vercel_env('TYPO3_BLOB_DEFAULT_FOLDER', 'user_upload'),
-        'cacheControlMaxAge' => typo3_vercel_env('TYPO3_BLOB_CACHE_CONTROL_MAX_AGE', '31536000'),
+        'cacheControlMaxAge' => typo3_vercel_env('TYPO3_BLOB_CACHE_CONTROL_MAX_AGE', '3600'),
+        'processedCacheControlMaxAge' => typo3_vercel_env('TYPO3_BLOB_PROCESSED_CACHE_CONTROL_MAX_AGE', '31536000'),
+        'processingFolder' => typo3_vercel_first_env(
+            ['TYPO3_OBJECT_STORAGE_PROCESSING_FOLDER', 'TYPO3_BLOB_PROCESSING_FOLDER'],
+            '_processed_'
+        ),
         'caseSensitive' => typo3_vercel_bool_env('TYPO3_BLOB_CASE_SENSITIVE', true) ? '1' : '0',
     ];
+}
+
+function typo3_vercel_blob_boot_token_available(array $configuration): bool
+{
+    $tokenEnvName = (string)($configuration['tokenEnvName'] ?? 'BLOB_READ_WRITE_TOKEN');
+    foreach (array_unique([$tokenEnvName, 'BLOB_READ_WRITE_TOKEN', 'VERCEL_OIDC_TOKEN']) as $envName) {
+        $value = getenv($envName);
+        if (is_string($value) && trim($value) !== '') {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function typo3_vercel_verify_object_storage(string $driverName, array $configuration, int $storageUid, string $processingFolder): void

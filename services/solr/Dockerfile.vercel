@@ -1,25 +1,42 @@
-FROM typo3solr/ext-solr:14.0.0-beta3
+FROM typo3solr/ext-solr:14.0.0-beta3 AS typo3-solr-config
+
+FROM solr:10.0-slim
 
 USER root
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl nginx-light \
-    && for core_properties in /var/solr/data/cores/*/core.properties; do mv "${core_properties}" "${core_properties}_disabled"; done \
-    && for core in english german; do mv "/var/solr/data/cores/${core}/core.properties_disabled" "/var/solr/data/cores/${core}/core.properties"; done \
-    && chown -R solr:solr /var/solr /opt/solr \
+    && apt-get install -y --no-install-recommends nginx-light \
     && rm -rf /var/lib/apt/lists/*
+
+COPY --from=typo3-solr-config --chown=solr:solr /var/solr/data/ /var/solr/data/
+# EXT:solr's solr.xml enables these modules. The upstream slim image intentionally
+# omits every optional module, so copy only TYPO3's declared set instead of using
+# the much larger full image.
+COPY --from=typo3-solr-config /opt/solr/modules/analysis-extras/ /opt/solr/modules/analysis-extras/
+COPY --from=typo3-solr-config /opt/solr/modules/langid/ /opt/solr/modules/langid/
+COPY --from=typo3-solr-config /opt/solr/modules/language-models/ /opt/solr/modules/language-models/
+COPY --from=typo3-solr-config /opt/solr/modules/scripting/ /opt/solr/modules/scripting/
+COPY --from=typo3-solr-config /opt/solr/modules/clustering/ /opt/solr/modules/clustering/
+COPY --from=typo3-solr-config /opt/solr/modules/extraction/ /opt/solr/modules/extraction/
+
+RUN set -eu; \
+    for core_properties in /var/solr/data/cores/*/core.properties; do mv "${core_properties}" "${core_properties}_disabled"; done; \
+    mv /var/solr/data/cores/english/core.properties_disabled /var/solr/data/cores/english/core.properties; \
+    chown -R solr:solr /var/solr
 
 COPY start-vercel-solr.sh /usr/local/bin/start-vercel-solr
 RUN chmod 755 /usr/local/bin/start-vercel-solr
 
 ENV PORT=80 \
     SOLR_PORT_LISTEN=8983 \
-    SOLR_JAVA_MEM="-Xms512m -Xmx512m" \
+    SOLR_JAVA_MEM="-Xms256m -Xmx512m" \
+    GC_TUNE="-XX:+UseSerialGC -XX:TieredStopAtLevel=1" \
     SOLR_HOME=/tmp/solr-home \
     SOLR_LOGS_DIR=/tmp/solr-logs \
     SOLR_PID_DIR=/tmp/solr-pids \
     SOLR_ALLOW_RUNASROOT=true \
-    TYPO3_SOLR_ENABLED_CORES="english german"
+    SOLR_ULIMIT_CHECKS=false \
+    TYPO3_SOLR_ENABLED_CORES="english"
 
 EXPOSE 80
 

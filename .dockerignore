@@ -3,6 +3,15 @@
 .ddev
 .idea
 .DS_Store
+.env.example
+Build
+Dockerfile*
+README.md
+Tests
+compose.yaml
+docs
+phpunit.xml
+services
 .env
 .env.*
 node_modules

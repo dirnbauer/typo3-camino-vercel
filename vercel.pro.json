@@ -1,0 +1,43 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "fluid": true,
+  "regions": ["fra1"],
+  "services": {
+    "app": {
+      "runtime": "container",
+      "root": ".",
+      "entrypoint": "Dockerfile.vercel",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "solr",
+          "format": "url",
+          "env": "TYPO3_SOLR_SERVICE_URL"
+        }
+      ]
+    },
+    "solr": {
+      "runtime": "container",
+      "root": "services/solr",
+      "entrypoint": "Dockerfile.vercel"
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/typo3-warmup.php",
+      "schedule": "*/3 * * * *"
+    },
+    {
+      "path": "/api/cron/typo3-scheduler.php",
+      "schedule": "*/15 * * * *"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "app"
+      }
+    }
+  ]
+}

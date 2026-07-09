@@ -1,327 +1,199 @@
-# Performance Notes
+# Performance And Cold Starts
 
-## What Was Slow
+## Performance Model
 
-TYPO3 was not globally running with debug cache disabled. OPcache is enabled in
-the container and TYPO3 page caching is active.
+There are four different latency classes in this project. Do not combine them
+into one average:
 
-The slow live requests were mostly cold starts and waiting, not burning CPU:
+1. **Edge hit:** Vercel returns cached HTML or a static file without PHP.
+2. **Warm application:** nginx, PHP-FPM, OPcache, DB connections, and caches are
+   already active.
+3. **Warm container, first TYPO3 route:** the process exists but a frontend or
+   backend code path has not yet populated OPcache and TYPO3 runtime caches.
+4. **Cold container:** Vercel activates image layers, starts processes, and then
+   TYPO3 performs its first bootstrap. Solr may cold-start independently.
 
-- cold frontend/backend requests were around 10-13 seconds
-- warm frontend requests were around 0.12-0.35 seconds
-- public anonymous HTML can be cached at Vercel's edge
-- backend requests must stay uncached and will always be slower than frontend
-  edge hits
+The reported 10 to 12 second problem was class 4. It should not be diagnosed as
+slow SQL or disabled TYPO3 page cache because repeated class-2 requests were
+already below half a second.
 
-The largest avoidable startup costs were self-inflicted:
+## Baseline
 
-- the entrypoint re-applied the TYPO3 admin password on every cold start
-- the entrypoint ran the object-storage setup script even when object storage
-  was not enabled
-- Apache parsed `.htaccess` on every request
-- PHP OPcache used conservative defaults instead of immutable-container
-  settings
+Representative production measurements before the runtime overhaul:
 
-Those are now optimized. Preseeding TYPO3's generated code cache in the image
-was tested and reverted because TYPO3's runtime cache can include environment-
-specific state that is not safe to reuse across Vercel runtime starts.
+| Route | Cold or first hit | Warm behavior |
+|---|---:|---:|
+| `/` | 12.14s | 0.09-0.22s |
+| `/typo3/` | 11.50s | 0.19-0.49s |
+| `/typo3/ajax/login/preflight` | cold outliers | 0.16-0.25s |
 
-## Container Optimizations
+A later Redis-enabled production window showed warmer medians around 0.046s,
+0.125s, and 0.100s respectively. That sample is useful directionally, but it is
+not an A/B test because deployment state and external services differed.
 
-The immutable image is tuned for the serverless model:
+## Implemented Cold-Start Strategy
 
-- **Primed OPcache file cache.** `docker/php.ini` sets `opcache.file_cache` to a
-  build-time-warmed directory (`scripts/warm-opcache.php`). Because the Vercel
-  filesystem is read-only except `/tmp`, the cache is populated once at build and
-  read by every new instance, so the first request loads compiled opcodes from
-  disk instead of recompiling the TYPO3 codebase.
-- **Tracing JIT.** `opcache.jit=tracing` (64 MB buffer) trims CPU on warm
-  requests on PHP 8.4.
-- **Authoritative autoloader.** `composer install --classmap-authoritative`
-  removes the per-`class_exists()` filesystem fallback; safe because no classes
-  are generated at runtime.
-- **Warm Apache workers.** `mpm_prefork` starts with enough workers to answer a
-  cold instance's first page plus its parallel asset requests immediately,
-  instead of ramping up one worker at a time.
-- **Edge-cached static assets.** `public/.htaccess` sends `s-maxage` on static
-  files so Vercel's CDN serves CSS/JS/fonts/images without invoking the
-  container — and without paying a cold start for stray asset requests after
-  scale-to-zero.
-- **Brotli compression.** Enabled alongside gzip for smaller text payloads.
-- **Object storage verified only on change.** The boot script skips the storage
-  write and its network folder verification when the stored record is already
-  correct, keeping cold starts cheap.
+### 1. Smaller Application Runtime
 
-## Current Live Measurements
+The old runtime used Debian, Apache, and mod_php. The current runtime uses:
 
-Measured on 2026-07-07 against
-`https://typo3-camino-vercel.vercel.app` after adding the Vercel Blob FAL
-driver, enabling production object storage, moving the public demo project to
-Vercel's performance CPU class in `fra1`, and enabling Redis through the
-official Redis Vercel Marketplace integration.
+- Alpine Linux
+- nginx
+- PHP 8.4 FPM
+- `tini` for signal forwarding and clean shutdown
+- a multi-stage extension build so compilers do not enter the runtime image
+- Composer authoritative classmaps
 
-All tested requests returned HTTP `200`.
+Local Docker image size changed from about 950 MB to 448 MB, a reduction of
+about 53%. Required runtime support remains present:
 
-| Route | Result |
-| --- | --- |
-| Frontend home page, `/`, first request after deploy | 12.57 seconds |
-| Frontend home page, `/`, warm 10-request pass | median 0.046 seconds, range 0.031-0.173 seconds |
-| Backend login page, `/typo3/`, first Redis-enabled pass | first hit 0.431 seconds, then 0.129-0.155 seconds |
-| Backend login page, `/typo3/`, warm 10-request pass | median 0.125 seconds, range 0.110-0.168 seconds |
-| Backend login page, `/typo3/`, later cold check | first hit 10.151 seconds, then 0.206-0.238 seconds |
-| Backend login preflight, `/typo3/ajax/login/preflight`, first Redis-enabled pass | 0.089-0.159 seconds |
-| Backend login preflight, `/typo3/ajax/login/preflight`, warm 10-request pass | median 0.100 seconds, range 0.083-0.157 seconds |
-| Backend login preflight, `/typo3/ajax/login/preflight`, later 5-request check | median 0.175 seconds, range 0.088-0.244 seconds |
+- MySQL and PostgreSQL drivers
+- Redis extension
+- ImageMagick with AVIF and WebP read/write support
+- Ghostscript
+- Vercel Blob and S3-compatible FAL packages
+- all installed TYPO3 CMS system packages
 
-Earlier baseline after the database/object-storage/performance-CPU work, but
-before Redis:
+The final local image returned its first TYPO3 page in 4.27s and the next page
+in 0.10s. Local Docker has cached image layers, so this measures process and
+framework bootstrap rather than remote image transfer.
 
-| Route | Earlier result |
-| --- | --- |
-| Frontend home page, `/` | first hit 1.33 seconds, then 0.12-0.22 seconds |
-| Backend login page, `/typo3/` | 0.23-0.41 seconds |
-| Backend login preflight, `/typo3/ajax/login/preflight` | 0.16-0.25 seconds |
-| Cold-start spike after deploy, `/` | 12.38 seconds |
-| Cold-start spike after deploy, `/typo3/` | 10.61 seconds |
+### 2. Smaller Solr Runtime
 
-One earlier five-request backend probe also produced one transient Vercel
-`500` after about 25 seconds. It did not repeat in the later warm samples, but
-it is a reminder that cold starts and platform-level invocation outliers are
-still possible.
+The Solr service now uses `solr:10.0-slim` and copies only modules required by
+the official EXT:solr 14 configset. It enables one English demo core.
 
-The answer to "is the backend faster now?" is:
+| Metric | Before | After |
+|---|---:|---:|
+| Local image size | about 843 MB | about 589 MB |
+| Ready for requests | 4.13-4.62s | 1.94-3.21s; 2.48s median over 5 starts |
 
-- warm backend responses are faster in the Redis-enabled sample, around
-  0.11-0.17 seconds for the login page and around 0.08-0.16 seconds for login
-  preflight
-- Redis is not the only possible variable in a live Vercel measurement, so read
-  this as a real production sample, not a controlled lab benchmark
-- cold starts are still not materially solved; the frontend showed a 12.57
-  second first request after deploy, and a later backend login check still hit
-  10.151 seconds once
-- backend pages cannot use the optional Vercel edge HTML cache because they use
-  cookies, sessions, and no-store headers
+The entrypoint has separate liveness and readiness endpoints and emits
+structured startup logs. The service can still cold-start independently from
+TYPO3.
 
-Authenticated backend navigation was not included in this measurement because
-the pulled local Vercel env file does not expose the sensitive backend
-password. The login page and login preflight still exercise the TYPO3 backend
-container, database/session setup, PHP runtime, and uncached backend response
-path.
+### 3. Pro Warm-Up Cron
 
-## Search And Solr Benchmark
+Vercel documents that production Functions can scale down after five minutes
+without requests. `vercel.pro.json` schedules `/api/cron/typo3-warmup.php`
+every three minutes. The margin matters because cron delivery is not guaranteed
+to occur at an exact second.
 
-Measured on 2026-07-09 against
-`https://typo3-camino-vercel.vercel.app` immediately after deploying the
-protected Solr benchmark endpoint.
+The protected endpoint performs:
 
-Method:
+1. direct database connection and query
+2. direct Redis ping when Redis is configured
+3. local loopback request to `/` to populate the frontend path
+4. local loopback request to `/typo3/` to populate the backend path
+5. Solr core ping through the private service binding or external endpoint
 
-- direct Solr benchmark used
-  `/api/cron/typo3-solr-demo.php?action=benchmark`
-- the endpoint is protected by `CRON_SECRET`
-- it writes synthetic benchmark documents through the same loopback Solr proxy
-  that TYPO3 uses for the internal Vercel Solr service
-- it commits, counts, updates one document repeatedly, searches repeatedly, and
-  deletes the benchmark documents again
-- the direct Solr numbers measure Solr/proxy/write behavior, not Fluid/TYPO3
-  frontend rendering
-- TYPO3 indexing was measured with the protected setup endpoint and
-  `index=1&limit=50`
-- public search was measured as sequential uncached requests to
-  `/search?tx_solr[q]=Camino`; every sampled response was `x-vercel-cache: MISS`
+The local loopback requests target the exact active application container and
+bypass the Vercel CDN. This is intentional: a CDN hit would not compile and
+prime TYPO3 inside PHP-FPM.
 
-All benchmarked requests returned HTTP `200`.
+Configure a strong secret:
 
-| Test | Result |
-| --- | --- |
-| First post-deploy direct Solr 20-doc benchmark, total request | 25.22s |
-| First Solr-touching operation in that run | cleanup took 17.44s, showing the cold-start/startup penalty |
-| Same first run, direct Solr add+commit 20 docs | 1.06s |
-| Same first run, direct Solr update+commit 5 times | median 0.151s, p95 0.222s |
-| Same first run, direct Solr search 10 times | median 0.080s, p95 0.124s |
-| Warm direct Solr add+commit 20 docs | 0.263s |
-| Warm direct Solr update+commit 5 times | median 0.114s, p95 0.128s |
-| Warm direct Solr search 10 times | median 0.075s, p95 0.116s |
-| Warm direct Solr add+commit 100 docs | 0.286s |
-| Warm direct Solr update+commit 10 times | median 0.106s, p95 0.137s |
-| Warm direct Solr search 20 times | median 0.071s, p95 0.082s |
-| TYPO3 setup/index endpoint, first run | 6.89s to confirm `/search`, flush caches, seed 6 Camino queue items, write+commit 6 page docs |
-| TYPO3 setup/index endpoint, warm run | 2.19s for the same 6-page path |
-| Public TYPO3 search page, 22 sequential MISS requests | min 0.306s, median 1.290s, mean 3.723s, p95 10.326s, max 12.907s |
-
-Verdict:
-
-- **Direct Solr search and Solr document updates are fast enough when warm.**
-  The internal Vercel Solr demo service answered warm searches in about
-  70-80 ms and committed small update batches in about 100-140 ms.
-- **TYPO3 demo indexing is fast enough for this six-page Camino demo.** The
-  warm protected setup/index pass finished in 2.19s.
-- **The full public TYPO3 search page is not consistently fast yet.** It can be
-  fast after warmup, with several sampled requests around 0.3-0.47s, but the
-  same uncached search URL also produced 5-13s outliers.
-- **The remaining issue is not Solr query speed.** The bad p95 belongs to the
-  full Vercel/PHP/TYPO3 request path and cold or semi-cold container behavior.
-- **Good enough:** demos, prototypes, and selected low/medium traffic sites
-  where occasional slow first search requests are acceptable.
-- **Not good enough as-is:** strict production search with predictable p95
-  latency, large indexes, or heavy editor/search traffic.
-
-Production recommendation: use a managed/external Solr endpoint with durable
-index storage, keep TYPO3 and Solr close to the database region, process indexing
-in small Scheduler batches, and use an always-warm strategy or a platform with
-minimum instances if predictable search p95 matters.
-
-## Runtime Region
-
-`vercel.json` pins deployments to `fra1`:
-
-```json
-"regions": ["fra1"]
+```bash
+openssl rand -hex 32
+vercel env add CRON_SECRET production
 ```
 
-The `webconsulting` production project default region is also set to `fra1` in
-the Vercel Project API, so future CLI/dashboard deploys should keep the same
-runtime region.
+Deploy the Pro config:
 
-Keep this close to the database. If the database is in another region, move the
-function region to the database region first.
+```bash
+vercel deploy --prod -A vercel.pro.json --scope webconsulting --yes
+```
 
-`fra1` means Vercel runs the TYPO3 container in Frankfurt. That is a good fit
-for users in Austria and nearby EU countries because the network round trip is
-shorter than a US region. It is only fully useful when the database and object
-storage are also close to the same region; otherwise TYPO3 may still wait on
-cross-region database or file-storage calls.
+Vercel Cron sends `Authorization: Bearer $CRON_SECRET`. Requests without the
+correct token receive an error and cannot trigger expensive internal checks.
 
-## Memory And CPU
+Hobby cron is limited to once per day, so this mitigation cannot be enabled in
+the free one-click config. `vercel.json` intentionally remains Hobby-safe.
 
-Vercel Container Images use the Vercel Functions resource model. Memory/CPU is
-not configured in `vercel.json`; attempting to set function memory there is
-ignored or warned about at build time.
+### 4. Optional Edge HTML Cache
 
-For Pro or Enterprise projects, increase memory/CPU in the dashboard:
-
-1. Open the Vercel project.
-2. Go to **Settings**.
-3. Open **Functions**.
-4. Open **Advanced Settings**.
-5. Change **Function CPU** from the default tier to the performance tier.
-6. Redeploy production.
-
-The same setting is also available through the Vercel Project API as
-`resourceConfig.functionDefaultMemoryType`. The `webconsulting` production
-project has been switched from `standard` to `performance`.
-
-On Hobby, the memory/CPU size is fixed by Vercel. You cannot increase it for a
-free test deployment.
-
-For this public demo, "Pro/performance CPU" means the project is using Vercel's
-higher Function CPU class available on Pro, not the default standard CPU tier.
-That should make PHP bootstrap, TYPO3 backend rendering, image processing, and
-Composer-autoload-heavy work faster once the container is already running.
-
-More memory can help CPU-heavy PHP work, image processing, or memory pressure.
-It will not remove all TYPO3 backend latency because uncached backend requests
-still need PHP bootstrap, database/session work, and sometimes a fresh Vercel
-runtime start.
-
-The practical result:
-
-- performance CPU improves warm request time
-- `fra1` improves European latency when the database is nearby
-- neither setting guarantees instant first requests after inactivity
-- occasional 10+ second cold starts are still possible with Vercel Container
-  Images
-
-## TYPO3 Cache Backend
-
-On Vercel, this starter defaults page, hash, and rootline caches to TYPO3's file
-backend:
+For public brochure pages:
 
 ```dotenv
-TYPO3_CACHE_BACKEND=file
+TYPO3_VERCEL_EDGE_CACHE_TTL=300
+TYPO3_VERCEL_EDGE_CACHE_STALE_WHILE_REVALIDATE=600
 ```
 
-Those cache files live under the runtime `/tmp` state and are disposable. This
-is intentional for Vercel: content and sessions belong in the real database,
-but generated caches can be rebuilt per instance.
+The TYPO3 middleware sets Vercel CDN headers only when all of these are true:
 
-The default free-demo database is explicitly:
-
-```dotenv
-TYPO3_DB_DRIVER=pdo_sqlite
-TYPO3_DB_DBNAME=/tmp/typo3/camino.sqlite
-```
-
-If these are present in Vercel as empty env vars, set them to the values above
-or remove them. Empty overrides can make the runtime fall back to the wrong DB
-driver and make backend behavior inconsistent.
-
-Use this if warm frontend speed matters. Use this instead if you prefer shared
-cache rows in the database:
-
-```dotenv
-TYPO3_CACHE_BACKEND=database
-```
-
-## Redis Cache
-
-The image includes the PHP Redis extension, and TYPO3 can use Redis for
-`hash`, `pages`, and `rootline` caches. The public demo now uses Redis Cloud
-through the Vercel Marketplace:
-
-```dotenv
-TYPO3_CACHE_BACKEND=redis
-TYPO3_REDIS_REQUIRED=1
-TYPO3_REDIS_PREFIX=typo3-camino-vercel:
-REDIS_URL=<provided-by-vercel-marketplace>
-```
-
-Use Redis only with a real `redis://` or `rediss://` TCP/TLS endpoint close to
-the Vercel region. Vercel KV is no longer available for new projects; Vercel's
-current Redis path is a Marketplace Redis integration. Upstash/Vercel REST
-variables such as `KV_REST_API_URL` are not enough for TYPO3's native Redis
-backend.
-
-Redis can help when many Vercel containers need shared warm caches. In this
-demo it improved the measured warm backend path. It still does not solve cold
-starts, SQL session durability, or file durability.
-
-See [redis-cache.md](redis-cache.md) for setup, supported env variables,
-costs, and troubleshooting.
-
-## Optional Edge HTML Cache
-
-The included middleware can opt anonymous public HTML into Vercel shared-cache
-headers:
-
-```dotenv
-TYPO3_VERCEL_EDGE_CACHE_TTL=600
-TYPO3_VERCEL_EDGE_CACHE_STALE_WHILE_REVALIDATE=3600
-```
-
-It only changes responses when all of these are true:
-
-- request method is `GET` or `HEAD`
-- path is not `/typo3` and not `/api`
-- request has no query string
-- request has no `Cookie` header
-- response status is `200`
-- response is HTML
+- method is `GET` or `HEAD`
+- no Cookie header or parsed cookies
+- no query string
+- path is outside `/typo3` and `/api`
+- response is HTTP 200 HTML
 - response has no `Set-Cookie`
 
-Do not enable this blindly for pages with personalization, frontend login,
-forms, carts, previews, or uncached plugins. Keep the TTL short until the site
-is tested.
+This path can completely avoid PHP and its cold start for eligible cached
+requests. It is off by default because TYPO3 editors may expect a publication
+to appear immediately and many sites contain forms or personalization.
 
-The middleware sends `Cache-Control: public, max-age=0` to browsers and uses
-`CDN-Cache-Control` plus `Vercel-CDN-Cache-Control` for the shared cache. Check
-`x-vercel-cache` in the response headers to confirm `HIT` after the first
-request.
+## What Not To Expect
 
-## Cold Starts
+The warm-up is not a formal minimum-instance reservation. Cold activation can
+still happen:
 
-Normal production startup should not run setup work. After the first successful
-database setup:
+- immediately after a deployment
+- during scale-out when Vercel creates another instance
+- after a failed or delayed cron invocation
+- after infrastructure maintenance or runtime eviction
+- when the project is deployed with `vercel.json` instead of `vercel.pro.json`
+
+For a strict latency SLO that forbids any cold request, use a platform with an
+always-on/minimum-instance guarantee or wait for Vercel to expose one for this
+runtime.
+
+## Cost Of Warming
+
+A three-minute schedule produces:
+
+```text
+20 invocations/hour
+480 invocations/day
+14,400 invocations/30-day month
+```
+
+Warm executions should be short. At current Functions active-CPU and
+provisioned-memory pricing, the incremental compute is expected to be in the
+cents to low single-digit dollars per month for this small demo, before plan
+credits. That is an estimate, not a promise. Measure the endpoint duration in
+Vercel Observability and apply current regional rates. The Pro subscription is
+the larger fixed prerequisite.
+
+## TYPO3 Runtime Settings
+
+### OPcache
+
+Enabled settings include:
+
+- 256 MB shared memory
+- 40,000 accelerated files
+- timestamp validation disabled for immutable deployments
+- 32 MB interned-string buffer
+- CLI OPcache enabled for Scheduler jobs
+
+JIT is disabled. It did not improve the measured framework and I/O-heavy path.
+
+Two build-time file-cache experiments were rejected:
+
+- compiling the whole codebase added about 306 MB
+- a targeted cache saved roughly one second locally but added about 88 MB
+
+The extra image weight conflicts with the main Vercel activation goal.
+
+### PHP-FPM
+
+The pool starts two workers and can grow to eight. Two initial workers allow a
+cron request to issue its local frontend/backend warm-up requests without
+deadlocking the only PHP worker.
+
+### Boot Work
+
+Keep these off after first database initialization:
 
 ```dotenv
 TYPO3_AUTO_SETUP=0
@@ -330,55 +202,122 @@ TYPO3_EXTENSION_SETUP_ON_BOOT=0
 TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=0
 ```
 
-Set `TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=1` only for one deploy after rotating
-`TYPO3_SETUP_ADMIN_PASSWORD`, then set it back to `0`.
+Running schema setup, extension setup, and password hashing on every activation
+adds latency and risks competing writes from multiple instances.
 
-Set `TYPO3_EXTENSION_SETUP_ON_BOOT=1` only for one deploy after adding/removing
-TYPO3 packages against an existing durable database, then set it back to `0`.
+### Temporary Files And Images
 
-The template includes `/_vercel_keepalive.php`, a lightweight endpoint for a
-Pro Vercel Cron or external scheduler. Vercel Hobby cron jobs can run only once
-per day, so this endpoint is not scheduled by default in `vercel.json`.
+TYPO3, PHP sessions, locks, ImageMagick, and Ghostscript use writable paths
+below `/tmp/typo3`. This is correct for temporary work but not durable storage.
+Final uploads and processed FAL derivatives must use Blob or S3/R2.
 
-## Temporary Files And Image Processing
+Normal backend upload size is 4 MB because Vercel Functions reject total request
+bodies above 4.5 MB. Increasing PHP's `upload_max_filesize` cannot bypass the
+platform limit.
 
-The container includes GraphicsMagick and Ghostscript. TYPO3 is configured for:
+## Database Performance
 
-```dotenv
-TYPO3_GFX_PROCESSOR=GraphicsMagick
-TYPO3_GFX_PROCESSOR_PATH=/usr/bin/
+The database should be in or near `fra1` for the public demo. Every TYPO3 request
+performs multiple queries, so network round-trip time compounds.
+
+Use the provider's pooled connection endpoint when available. Avoid performing
+DDL or setup work on normal starts. A database that suspends on its own free tier
+can add a second independent cold start; measure it separately from Vercel.
+
+SQLite is fast locally but invalid for production Vercel behavior because
+instances do not share `/tmp`.
+
+## Redis Performance
+
+Redis shares TYPO3 `pages`, `hash`, and `rootline` caches across instances. It
+can improve warm backend/frontend work and reduce duplicate cache builds.
+
+It cannot:
+
+- keep the Container Image active
+- replace the SQL database
+- make sessions reliable when the database is temporary
+- make files durable
+- make Solr durable
+
+Use a nearby TCP/TLS endpoint and short connection timeout. Persistent sockets
+are off by default because a reused Vercel process can retain a socket that the
+cloud Redis service has already closed.
+
+## Solr Benchmarks
+
+Local benchmark set with six Camino documents:
+
+| Operation | Runs | Min | Median | Mean | p95 / max |
+|---|---:|---:|---:|---:|---:|
+| Direct query | 50 | 2.0 ms | 3.1 ms | 3.7 ms | 7.0 / 9.3 ms |
+| Update + commit | 20 | 27.7 ms | 34.3 ms | 35.3 ms | 38.1 / 60.5 ms |
+| TYPO3 full rebuild | 10 | 1.043s | 1.108s | 1.151s | 1.550s max |
+| Full TYPO3 search page | 30 | 26.3 ms | 27.2 ms | 29.9 ms | 28.8 / 106 ms |
+
+The internal service is fast when active. Its index is not durable, so these
+figures do not change the production recommendation to use external Solr.
+
+## Benchmark Procedure
+
+Record cold and warm samples separately. A useful curl probe is:
+
+```bash
+curl -sS -o /dev/null \
+  -w 'status=%{http_code} connect=%{time_connect} ttfb=%{time_starttransfer} total=%{time_total}\n' \
+  https://typo3-camino-vercel.vercel.app/
 ```
 
-The entrypoint points PHP upload temp files, normal temp files, and
-GraphicsMagick temp files into writable runtime storage:
+Test at least:
+
+- `/`
+- `/typo3/`
+- `/typo3/ajax/login/preflight`
+- `/search?tx_solr%5Bq%5D=camino`
+- `/api/health.php`
+
+For a genuine scale-to-zero sample, disable the Pro warmer or use an isolated
+preview and wait beyond its documented idle window. Do not call a request
+"cold" merely because it was the first curl in a local loop.
+
+For warm percentiles, make 30 or more requests, preserve individual samples,
+and report median, p95, maximum, HTTP status, deployment SHA, region, and date.
+
+## Health And Observability
+
+Public shallow check:
 
 ```text
-/tmp/typo3/tmp
-/tmp/typo3/gm
-/tmp/typo3/php-sessions
+GET /api/health.php
 ```
 
-`public/typo3temp`, `public/fileadmin`, and `var` are symlinked to `/tmp` on
-Vercel, and TYPO3 lock files are forced to `/tmp/typo3/var/lock`. That supports
-TYPO3's normal temporary files, image processing, lock files, and cache files,
-but runtime files are disposable. Durable editor uploads still need object
-storage.
+Authenticated deep read/write check:
 
-## Vercel Package
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" \
+  'https://example.vercel.app/api/health.php?deep=1&write=1'
+```
 
-For the public `webconsulting` demo, the Vercel project is on the performance
-CPU class and pinned to `fra1`. That improves warm PHP work, but it does not
-remove Vercel cold starts.
+The write check validates database, Redis, Blob put/read/delete, Solr, and
+writable temporary paths. It deletes its Blob probe object.
 
-For new clones, start with:
+Alert on:
 
-1. durable database in the same region as the function
-2. `TYPO3_CACHE_BACKEND=file`
-3. optional Redis only when shared TYPO3 cache state is needed
-4. optional edge HTML cache for anonymous pages
-5. startup flags set to `0` after one-shot setup work is complete
-6. object storage for durable uploads
+- warm-up cron non-200 responses
+- cold p95 separately from warm p95
+- DB and Redis connection time
+- Solr readiness/startup time
+- Blob write probe failures
+- deployment SHA mismatches
 
-On Pro/Enterprise, raise the Vercel memory/CPU tier when backend PHP work,
-image processing, or logs show CPU or memory pressure. On Hobby, that tier is
-fixed.
+## Verdict
+
+Warm TYPO3 and Solr are fast enough for this demo and ordinary editorial work.
+The runtime overhaul reduces activation weight substantially, and the Pro cron
+addresses the five-minute idle window directly. Edge caching can remove the
+origin from eligible anonymous requests.
+
+The remaining risk is platform activation during deploys, scale-out, eviction,
+or missed warm-ups. More PHP tuning cannot eliminate that lifecycle. The
+long-term product solution is a Vercel minimum-instance control; the alternative
+today is always-on infrastructure.

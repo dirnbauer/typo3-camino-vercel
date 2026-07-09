@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+$root = dirname(__DIR__, 3);
+require_once $root . '/scripts/typo3-env.php';
+typo3_vercel_export_request_oidc_token();
+
 $secret = getenv('CRON_SECRET');
 $authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
 
@@ -29,7 +33,6 @@ if (!hash_equals('Bearer ' . $secret, $authorization)) {
     exit;
 }
 
-$root = dirname(__DIR__, 3);
 $action = isset($_GET['action']) ? (string)$_GET['action'] : 'setup';
 
 if ($action === 'probe') {

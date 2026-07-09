@@ -73,14 +73,31 @@
                 </config>
             </defaultFolder>
             <cacheControlMaxAge>
-                <label>Cache-Control max-age for new blobs</label>
-                <description>Seconds. 31536000 is one year.</description>
+                <label>Cache max-age for editor files</label>
+                <description>Seconds. Keep this bounded because TYPO3 can replace a file at the same pathname.</description>
+                <config>
+                    <type>number</type>
+                    <default>3600</default>
+                    <size>10</size>
+                </config>
+            </cacheControlMaxAge>
+            <processedCacheControlMaxAge>
+                <label>Cache max-age for processed files</label>
+                <description>Seconds. Hashed TYPO3 derivatives can safely use a long cache lifetime.</description>
                 <config>
                     <type>number</type>
                     <default>31536000</default>
                     <size>10</size>
                 </config>
-            </cacheControlMaxAge>
+            </processedCacheControlMaxAge>
+            <processingFolder>
+                <label>Processing folder</label>
+                <config>
+                    <type>input</type>
+                    <default>_processed_</default>
+                    <size>30</size>
+                </config>
+            </processingFolder>
             <caseSensitive>
                 <label>Case-sensitive identifiers</label>
                 <config>

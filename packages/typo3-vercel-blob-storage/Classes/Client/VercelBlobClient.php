@@ -70,14 +70,15 @@ final class VercelBlobClient
     /**
      * @return array<int, array{pathname: string, size: int, uploadedAt: string, url?: string, etag?: string}>
      */
-    public function listPathnames(string $prefix): array
+    public function listPathnames(string $prefix, ?int $limit = null): array
     {
         $cursor = null;
         $items = [];
 
         do {
+            $pageLimit = $limit === null ? 1000 : max(1, min(1000, $limit - count($items)));
             $query = [
-                'limit' => '1000',
+                'limit' => (string)$pageLimit,
                 'prefix' => $prefix,
             ];
             if ($cursor !== null) {
@@ -97,6 +98,9 @@ final class VercelBlobClient
                         'url' => isset($blob['url']) && is_string($blob['url']) ? $blob['url'] : null,
                         'etag' => isset($blob['etag']) && is_string($blob['etag']) ? $blob['etag'] : null,
                     ];
+                    if ($limit !== null && count($items) >= $limit) {
+                        break 2;
+                    }
                 }
             }
 
@@ -239,6 +243,9 @@ final class VercelBlobClient
             try {
                 $requestOptions = $options;
                 $requestOptions['headers']['x-api-blob-request-attempt'] = (string)$attempt;
+                if (isset($requestOptions['body']) && is_resource($requestOptions['body'])) {
+                    rewind($requestOptions['body']);
+                }
                 return $this->httpClient->request($method, $url, $requestOptions);
             } catch (ServerException $exception) {
                 $attempt++;
@@ -249,7 +256,11 @@ final class VercelBlobClient
             } catch (ClientException $exception) {
                 throw $exception;
             } catch (GuzzleException $exception) {
-                throw new \RuntimeException('Vercel Blob request failed: ' . $exception->getMessage(), 1720100003, $exception);
+                $attempt++;
+                if ($attempt > $this->retries) {
+                    throw new \RuntimeException('Vercel Blob request failed: ' . $exception->getMessage(), 1720100003, $exception);
+                }
+                usleep(150000 * $attempt);
             }
         } while (true);
     }
@@ -278,6 +289,10 @@ final class VercelBlobClient
      */
     private function readHeaders(): array
     {
+        if ($this->access === 'public') {
+            return [];
+        }
+
         return [
             'authorization' => 'Bearer ' . $this->token,
         ];

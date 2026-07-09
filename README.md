@@ -2,248 +2,25 @@
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fdirnbauer%2Ftypo3-camino-vercel&project-name=typo3-camino-vercel&repository-name=typo3-camino-vercel&demo-title=TYPO3+Camino+on+Vercel&demo-description=Community+Vercel+container+starter+for+TYPO3+14.3+using+the+TYPO3+Camino+distribution.+Not+an+official+TYPO3+package.&demo-url=https%3A%2F%2Ftypo3-camino-vercel.vercel.app&demo-image=https%3A%2F%2Ftypo3-camino-vercel.vercel.app%2Ftemplate-preview.png&from=templates&env=TYPO3_SETUP_ADMIN_USERNAME%2CTYPO3_SETUP_ADMIN_PASSWORD%2CTYPO3_ENCRYPTION_KEY&envDefaults=%7B%22TYPO3_SETUP_ADMIN_USERNAME%22%3A%22admin%22%7D&envDescription=Choose+a+backend+username%2C+set+a+strong+random+backend+password%2C+and+paste+a+stable+96-character+hex+TYPO3+encryption+key.+The+Deploy+Button+creates+a+public+Vercel+Blob+store+for+durable+uploaded+files.+Add+a+real+database+later+for+stable+backend+login+and+durable+content.&envLink=https%3A%2F%2Fgithub.com%2Fdirnbauer%2Ftypo3-camino-vercel%2Fblob%2Fmain%2Fdocs%2Fquickstart.md&stores=%5B%7B%22type%22%3A%22blob%22%2C%22access%22%3A%22public%22%7D%5D)
 
-This is not an official TYPO3 package. It is a community Vercel container
-starter for TYPO3 14.3 that uses the TYPO3 Camino distribution, packaged as a
-PHP 8.4 Apache container for Vercel Container Images.
+This is **not an official TYPO3 package**. It is a community starter that uses
+the official TYPO3 Camino distribution and packages TYPO3 14.3 as a PHP 8.4
+FPM, nginx, Alpine Linux Vercel Container Image.
 
-This is a lab/template starter, not a production recommendation for every
-TYPO3 project. It is useful for testing Vercel's container support with TYPO3
-and for learning what works well on a stateless platform.
+Live demo: [typo3-camino-vercel.vercel.app](https://typo3-camino-vercel.vercel.app)
 
-## Install TYPO3 On Vercel
+## Install In One Click
 
-This is the shortest safe path for non-technical testing.
+This path is suitable for a disposable test and does not require a database.
 
 1. Click **Deploy with Vercel**.
-2. Sign in to Vercel or create a free Hobby account.
-3. Choose your personal account or team.
-4. Keep the Vercel Blob store enabled when Vercel asks for storage. The button
-   creates a public Blob store for uploaded TYPO3 images and files.
-5. Enter the TYPO3 setup values:
+2. Sign in to Vercel. A Hobby account is enough for the initial test.
+3. Keep the public Vercel Blob store selected. It makes uploaded files durable.
+4. Enter these three values:
 
 ```dotenv
 TYPO3_SETUP_ADMIN_USERNAME=admin
-TYPO3_SETUP_ADMIN_PASSWORD=<your-own-strong-password>
+TYPO3_SETUP_ADMIN_PASSWORD=<your-own-long-random-password>
 TYPO3_ENCRYPTION_KEY=<96-random-hex-characters>
-```
-
-There are no Blob fields to fill in. Vercel creates the Blob token for the
-project, and this starter automatically uses the `vercel_blob` FAL driver when
-that token exists.
-
-6. Click **Deploy** and wait until Vercel shows the project URL.
-7. Open the site. The TYPO3 backend is available at `/typo3/`.
-
-To create the encryption key on macOS, open **Terminal**, paste this command,
-and copy the output into `TYPO3_ENCRYPTION_KEY`:
-
-```bash
-openssl rand -hex 48
-```
-
-Keep the encryption key and backend password in your own password manager.
-Never put the password, encryption key, database URL, or Blob token into a
-public GitHub file.
-
-## What You Get After One Click
-
-A fresh free clone gives you:
-
-- a working TYPO3 14.3 Camino frontend
-- a TYPO3 backend login for short tests
-- durable uploaded files when the Vercel Blob store is accepted
-- a pre-seeded SQLite demo database so the site starts without database setup
-
-The important limitation is the database. Without a real database, TYPO3
-content changes and backend sessions are still temporary. The backend can log
-you out after a few seconds because the free demo database lives in Vercel
-runtime storage, not in a shared durable database.
-
-For a real test site, add:
-
-- a durable database through `DATABASE_URL`
-- Vercel Blob storage from the Deploy Button, or S3-compatible object storage
-- optional external Apache Solr for TYPO3 search
-
-For a stable backend login, the durable database is required. For durable
-editor uploads, Blob or S3-compatible object storage is required. If you accept
-the Blob store during the Deploy Button flow, the file part is already wired.
-
-## Important: Database Data And Login Are Temporary Until You Add A DB
-
-Say this loudly: the one-click deploy can make files durable through Vercel
-Blob, but it does not make TYPO3's database durable.
-
-- You can upload files in TYPO3, and they are durable if Blob is enabled.
-- You can edit pages and records.
-- Those page/content/database changes can disappear without a real database.
-- The backend can log you out after a few seconds without a real database.
-
-Why: the free clone uses SQLite inside the Vercel runtime. TYPO3 stores backend
-sessions in the database table `be_sessions`. Vercel can start more than one
-runtime instance, and those instances do not share the SQLite file in `/tmp`.
-
-For all-Vercel file storage, this starter uses
-the `vercel_blob` FAL driver automatically when a Vercel Blob store is
-connected. For S3-compatible storage, use `TYPO3_OBJECT_STORAGE_DRIVER=vercel_s3`
-and the `TYPO3_S3_*` bucket variables. When object storage is enabled, the
-container verifies storage on boot and creates the TYPO3 upload, processing,
-and temp folders there. If credentials are wrong, startup fails loudly instead
-of pretending uploads are safe. To disable automatic Blob storage in a test
-project, set `TYPO3_OBJECT_STORAGE_ENABLED=0`.
-
-## Current Public Demo State
-
-The public demo at https://typo3-camino-vercel.vercel.app is no longer the
-bare one-click state. It is configured with a durable database, Vercel Blob
-object storage, and Redis Cloud cache through the Vercel Marketplace. New
-clones do not inherit those resources; they still need the database and Redis
-setup described below. File storage is easier: the Deploy Button can create a
-new Vercel Blob store for the clone.
-
-Measured on 2026-07-07 against the live Vercel deployment after enabling Redis,
-all tested routes returned `200`:
-
-- frontend `/`: first hit after deploy 12.57s, warm median 0.046s
-- backend login `/typo3/`: warm median 0.125s, range 0.110-0.168s
-- backend login preflight Ajax: warm median 0.100s, range 0.083-0.157s
-- later backend cold check: `/typo3/` once at 10.15s, then 0.21-0.24s
-
-Before Redis, the latest warm backend sample was about 0.23-0.41s for
-`/typo3/` and 0.16-0.25s for login preflight. Redis helped the measured warm
-backend path, but it did not remove Vercel container cold starts. The public
-demo uses Vercel Pro/performance CPU in `fra1` Frankfurt, which helps warm PHP
-work but does not make every first request instant.
-
-Measured on 2026-07-08 after adding the internal demo Solr service, `/search`
-can return `200` once the Solr service is warm. The service now self-seeds the
-six Camino demo search documents on startup because runtime writes to a
-separate Vercel Solr service can hit a different fresh service instance. First
-Solr-touching requests still have real cold-start cost. Vercel can return
-HTTP `500 Starting...` from the internal service gateway before the Solr
-container can answer. The repo therefore routes TYPO3's internal demo Solr
-connection through a loopback-only app proxy that retries those startup
-responses, and the Camino search renderer still catches warmup failures instead
-of showing a TYPO3 exception. Warm `/` and `/search` requests stayed fast.
-Latest live check after the proxy fix: full protected Solr probe returned
-`200` for cores, ping, and select in about 0.56s warm; public `/search` returned
-six Camino results in about 7s during the post-deploy warmup window.
-
-Measured on 2026-07-09: warm direct Solr search is fast enough for the demo
-(100-doc benchmark: search median 0.071s, update+commit median 0.106s), but the
-uncached public TYPO3 search page still has Vercel/container outliers
-(22-request MISS sample: median 1.29s, p95 10.33s). Verdict: Solr itself is
-fast; full search-page p95 is demo/prototype-grade, not strict production-grade.
-See [docs/performance.md](docs/performance.md) and [docs/solr.md](docs/solr.md).
-
-For a product-manager level summary of what worked, what was coded, what got
-faster, and what Vercel could improve, see
-[docs/vercel-product-manager-summary.md](docs/vercel-product-manager-summary.md).
-
-## Durable Free Demo: Still Free, But The Database Needs Setup
-
-Yes, a truly durable demo can still be free, but only if every part stays inside
-its provider's free quota.
-
-Best practical zero-cost shape:
-
-- Vercel Hobby for the container, personal/non-commercial use only.
-- Free database: TiDB Cloud MySQL-compatible, Neon Postgres, or Supabase Postgres.
-- Free object storage: Vercel Blob on Hobby within limits, or Cloudflare R2.
-- TYPO3 storage integration: `vercel_blob` for Vercel Blob, `vercel_s3` for R2/S3.
-
-What this means today:
-
-- A fresh one-click clone is free and can have durable uploaded files through
-  the Blob store created by the Deploy Button.
-- A fully durable TYPO3 demo still needs a real database, so content and backend
-  sessions survive runtime restarts.
-- Vercel Blob is wired through the included Blob FAL driver.
-- Cloudflare R2 can still be wired through the included S3-compatible FAL driver.
-- It stays free only while usage remains inside all free-tier limits.
-
-## What Works
-
-- Free one-click Vercel smoke deploy with a pre-seeded Camino SQLite demo
-  database. The image build runs TYPO3 extension setup so the seed DB already
-  includes tables for installed extensions such as EXT:solr.
-- Deploy Button-created Vercel Blob store for durable editor uploads.
-- Stable backend login when a durable SQL database is configured.
-- TYPO3 14.3 Composer install with Camino and the current TYPO3 CMS system
-  package set included.
-- Serverless-style runtime paths: TYPO3 writes to `/tmp`, not durable image paths.
-  TYPO3 locks are explicitly routed to `/tmp/typo3/var/lock` so page rendering,
-  Scheduler runs, and Solr requests do not try to write into the immutable image.
-- Durable external SQL database support through `DATABASE_URL` or TYPO3 DB env vars.
-- Durable editor uploads through Vercel Blob or the S3-compatible TYPO3 FAL driver.
-- Vercel Cron compatible endpoint for running TYPO3 Scheduler tasks.
-- Vercel Firewall/WAF in front of the container.
-- Vercel region pinning and runtime-local TYPO3 caches for faster warm requests.
-- A daily Vercel Cron entry that calls the protected TYPO3 Scheduler endpoint.
-  It is intentionally daily so free/Hobby clones still deploy; Pro projects can
-  change it to a faster schedule for small queue batches.
-  With the internal Vercel Solr demo service, the endpoint returns a safe skip
-  because that service self-seeds its demo index. With managed/external Solr,
-  it runs the real TYPO3 Scheduler tasks for indexing.
-- Optional Redis cache through Vercel Marketplace Redis/Redis Cloud for shared
-  TYPO3 `hash`, `pages`, and `rootline` caches.
-- Optional EXT:solr 14.0 beta integration for Apache Solr 10. Production should
-  use managed Solr. The repo also includes an internal Vercel Solr container
-  service for demos only. That service self-seeds the Camino demo documents on
-  every service instance. The repo also has an idempotent `/search` page setup
-  command and protected setup endpoint. Runtime indexing is skipped by default
-  for the internal service; managed Solr can enable it with
-  `TYPO3_SOLR_INDEX_ON_SETUP=1`.
-  The demo `/search` page uses a dedicated `vercel_solr_demo_results` content
-  element with a small Camino renderer that queries Solr and handles Vercel
-  service warmup without showing a TYPO3 exception.
-  Frontend search needs
-  `TYPO3_SOLR_APPLY_SITE_SET=1`; create the demo search page with the protected
-  endpoint after deploy, not during container boot. The default Solr site set is
-  Camino-compatible and avoids the official EXT:solr site set dependency on
-  Fluid Styled Content.
-- Optional Vercel CDN caching for anonymous public frontend HTML.
-- Production exception summaries go to Vercel runtime logs without exposing
-  debug stack traces to visitors.
-- Vercel memory/CPU can be raised on Pro/Enterprise in the dashboard or project
-  API. The public demo project uses the performance CPU class and `fra1`.
-  Hobby/free test deployments use Vercel's fixed size.
-
-## What Does Not Work
-
-- No Linux daemon cron inside the container. Use Vercel Cron or an external cron service.
-- Multi-hour jobs, including large Solr reindexes, must run as small Scheduler
-  batches or on an external worker. One Vercel request is not a multi-hour job
-  runner.
-- No durable local filesystem. Runtime writes in `/tmp`, `var/`, or `fileadmin/` can disappear.
-- SQLite is demo-only on Vercel. It is not reliable for TYPO3 backend sessions.
-- Editor uploads are not durable if the Blob store is skipped and no
-  S3-compatible object storage is configured.
-- Vercel's deployment File API is not a replacement for Vercel Blob. It uploads
-  deployment/build files, not runtime TYPO3 editor uploads.
-- The included Vercel Solr container service is demo-only. Its index state is
-  runtime state, not durable production storage. To keep the public demo
-  usable, the Solr service self-seeds the static Camino demo documents on every
-  instance startup. Runtime indexing from TYPO3 into that service is still not a
-  production-safe or durable search architecture. Use a managed/external Solr 10
-  endpoint for production search indexes.
-- Vercel Cron is not a full worker queue. For Solr, create the EXT:solr Index
-  Queue Worker Scheduler task through the protected setup endpoint when using
-  managed Solr, then process small batches through `/api/cron/typo3-scheduler.php`.
-- This starter is not a GDPR/legal compliance guarantee.
-
-## Quick Demo
-
-1. Click **Deploy with Vercel** and choose your personal Hobby account for the
-   free demo.
-2. Keep the public Vercel Blob store enabled if you want uploaded files to
-   survive redeploys and runtime restarts.
-3. Enter these required values in the Vercel form:
-
-```dotenv
-TYPO3_SETUP_ADMIN_USERNAME=admin
-TYPO3_SETUP_ADMIN_PASSWORD=<strong-random-password>
-TYPO3_ENCRYPTION_KEY=<96-random-hex-chars>
 ```
 
 Generate the encryption key locally:
@@ -252,120 +29,148 @@ Generate the encryption key locally:
 openssl rand -hex 48
 ```
 
-4. Deploy and open the frontend.
+5. Click **Deploy** and wait until the deployment state is **Ready**. A Git
+   push is not immediately online because Vercel must build and activate the
+   container images first.
+6. Open the generated site URL. The backend is at `/typo3/`.
 
-The first deploy uses the seeded SQLite demo database unless you add a real
-database. For a real database, read [docs/database.md](docs/database.md) before
-deploying.
+There is no shared default password. The username and password are exactly the
+values entered during deployment. Store both the password and encryption key in
+a password manager; never commit them to Git.
 
-For a fresh free clone, you can leave `DATABASE_URL` empty. The demo database
-can reset when Vercel replaces the runtime container, so use that mode only for
-testing the package and Camino frontend. Backend login needs a durable database
-before you rely on it.
+## Important Durability Warning
 
-## Deployment Timing And Deploy Now
+> **The one-click SQLite database is temporary. It is only a smoke test. Page
+> changes, records, backend sessions, and extension state can disappear or differ
+> between Vercel instances until a real database is connected.**
 
-A Git push is not immediately online: Vercel must finish a production
-deployment and show `Ready` before the live `.vercel.app` alias changes.
+The Blob store fixes files, not database data. Use this matrix when deciding
+what the deployment can safely do:
 
-To deploy now from the Vercel dashboard, open the project, go to
-**Deployments**, open the newest deployment, and click **Redeploy**.
+| Concern | One-click Hobby test | Durable setup |
+|---|---|---|
+| Frontend demo | Yes | Yes |
+| Backend login | Short tests only | Stable with SQL database |
+| Pages and records | Temporary SQLite | Durable SQL database |
+| Uploaded files | Durable when Blob was accepted | Vercel Blob or S3/R2 |
+| Generated image derivatives | Durable through the FAL storage | Vercel Blob or S3/R2 |
+| Scheduler | Once daily on Hobby | Frequent Vercel Cron on Pro |
+| Solr | Self-seeded, temporary demo index | External managed Solr 10 |
+| Cold-start prevention | No frequent Hobby cron | Three-minute Pro warm-up |
 
-To deploy now from this repository with the Vercel CLI:
+A practical durable free demo can still cost zero while every provider remains
+inside its free allowance:
 
-```bash
-vercel deploy --prod --scope webconsulting --regions fra1 --yes
-```
+- Vercel Hobby for personal, non-commercial testing
+- a free PostgreSQL database such as Neon or Supabase, or a free
+  MySQL-compatible TiDB Cloud database
+- Vercel Blob within its Hobby allowance, or Cloudflare R2
 
-For a fork under your own Vercel account, omit `--scope webconsulting` or
-replace it with your own team scope.
+It is free only while every service remains inside its current free-tier limits.
+The database is an additional setup step, so a fully durable demo is not yet a
+literal one-click deployment.
 
-## Local Development With DDEV
+## Add A Real Database
 
-This repo includes a DDEV setup for local TYPO3 work:
-
-```bash
-ddev start
-ddev composer install
-```
-
-DDEV is configured for PHP 8.4, matching the Vercel container. It also includes
-a local Solr service pinned to the TYPO3 14 compatible EXT:solr 14 configset.
-See [docs/solr.md](docs/solr.md) for the local Solr commands.
-
-## Production Shape
-
-For anything beyond a short test, use:
+Create a database near the Vercel compute region and add its pooled connection
+URL as a Production environment variable:
 
 ```dotenv
-TYPO3_CONTEXT=Production/Vercel
+DATABASE_URL=postgresql://user:password@host/database?sslmode=require
+```
+
+MySQL and MySQL-compatible services also work:
+
+```dotenv
+DATABASE_URL=mysql://user:password@host:3306/database?ssl-mode=REQUIRED
+```
+
+For a new empty database, temporarily set:
+
+```dotenv
 TYPO3_AUTO_SETUP=1
 TYPO3_BOOTSTRAP_EMPTY_DATABASE=1
-TYPO3_SETUP_DISTRIBUTION=theme_camino
-TYPO3_SETUP_ADMIN_USERNAME=admin
-TYPO3_SETUP_ADMIN_PASSWORD=<strong-random-password>
-TYPO3_SETUP_ADMIN_EMAIL=admin@example.com
-TYPO3_PROJECT_NAME=TYPO3 Camino
-TYPO3_ENCRYPTION_KEY=<96-random-hex-chars>
-TYPO3_TRUSTED_HOSTS_PATTERN=(.+\.)?vercel\.app
-DATABASE_URL=<durable-postgres-or-mysql-url>
-TYPO3_CACHE_BACKEND=file
-TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=0
-TYPO3_EXTENSION_SETUP_ON_BOOT=0
 ```
 
-For durable uploads with Vercel Blob, the Deploy Button path needs no extra
-Blob env fields. Vercel creates `BLOB_READ_WRITE_TOKEN`, and the starter
-auto-enables Blob storage when that token exists.
+Deploy once, verify the frontend and backend, then set both values back to `0`
+and deploy again. This removes avoidable database checks and writes from every
+new container start. See [Database setup](docs/database.md) for provider details.
 
-For manual or advanced Vercel Blob setup, create/connect a public Blob store
-and add:
+## Durable Files
+
+The preferred all-Vercel path is the included TYPO3 FAL driver named
+`vercel_blob`. New Blob connections use Vercel OIDC where available and fall
+back to `BLOB_READ_WRITE_TOKEN` for older connections and CLI work. The normal
+Deploy Button flow configures the store automatically.
+
+The repository also keeps a separate `vercel_s3` FAL driver for Cloudflare R2,
+AWS S3, MinIO, and other S3-compatible storage.
+
+Vercel Functions currently impose a 4.5 MB request-body limit. Normal TYPO3
+backend uploads are therefore configured to 4 MB. Larger assets require a
+direct browser-to-Blob upload flow, which this starter does not yet provide.
+
+See [Object storage](docs/object-storage.md) and the
+[Vercel Blob FAL manual](docs/vercel-blob-fal-driver.md).
+
+## Cold Starts
+
+The original public demo showed roughly 10 to 12 second first responses after
+Vercel had scaled the container to zero. Warm frontend and backend requests were
+normally below half a second. The project now addresses the cold path in three
+layers:
+
+1. The TYPO3 image moved from Debian Apache/mod_php to Alpine nginx/PHP-FPM and
+   fell from about 950 MB to about 448 MB, a 53% reduction.
+2. The Solr image fell from about 843 MB to about 589 MB. Five clean local
+   starts were 1.94-3.21 seconds with a 2.48-second median, versus 4.1-4.6
+   seconds before.
+3. `vercel.pro.json` runs a protected warm-up every three minutes. It primes the
+   TYPO3 frontend, `/typo3/`, the database, Redis, and Solr before Vercel's
+   documented five-minute production idle scale-down window.
+
+Deploy the Pro configuration with:
+
+```bash
+vercel deploy --prod -A vercel.pro.json --scope webconsulting --yes
+```
+
+For your own account, omit `--scope webconsulting` or replace it with your team
+slug. Set a long random `CRON_SECRET`; Vercel Cron sends it as a Bearer token:
+
+```bash
+openssl rand -hex 32
+vercel env add CRON_SECRET production
+```
+
+Hobby permits cron only once per day, so the three-minute warm-up is Pro-only.
+Vercel currently exposes no minimum-instance setting for this Container Image
+path. The warm-up greatly reduces normal user-visible cold starts but is not a
+formal zero-cold-start guarantee during deployments, scaling, failures, or cron
+delays. An always-on PHP host is still the strict solution when that guarantee
+is mandatory.
+
+For an anonymous brochure frontend, optional Vercel CDN caching can serve pages
+without invoking TYPO3 at all:
 
 ```dotenv
-TYPO3_OBJECT_STORAGE_ENABLED=1
-TYPO3_OBJECT_STORAGE_DRIVER=vercel_blob
-TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=1
-TYPO3_BLOB_ACCESS=public
-TYPO3_BLOB_PREFIX=typo3/
+TYPO3_VERCEL_EDGE_CACHE_TTL=300
+TYPO3_VERCEL_EDGE_CACHE_STALE_WHILE_REVALIDATE=600
 ```
 
-Vercel supplies `BLOB_READ_WRITE_TOKEN` for connected Blob stores. For
-S3-compatible object storage instead, add:
+Only cookie-free `GET`/`HEAD` HTML without a query string is cached. `/typo3/`,
+`/api/`, responses with `Set-Cookie`, forms, and personalized requests are never
+made public by this middleware. Content can remain cached for the selected TTL,
+so keep it disabled for workflows that require immediate publication.
 
-```dotenv
-TYPO3_OBJECT_STORAGE_ENABLED=1
-TYPO3_OBJECT_STORAGE_DRIVER=vercel_s3
-TYPO3_S3_BUCKET=<bucket>
-TYPO3_S3_REGION=auto
-TYPO3_S3_ENDPOINT=<s3-compatible-endpoint>
-TYPO3_S3_ACCESS_KEY_ID=<access-key>
-TYPO3_S3_SECRET_ACCESS_KEY=<secret-key>
-TYPO3_S3_PUBLIC_BASE_URL=<public-bucket-or-cdn-url>
-TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=1
-```
+Read [Cold starts and performance](docs/performance.md) for benchmarks and cost
+estimates.
 
-The admin password must satisfy TYPO3's password policy: use uppercase,
-lowercase, numbers, and a symbol.
+## Redis
 
-After the first successful setup, set `TYPO3_AUTO_SETUP=0`. For stricter and
-faster production startup, also set `TYPO3_BOOTSTRAP_EMPTY_DATABASE=0`,
-`TYPO3_EXTENSION_SETUP_ON_BOOT=0`, and `TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=0`
-after the database has been initialized.
-
-For faster anonymous frontend pages on Vercel, you may enable the opt-in CDN
-HTML cache:
-
-```dotenv
-TYPO3_VERCEL_EDGE_CACHE_TTL=600
-TYPO3_VERCEL_EDGE_CACHE_STALE_WHILE_REVALIDATE=3600
-```
-
-This only targets anonymous `GET`/`HEAD` HTML requests without cookies, query
-strings, `Set-Cookie`, `/typo3`, or `/api`. Keep it disabled while testing
-forms, frontend user login, personalization, or uncached plugins.
-
-For shared TYPO3 caches, Redis is supported. The easiest Vercel path is the
-official Redis Marketplace integration, which injects `REDIS_URL`. Then set:
+Redis is optional. It makes TYPO3 page, hash, and rootline caches shared across
+instances, but it does not fix cold container activation, replace SQL, or make
+uploads durable. Use a `redis://` or `rediss://` TCP endpoint near `fra1`:
 
 ```dotenv
 TYPO3_CACHE_BACKEND=redis
@@ -373,56 +178,147 @@ TYPO3_REDIS_REQUIRED=1
 TYPO3_REDIS_PREFIX=typo3-camino-vercel:
 ```
 
-Use only real `redis://` or `rediss://` TCP/TLS URLs close to the Vercel
-region. REST-only Redis variables are not enough for TYPO3's native Redis cache
-backend. For small one-container demos, `TYPO3_CACHE_BACKEND=file` can still be
-enough; Redis is mainly useful when shared cache state matters.
+The Vercel Marketplace Redis integration can inject `REDIS_URL`. REST-only
+Redis credentials do not work with TYPO3's native Redis backend. See
+[Redis cache](docs/redis-cache.md).
 
-## Costs For Testing
+## Solr Search
 
-Vercel Hobby is free for personal/non-commercial testing within the plan limits.
-The seeded SQLite demo can run without a paid database or object storage, but
-it is non-durable.
+The repository includes EXT:solr 14 beta, Apache Solr 10 configuration, a Camino
+search page, Scheduler integration, and a separate Vercel Solr Container Image.
+The internal service is useful for demonstrations and self-seeds six Camino
+documents when an instance starts.
 
-For a free or low-cost durable database test:
+It is **not durable production Solr**. Vercel Blob is object storage and cannot
+be mounted as Solr's low-latency live Lucene index at `/var/solr`. Vercel does
+not currently offer a managed durable Solr service or persistent service volume.
+Production must use external managed Solr 10 or always-on infrastructure with a
+durable volume, backups, monitoring, and access control.
 
-- **Postgres:** Neon or Supabase are the easiest Vercel Marketplace options.
-- **MySQL-compatible:** TiDB Cloud has a Vercel integration and free starter quota.
-- **PlanetScale:** MySQL-compatible and integrated with Vercel, but no free plan.
-- **Redis cache:** the official Redis Marketplace integration can start on a
-  free Redis Cloud plan. The public demo currently uses a free 30 MB Redis
-  cache. This is fine for cache testing, not a substitute for the SQL database.
+Local benchmark summary on the current code:
 
-See [docs/costs.md](docs/costs.md) for the current caveats.
+| Operation | Result |
+|---|---:|
+| Direct Solr query, 50 runs | 3.1 ms median, 7.0 ms p95 |
+| Update plus commit, 20 runs | 34.3 ms median, 38.1 ms p95 |
+| TYPO3 rebuild of six demo pages, 10 runs | 1.11 s median, 1.55 s max |
+| Complete TYPO3 search page, 30 runs | 27.2 ms median, 28.8 ms p95 |
 
-## Documentation
+The warm search path is fast enough. Service activation and non-durable index
+state are the reasons not to use the internal service for serious production.
+See [Solr search](docs/solr.md).
 
-- [Vercel Blob FAL driver](docs/vercel-blob-fal-driver.md)
-- [Quickstart](docs/quickstart.md)
-- [Free demo mode](docs/free-demo.md)
-- [Database setup](docs/database.md)
-- [Object storage and durable uploads](docs/object-storage.md)
-- [Redis cache on Vercel](docs/redis-cache.md)
-- [Solr search](docs/solr.md)
-- [Long-running jobs](docs/long-running-jobs.md)
-- [Included TYPO3 packages](docs/typo3-packages.md)
-- [Backend login and sessions](docs/backend-login.md)
-- [Performance notes](docs/performance.md)
-- [Production hardening](docs/production-hardening.md)
-- [Vercel product manager summary](docs/vercel-product-manager-summary.md)
-- [Serverless runtime notes](docs/serverless-runtime.md)
-- [Scheduler and cron](docs/scheduler.md)
-- [Security and firewall](docs/security.md)
-- [GDPR and privacy checklist](docs/gdpr.md)
-- [Operations checklist](docs/operations-checklist.md)
-- [Limitations](docs/limitations.md)
-- [Vercel deployment notes](docs/vercel.md)
+## Scheduler And Long Jobs
 
-## Local Smoke Test
+There is no persistent Linux cron daemon inside a scaled-to-zero container. The
+protected endpoint `/api/cron/typo3-scheduler.php` runs TYPO3 Scheduler from
+Vercel Cron.
+
+- `vercel.json`: Hobby-safe daily Scheduler call
+- `vercel.pro.json`: three-minute warm-up and 15-minute Scheduler call
+- external managed Solr: process bounded index queue batches per invocation
+- multi-hour indexing: use an always-on worker, CI job, or provider job runner
+
+One Vercel request is not a multi-hour process supervisor. See
+[Scheduler](docs/scheduler.md) and [Long-running jobs](docs/long-running-jobs.md).
+
+## Deploy Now
+
+A push starts a deployment; it does not become live immediately. Wait until the
+deployment says **Ready** and the production alias has moved.
+
+Dashboard: open **Deployments**, select the desired commit, open its menu, and
+choose **Redeploy**.
+
+CLI, Hobby-safe configuration:
+
+```bash
+vercel deploy --prod --scope webconsulting --yes
+```
+
+CLI, Pro warm-up configuration:
+
+```bash
+vercel deploy --prod -A vercel.pro.json --scope webconsulting --yes
+```
+
+Git-based deployments read `vercel.json`, which intentionally remains
+Hobby-compatible. The public Pro demo must therefore be deployed with
+`-A vercel.pro.json` after changes if the frequent warm-up is required.
+
+## Local Development
+
+DDEV uses PHP 8.4 and local Solr 10:
+
+```bash
+ddev start
+ddev composer install
+ddev solrctl apply
+ddev exec vendor/bin/typo3 webconsulting:solr-demo:setup --index --scheduler-task
+```
+
+Run the complete local verification:
+
+```bash
+ddev exec Build/Scripts/runTests.sh -s all
+Build/Scripts/runTests.sh -s containers
+```
+
+Some TYPO3 configuration-writing CLI actions can replace
+`config/system/settings.php` with local DDEV values. The test and Docker build
+now fail unless that file still delegates to `scripts/typo3-env.php`; never
+commit a generated DDEV database password or development encryption key there.
+
+Docker Compose remains available for a MariaDB smoke test:
 
 ```bash
 docker compose up --build
-open http://localhost:8080
 ```
 
-The local Compose setup uses MariaDB and initializes TYPO3 automatically.
+## What Works
+
+- TYPO3 14.3, Camino, all TYPO3 CMS system packages, and PHP 8.4
+- durable PostgreSQL or MySQL-compatible databases
+- stable backend sessions with a durable database
+- Vercel Blob and S3-compatible TYPO3 FAL storage
+- ImageMagick, AVIF, WebP, Ghostscript, and writable `/tmp` processing paths
+- Vercel Marketplace Redis through a TCP/TLS connection
+- protected Vercel Cron endpoints
+- EXT:solr with internal demo or external managed Solr 10
+- Vercel Firewall/WAF in front of the public application
+- Pro performance CPU and `fra1` region configuration for the public demo
+
+## What Does Not Work Automatically
+
+- durable TYPO3 database state in the initial SQLite-only clone
+- durable local `var/`, `fileadmin/`, Solr index, or ImageMagick temp files
+- reliable backend sessions without a shared SQL database
+- files larger than Vercel's Function request-body limit through normal FAL upload
+- a Linux daemon, multi-hour Scheduler request, or always-on worker
+- durable production Solr inside the Vercel service without a persistent volume
+- guaranteed zero cold starts on Hobby or without an always-on/minimum-instance feature
+- outgoing email without an external SMTP provider
+- GDPR compliance by configuration alone
+
+## Documentation
+
+Start with the [documentation index](docs/README.md). Important guides:
+
+- [Quickstart](docs/quickstart.md)
+- [Vercel deployment](docs/vercel.md)
+- [Performance and cold starts](docs/performance.md)
+- [Database](docs/database.md)
+- [Object storage](docs/object-storage.md)
+- [Vercel Blob FAL driver](docs/vercel-blob-fal-driver.md)
+- [Redis](docs/redis-cache.md)
+- [Solr](docs/solr.md)
+- [Scheduler](docs/scheduler.md)
+- [Limitations](docs/limitations.md)
+- [Production hardening](docs/production-hardening.md)
+- [Vercel product manager summary](docs/vercel-product-manager-summary.md)
+
+Current plan limits and product behavior can change. Verify them against the
+[Vercel Container Images](https://vercel.com/docs/functions/container-images),
+[Cron Jobs](https://vercel.com/docs/cron-jobs),
+[Function limits](https://vercel.com/docs/functions/limitations), and
+[Blob pricing](https://vercel.com/docs/vercel-blob/usage-and-pricing) pages.
