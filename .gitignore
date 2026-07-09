@@ -1,29 +1,84 @@
+# macOS / Windows / filesystem noise
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Local secrets and Vercel project state
 .env
 .env.*
 !.env.example
-.idea
-nbproject
-/var
-/vendor
+.vercel/
+
+# Editor and IDE state
+.idea/
+.vscode/
+nbproject/
+
+# Dependencies and build artifacts
+/vendor/
+/node_modules/
+
+# TYPO3 runtime state
+/var/
+
+# Public web root: keep only application entrypoints and curated demo assets.
 /public/*
 !/public/.htaccess
-!/public/api
-!/public/api/**
 !/public/index.php
 !/public/_vercel_keepalive.php
 !/public/template-preview.png
-!/public/fileadmin
+!/public/api/
+!/public/api/**
+
+# TYPO3 public runtime directories.
+!/public/typo3temp/
+/public/typo3temp/*
+!/public/typo3temp/index.html
+
+!/public/fileadmin/
+/public/fileadmin/*
 !/public/fileadmin/.htaccess
-!/public/fileadmin/_temp_
+
+# Curated Camino demo files. New editor uploads should go to durable object storage.
+!/public/fileadmin/camino/
+!/public/fileadmin/camino/**
+
+# Keep the seeded processed demo derivatives, but ignore new runtime derivatives.
+!/public/fileadmin/_processed_/
+/public/fileadmin/_processed_/**
+!/public/fileadmin/_processed_/2/
+!/public/fileadmin/_processed_/2/f/
+!/public/fileadmin/_processed_/2/f/csm_camino-frances_143cf2f844.webp
+!/public/fileadmin/_processed_/3/
+!/public/fileadmin/_processed_/3/f/
+!/public/fileadmin/_processed_/3/f/csm_damien-dufour-2mmrxyi13qu-unsplash_923e7e3b44.webp
+!/public/fileadmin/_processed_/5/
+!/public/fileadmin/_processed_/5/9/
+!/public/fileadmin/_processed_/5/9/csm_andrew-milko-lspk43udfo4-unsplash_1ff6eafc3e.webp
+!/public/fileadmin/_processed_/9/
+!/public/fileadmin/_processed_/9/9/
+!/public/fileadmin/_processed_/9/9/csm_camino-portugues_e7c76409db.webp
+!/public/fileadmin/_processed_/a/
+!/public/fileadmin/_processed_/a/7/
+!/public/fileadmin/_processed_/a/7/csm_fef4453b2185eb0e31f704b6224c66087807f19d_4e9d58955a.webp
+
+# Keep TYPO3 safety placeholders only.
+!/public/fileadmin/_temp_/
+/public/fileadmin/_temp_/*
 !/public/fileadmin/_temp_/.htaccess
 !/public/fileadmin/_temp_/index.html
-!/public/fileadmin/camino
-!/public/fileadmin/camino/**
-!/public/fileadmin/user_upload
+
+!/public/fileadmin/user_upload/
+/public/fileadmin/user_upload/*
 !/public/fileadmin/user_upload/index.html
-!/public/typo3temp
-!/public/typo3temp/index.html
-.vercel
-.env*
-!.env.example
+!/public/fileadmin/user_upload/_temp_/
+/public/fileadmin/user_upload/_temp_/*
+!/public/fileadmin/user_upload/_temp_/index.html
+!/public/fileadmin/user_upload/_temp_/importexport/
+/public/fileadmin/user_upload/_temp_/importexport/*
+!/public/fileadmin/user_upload/_temp_/importexport/.htaccess
+!/public/fileadmin/user_upload/_temp_/importexport/index.html
