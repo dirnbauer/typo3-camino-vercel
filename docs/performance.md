@@ -175,6 +175,19 @@ Deploy the Pro config:
 vercel deploy --prod -A vercel.pro.json --scope webconsulting --yes
 ```
 
+Git-based deployments always read the default `vercel.json` in this repository.
+That file must remain Hobby-compatible for one-click clones, so a Git deployment
+of the public Pro demo replaces the frequent jobs with the daily Hobby schedule.
+Run the Pro deployment command after each production push and verify it with:
+
+```bash
+vercel crons ls --scope webconsulting
+```
+
+The expected Pro result contains `/api/cron/typo3-warmup.php` at `*/3 * * * *`
+and `/api/cron/typo3-scheduler.php` at `*/15 * * * *`. A successful endpoint
+test does not prove that the recurring schedule is registered.
+
 Vercel Cron sends `Authorization: Bearer $CRON_SECRET`. Requests without the
 correct token receive an error and cannot trigger expensive internal checks.
 

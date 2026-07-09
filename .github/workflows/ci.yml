@@ -19,6 +19,8 @@ jobs:
           extensions: curl, dom, gd, intl, mbstring, mysqli, pdo_mysql, pdo_pgsql, pgsql, redis, xmlwriter, zip
           coverage: none
       - uses: ramsey/composer-install@v3
+      - name: Restore immutable Vercel settings
+        run: git show HEAD:config/system/settings.php > config/system/settings.php
       - run: Build/Scripts/runTests.sh -s all
 
   containers:

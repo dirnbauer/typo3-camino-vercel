@@ -299,6 +299,11 @@ images, not live index data.
   Redis, more CPU, or JIT because it addresses scale-to-zero directly.
 - The warmer can succeed and a later backend request can still land on a fresh
   instance; minimum-instance control would be materially stronger than cron.
+- Supporting Hobby one-click clones and a Pro production warmer currently
+  requires two configuration files. A normal Git deployment silently restores
+  the Hobby cron schedule, so the operator must redeploy with the Pro config and
+  verify the registered jobs. A project-level production config selection would
+  remove this operational trap.
 - Cutting the application image by 53% did not move the measured production
   cold request away from roughly 12 seconds; image size was not the dominant
   end-to-end variable in this case.
@@ -354,6 +359,8 @@ images, not live index data.
 - [ ] Configure SMTP; the image has no local mail transfer agent.
 - [ ] Use Redis only when shared cache behavior justifies the dependency.
 - [ ] On Pro, set `CRON_SECRET` and deploy with `-A vercel.pro.json`.
+- [ ] Run `vercel crons ls` after every production deployment and confirm both
+      Pro schedules are registered.
 - [ ] Monitor cron results and cold-start outliers separately from warm latency.
 - [ ] Use managed external Solr for production search.
 - [ ] Move multi-hour indexing to an external worker and process bounded queue

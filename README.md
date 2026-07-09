@@ -258,6 +258,15 @@ vercel deploy --prod -A vercel.pro.json --scope webconsulting --yes
 Git-based deployments read `vercel.json`, which intentionally remains
 Hobby-compatible. The public Pro demo must therefore be deployed with
 `-A vercel.pro.json` after changes if the frequent warm-up is required.
+Confirm the active production schedules after every deployment:
+
+```bash
+vercel crons ls --scope webconsulting
+```
+
+The Pro deployment must list both the three-minute warm-up and the 15-minute
+Scheduler job. If it lists only the daily Scheduler job, the latest deployment
+used the Hobby configuration and cold-start warming is not active.
 
 ## Local Development
 
@@ -277,10 +286,12 @@ ddev exec Build/Scripts/runTests.sh -s all
 Build/Scripts/runTests.sh -s containers
 ```
 
-Some TYPO3 configuration-writing CLI actions can replace
-`config/system/settings.php` with local DDEV values. The test and Docker build
-now fail unless that file still delegates to `scripts/typo3-env.php`; never
-commit a generated DDEV database password or development encryption key there.
+Some TYPO3 configuration-writing CLI actions and a clean Composer install can
+replace `config/system/settings.php` with local values. The container build
+overlays the committed file after Composer, and CI explicitly restores it
+before testing. The test and Docker build then fail unless it still delegates
+to `scripts/typo3-env.php`; never commit a generated database password or
+development encryption key there.
 
 Docker Compose remains available for a MariaDB smoke test:
 
