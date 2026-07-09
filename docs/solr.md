@@ -509,6 +509,43 @@ runtime `/tmp`. The startup seed makes the static demo searchable, but this is
 still only acceptable for this demo/experiment path. Production search needs a
 managed/external Solr 10 endpoint with durable index storage.
 
+### Troubleshooting `pages (0 records)`
+
+Symptom in the TYPO3 backend Solr module:
+
+```text
+Index Queue initialized
+Initialized indexing configurations: pages (0 records)
+```
+
+This does not necessarily mean Camino has no indexable pages. In the public
+demo, diagnostics found six visible indexable Camino pages while the backend
+still reported zero queue records.
+
+The likely cause on the Neon/PostgreSQL production database is EXT:solr 14 beta
+native queue initialization SQL. The initializer builds a native `INSERT ...
+SELECT` query containing `"" as errors`, which PostgreSQL does not accept as an
+empty string literal. EXT:solr catches that DB exception and still returns
+success, so the backend can show a successful initialization with zero rows.
+
+The repo includes
+`Webconsulting\Typo3VercelSolrDemo\EventListener\SeedPagesQueueAfterInitialization`.
+It listens to EXT:solr's `AfterIndexQueueHasBeenInitializedEvent`; if the
+official `pages` initializer reports success but leaves the queue empty, it
+uses TYPO3 DBAL inserts to seed the visible page queue. This keeps the backend
+module, Scheduler, and protected setup endpoint usable on PostgreSQL without
+patching vendor EXT:solr.
+
+What to check:
+
+- The Camino pages must be visible, not deleted, and `no_search = 0`.
+- The `/search` page is intentionally excluded from search with `no_search = 1`.
+- The fallback only runs for the standard `pages` queue and only when the queue
+  is empty after the official initializer.
+- For a long-term production setup, track the EXT:solr 14 stable release and
+  remove this compatibility listener once upstream queue initialization is
+  PostgreSQL-safe.
+
 ### Troubleshooting `/solr/solr/core_en/`
 
 If the TYPO3 backend says it is trying to contact a URL ending in

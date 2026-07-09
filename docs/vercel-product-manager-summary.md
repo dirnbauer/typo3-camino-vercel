@@ -70,14 +70,40 @@ settings, cron shape, and decision rule.
 
 Solr-specific remark:
 
+Most precise current answer: Vercel can run a Solr container for a demo, but
+Vercel does not currently provide the durable live filesystem that a production
+Solr/Lucene index needs.
+
 The Vercel-internal Solr container is useful as a demo of service bindings and
 container-to-container HTTP, but it should not be presented as production Solr
 for TYPO3. Warm Solr itself was fast in the benchmark; the production gap is
-durability and predictability. Solr needs a durable index, stable cores, clear
-backup/restore behavior, and ideally an always-on/minimum-instance service
-model. Without that, the practical production recommendation remains external
-managed Solr close to the Vercel region, with Vercel Cron/Scheduler only
-processing small index batches.
+durability and predictability. Solr writes Lucene index segments under
+`/var/solr`; that needs durable, low-latency, filesystem-like storage plus
+backup/restore and operational visibility.
+
+Vercel's current storage primitives solve adjacent problems, not this exact
+one:
+
+- Vercel Blob is durable object storage and works well for TYPO3 FAL uploads,
+  but it is not a mounted POSIX/block filesystem for a live Lucene index.
+- Marketplace databases and Redis solve SQL data and cache/session use cases,
+  not Solr's mutable segment files.
+- Vercel Sandbox Drives are promising persistent filesystem storage, but they
+  are for Sandbox workloads, are private beta, and are not a normal production
+  service volume for a Vercel web/container service.
+- Vercel Container Registry stores deployable images; it does not persist
+  runtime writes from a Solr service.
+
+Without a first-party managed Solr product or persistent service volumes, the
+practical production recommendation remains external managed Solr 10 close to
+the Vercel region. Vercel Cron/Scheduler should process small TYPO3 index
+batches against that external endpoint. The internal Vercel Solr service should
+self-seed demo documents and be documented as non-durable.
+
+Product-level fix needed from Vercel: either a managed search service
+integration for Solr-compatible TYPO3 workloads, or persistent volumes for
+Services/Container Images with clear minimum-instance, backup, restore,
+monitoring, and access-control behavior.
 
 ## Before And After
 
@@ -179,6 +205,15 @@ These are directional numbers from the live demo, not lab-grade benchmarks.
   internal service does not provide durable Solr index storage or predictable
   always-on behavior. That makes it an experiment/demo feature, not a managed
   search product.
+- **Managed Postgres was correct, but exposed a MySQL-biased extension path:**
+  EXT:solr 14 beta can report `pages (0 records)` on PostgreSQL because its
+  native queue initialization SQL is not PostgreSQL-safe. The repo now works
+  around that with a small PSR-14 listener that seeds the visible page queue via
+  TYPO3 DBAL when the official initializer leaves it empty.
+- **"Durable storage" is not one product class:** Blob, SQL, Redis, Sandbox
+  Drives, and Container Registry all persist different things. Solr needs a
+  durable live index filesystem, not durable blobs, not SQL rows, and not an
+  immutable container image.
 - **The WordPress pattern was right:** code in the image, content in a DB,
   uploads in object storage. TYPO3 can follow the same pattern, but needs
   TYPO3-specific setup and docs.
@@ -210,6 +245,8 @@ This repository now contains a working TYPO3-on-Vercel starter:
   demo service, app-side retry proxy, protected benchmark endpoint, protected
   setup/index endpoint, Scheduler integration, and Camino-specific search
   renderer that avoids frontend exceptions during service warmup.
+- PostgreSQL-safe Solr queue fallback listener for the Camino demo, used only
+  when the official EXT:solr `pages` initializer leaves the queue empty.
 - GraphicsMagick and Ghostscript support for TYPO3 image processing.
 - Vercel Scheduler/Cron-compatible endpoint for TYPO3 Scheduler tasks.
 - Documentation for free demo mode, durable database setup, object storage,
@@ -248,6 +285,11 @@ This repository now contains a working TYPO3-on-Vercel starter:
 - Search/CMS templates need first-party guidance for Solr-like services:
   durable index storage, service warmup behavior, networking, backups, and the
   boundary between "container service demo" and "managed production search."
+- If Vercel wants serious CMS/search workloads on Services, the missing primitive
+  is a production service volume or managed search integration. For TYPO3 Solr,
+  the requirements are a durable mounted index path, predictable single-writer or
+  cluster semantics, warm/minimum instances, private networking, snapshots,
+  restore, metrics, and access control.
 - The missing product feature for strict TYPO3-on-Vercel is a minimum-instances
   or always-warm control for paid Container Image workloads.
 
@@ -262,6 +304,11 @@ This repository now contains a working TYPO3-on-Vercel starter:
       workloads, or document the recommended keepalive tradeoff.
 - [ ] Improve region guidance across Function, DB, and object storage.
 - [ ] Improve PHP build caching/base-image examples.
+- [ ] Add a clear answer for stateful service containers: which products can
+      persist runtime files, which cannot, and whether production service
+      volumes are on the roadmap.
+- [ ] Offer or document a Solr/OpenSearch/Elasticsearch-class Marketplace path
+      for CMS search, including region placement and private networking.
 
 ## Checklist For Template Users
 
@@ -279,6 +326,8 @@ This repository now contains a working TYPO3-on-Vercel starter:
 - [ ] Enable optional edge HTML cache only for anonymous public pages after
       testing forms, frontend login, personalization, and uncached plugins.
 - [ ] Use Vercel Pro/performance CPU if backend warm speed matters.
+- [ ] Use external managed Solr for real TYPO3 search indexes. Treat the
+      included Vercel Solr service as a self-seeded, non-durable demo only.
 - [ ] Expect occasional cold-start spikes unless an always-warm strategy is
       available and configured.
 - [ ] Do not treat SQLite demo mode as production storage.
