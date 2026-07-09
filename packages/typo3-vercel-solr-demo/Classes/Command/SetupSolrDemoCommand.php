@@ -102,7 +102,13 @@ final class SetupSolrDemoCommand extends Command
                 $this->indexVisibleDemoPagesDirectly($rootPageId, $searchPageUid, $output);
             } else {
                 try {
-                    $this->processIndexQueue($rootPageId, $limit, $output);
+                    $queueProgressed = $this->processIndexQueue($rootPageId, $limit, $output);
+                    if (!$queueProgressed) {
+                        $output->writeln(
+                            'EXT:solr index queue worker left the page queue pending, using direct Camino demo indexing fallback.',
+                        );
+                        $this->indexVisibleDemoPagesDirectly($rootPageId, $searchPageUid, $output);
+                    }
                 } catch (\Throwable $exception) {
                     $output->writeln(sprintf(
                         'EXT:solr index queue worker failed, using direct Camino demo indexing fallback: %s',
@@ -389,9 +395,15 @@ final class SetupSolrDemoCommand extends Command
         return $this->seedIndexQueueFallback($site, $searchPageUid, $indexingConfigurations, $output) > 0;
     }
 
-    private function processIndexQueue(int $rootPageId, int $limit, OutputInterface $output): void
+    private function processIndexQueue(int $rootPageId, int $limit, OutputInterface $output): bool
     {
         $site = $this->getSolrSite($rootPageId);
+
+        /** @var Queue $queue */
+        $queue = GeneralUtility::makeInstance(Queue::class);
+        $beforeStatistics = $queue->getStatisticsBySite($site);
+        $beforePending = $beforeStatistics->getPendingCount();
+        $beforeSuccess = $beforeStatistics->getSuccessCount();
 
         /** @var IndexService $indexService */
         $indexService = GeneralUtility::makeInstance(IndexService::class, $site);
@@ -413,6 +425,14 @@ final class SetupSolrDemoCommand extends Command
             $failedItems,
         ));
         $this->writeQueueStatistics($site, $output, 'after worker run');
+
+        $afterStatistics = $queue->getStatisticsBySite($site);
+        if ($beforePending === 0) {
+            return true;
+        }
+
+        return $afterStatistics->getPendingCount() < $beforePending
+            || $afterStatistics->getSuccessCount() > $beforeSuccess;
     }
 
     private function writeQueueStatistics(Site $site, OutputInterface $output, string $label): void
