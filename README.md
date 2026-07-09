@@ -184,9 +184,10 @@ TYPO3_REDIS_REQUIRED=1
 TYPO3_REDIS_PREFIX=typo3-camino-vercel:
 ```
 
-The Vercel Marketplace Redis integration can inject `REDIS_URL`. REST-only
-Redis credentials do not work with TYPO3's native Redis backend. See
-[Redis cache](docs/redis-cache.md).
+The public demo uses the free **Upstash for Redis** Marketplace plan in `fra1`.
+Connect it with the `TYPO3_` prefix so Vercel injects `TYPO3_REDIS_URL`; disable
+auto-upgrade if the demo must remain free. REST-only credentials do not work
+with TYPO3's native Redis backend. See [Redis cache](docs/redis-cache.md).
 
 ## Solr Search
 

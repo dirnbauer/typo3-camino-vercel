@@ -66,9 +66,9 @@ Redis is optional. TYPO3 needs it only when you want shared cache state across
 Vercel runtime instances. It is not the primary content database and not file
 storage.
 
-The public demo uses the official Redis Cloud integration from the Vercel
-Marketplace. The resource provisioned for this test was `Free - 30 MB` in
-`fra1`, RAM-only, without high availability.
+The public demo uses Upstash for Redis from the Vercel Marketplace. The resource
+uses the `Free` plan in `fra1`; eviction is enabled and automatic paid-plan
+upgrades are disabled.
 
 That can be free for testing while the cache data fits inside the provider's
 free quota and the account stays within the provider's terms. It is not a
@@ -76,16 +76,15 @@ production sizing recommendation.
 
 Important Redis cost notes:
 
-- Vercel's current docs say new Redis projects should use Marketplace Redis
-  integrations; Vercel KV is no longer available for new projects.
-- The Vercel Marketplace Redis listing says Redis Cloud can start free and then
-  scale to production plans.
-- The same listing notes that paid plans are where persistence and high
-  availability become relevant. For TYPO3 caches, persistence is less critical
-  than for primary data because caches can be rebuilt.
-- Upstash also has Vercel Marketplace options, but TYPO3's native Redis cache
-  backend needs a real Redis TCP/TLS endpoint. REST-only variables are not
-  enough.
+- Vercel offers Redis providers through Marketplace integrations; the free
+  Upstash resource used here exposes both REST variables and a real TLS
+  `TYPO3_REDIS_URL`.
+- TYPO3's native Redis backend uses that TCP/TLS URL. REST-only variables are
+  not enough.
+- A free plan is a quota, not unlimited production capacity. With auto-upgrade
+  disabled, budget safety takes priority over uninterrupted cache availability.
+- Paid persistence is less important for TYPO3 caches than for primary data
+  because caches can be rebuilt; capacity, SLA, and support still matter.
 - Redis does not remove the need for a durable SQL database or Blob/S3 object
   storage.
 
@@ -150,6 +149,8 @@ Blob, a durable database, and Redis cache as a working example.
 - Vercel Cron pricing: https://vercel.com/docs/cron-jobs/usage-and-pricing
 - Vercel Redis docs: https://vercel.com/docs/redis
 - Vercel Redis Marketplace listing: https://vercel.com/marketplace/redis
+- Vercel Upstash Marketplace listing: https://vercel.com/marketplace/upstash
+- Upstash pricing: https://upstash.com/pricing/redis
 - TiDB Cloud for Vercel: https://vercel.com/marketplace/tidb-cloud
 - TiDB Cloud pricing: https://www.pingcap.com/pricing/
 - Neon pricing: https://neon.com/pricing

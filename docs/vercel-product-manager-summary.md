@@ -180,6 +180,14 @@ instances. It cannot avoid image activation, PHP process startup, or initial
 opcode compilation. It also adds a network dependency. Redis is valuable for
 cache consistency, not as the primary cold-start fix.
 
+The cache provider also produced an operational surprise. One official Redis
+Cloud Marketplace resource accepted the same credentials from local Docker but
+reset connections from the deployed Vercel Container on 2026-07-09. The demo
+was moved to a free Upstash Marketplace TLS endpoint in `fra1`, with automatic
+paid upgrades disabled. This is not evidence of general Redis Cloud
+incompatibility; it is evidence that Marketplace provisioning and environment
+injection need an automatic runtime connection test.
+
 ### More CPU Did Not Remove Activation
 
 The public project uses Vercel's performance CPU class and runs in Frankfurt.
@@ -271,6 +279,9 @@ images, not live index data.
   end-to-end variable in this case.
 - An environment-only deployment rebuilt unchanged container sources for about
   four minutes because prior build caches were unavailable.
+- A provisioned Redis resource and valid injected URL did not guarantee that a
+  connection from the deployed Container would survive authentication and
+  `PING`; the health probe caught this before the setup was called complete.
 - A 4.5 MB Function request limit is surprisingly restrictive for a CMS media
   backend. Durable Blob storage does not remove the request limit when PHP
   remains in the upload path.

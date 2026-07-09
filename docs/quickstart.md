@@ -116,8 +116,9 @@ For most first tests, leave this alone:
 TYPO3_CACHE_BACKEND=file
 ```
 
-For a shared TYPO3 cache on Vercel, add the official Redis Marketplace
-integration. Vercel injects `REDIS_URL`; then add:
+For a shared TYPO3 cache on Vercel, add **Upstash for Redis** from the
+Marketplace on the free plan. Choose `fra1`, disable auto-upgrade, and connect
+it with prefix `TYPO3_` so Vercel injects `TYPO3_REDIS_URL`. Then add:
 
 ```dotenv
 TYPO3_CACHE_BACKEND=redis

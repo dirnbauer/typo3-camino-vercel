@@ -11,7 +11,7 @@
 - [ ] Decide where `fileadmin` uploads will live.
 - [ ] Configure `TYPO3_OBJECT_STORAGE_ENABLED=1` with `vercel_blob` or `vercel_s3` before editors upload files.
 - [ ] Decide whether shared TYPO3 caches need Redis, or whether runtime-local file cache is enough.
-- [ ] If Redis is used, configure `TYPO3_CACHE_BACKEND=redis`, `TYPO3_REDIS_REQUIRED=1`, and verify `REDIS_URL` exists.
+- [ ] If Redis is used, configure `TYPO3_CACHE_BACKEND=redis`, `TYPO3_REDIS_REQUIRED=1`, and verify `TYPO3_REDIS_URL` or `REDIS_URL` exists.
 - [ ] Keep Vercel runtime filesystem writes disposable.
 - [ ] Keep `TYPO3_AUTO_SETUP=1` only for initial setup.
 - [ ] Use `TYPO3_EXTENSION_SETUP_ON_BOOT=1` for one deploy after extension package changes.

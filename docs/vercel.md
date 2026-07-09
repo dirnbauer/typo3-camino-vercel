@@ -90,7 +90,7 @@ Optional shared Redis cache:
 TYPO3_CACHE_BACKEND=redis
 TYPO3_REDIS_REQUIRED=1
 TYPO3_REDIS_PREFIX=typo3-camino-vercel:
-REDIS_URL=<provided-by-vercel-marketplace-redis>
+TYPO3_REDIS_URL=<provided-by-upstash-with-TYPO3-prefix>
 ```
 
 Use Redis only with a real `redis://` or `rediss://` TCP/TLS endpoint. REST-only

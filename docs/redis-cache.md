@@ -1,8 +1,8 @@
 # Redis Cache On Vercel
 
 This project supports TYPO3's native Redis cache backend for the `hash`,
-`pages`, and `rootline` caches. The public demo uses the official Redis Cloud
-integration from the Vercel Marketplace.
+`pages`, and `rootline` caches. The public demo uses **Upstash for Redis** from
+the Vercel Marketplace through its standard TLS Redis endpoint.
 
 Redis is optional for small clones. It is useful when more than one Vercel
 runtime instance should share warm TYPO3 caches. It is not a replacement for
@@ -17,17 +17,31 @@ with:
 TYPO3_CACHE_BACKEND=redis
 TYPO3_REDIS_REQUIRED=1
 TYPO3_REDIS_PREFIX=typo3-camino-vercel:
-REDIS_URL=<provided by Vercel Marketplace Redis>
+TYPO3_REDIS_URL=<provided by Upstash with the TYPO3_ prefix>
 ```
 
 `TYPO3_REDIS_REQUIRED=1` is intentional. If Redis is requested but the
 container has no usable Redis TCP/TLS connection, startup fails instead of
 quietly falling back to file cache.
 
-The provisioned test resource is the official Redis Cloud Vercel Marketplace
-integration, `Free - 30 MB`, in `fra1`, with RAM-only storage and no high
-availability. That is enough for this demo cache test. Production sizing should
-be chosen separately.
+The current resource is the Upstash Marketplace `Free` plan in `fra1`, with
+eviction enabled and automatic paid-plan upgrades disabled. It is suitable for
+this small disposable cache; production sizing and support requirements must be
+chosen separately.
+
+### Why The Public Demo Changed Provider
+
+On 2026-07-09, the existing official Redis Cloud Marketplace endpoint accepted
+the same credentials and `PING` from the local production Docker image, but
+connections from the deployed Vercel Container repeatedly ended with a Redis
+read error. The database and Vercel region were both Frankfurt. The replacement
+Upstash TLS endpoint passed `PING` and a write/read/delete probe with the same
+image before deployment.
+
+This is a record of one resource/runtime incident, not a claim that Redis Cloud
+is generally incompatible with Vercel. It demonstrates why the protected deep
+health check must be run after provisioning instead of treating an injected
+environment variable as proof of connectivity.
 
 ## What It Improved
 
@@ -60,13 +74,15 @@ The important conclusion is:
 
 1. Open the Vercel project.
 2. Open **Storage** or **Marketplace**.
-3. Choose **Redis**.
-4. Create a Redis Cloud database.
+3. Choose **Upstash for Redis**.
+4. Create a database on the **Free** plan.
 5. Pick a region close to the Vercel function region. For this demo, both are
    in or near Frankfurt (`fra1`).
-6. For a cache-only test, the free RAM-only plan is enough if the data fits.
-7. Connect the Redis resource to the Vercel project and production environment.
-8. Confirm Vercel added `REDIS_URL` to the project environment.
+6. Enable eviction and disable automatic plan upgrades if the demo must remain
+   free.
+7. Connect the resource to the Vercel project and production environment with
+   environment-variable prefix `TYPO3_`.
+8. Confirm Vercel added `TYPO3_REDIS_URL` to the project environment.
 9. Add these project environment variables:
 
 ```dotenv
@@ -79,18 +95,25 @@ TYPO3_REDIS_PREFIX=typo3-camino-vercel:
 
 ## Step By Step: Vercel CLI
 
-The command used for the public demo with Vercel CLI 54.6.1 was:
+The reproducible free setup with Vercel CLI 54.6.1 is:
 
 ```bash
-vercel integration add redis \
+vercel integration add upstash/upstash-kv \
   --scope <team-or-user-scope> \
-  --name <redis-resource-name> \
-  -e production \
-  -m Region=fra1 \
-  -m 'StorageType=RAM only' \
-  -m HighAvailability=None \
+  --name <upstash-resource-name> \
+  --plan free \
+  --prefix TYPO3_ \
+  --environment production \
+  --metadata primaryRegion=fra1 \
+  --metadata eviction=true \
+  --metadata prodPack=false \
+  --metadata autoUpgrade=false \
   --format=json
 ```
+
+`--prefix TYPO3_` maps the provider's `REDIS_URL` to
+`TYPO3_REDIS_URL`. This also avoids collisions when a project already has a
+different `REDIS_URL`.
 
 Then set the TYPO3 cache variables:
 
@@ -98,7 +121,7 @@ Then set the TYPO3 cache variables:
 vercel env add TYPO3_CACHE_BACKEND production --value redis --force --yes --scope <team-or-user-scope>
 vercel env add TYPO3_REDIS_REQUIRED production --value 1 --force --yes --scope <team-or-user-scope>
 vercel env add TYPO3_REDIS_PREFIX production --value typo3-camino-vercel: --force --yes --scope <team-or-user-scope>
-vercel deploy --prod --scope <team-or-user-scope> --regions fra1 --yes
+vercel deploy --prod -A vercel.pro.json --scope <team-or-user-scope> --yes
 ```
 
 Check the environment:
@@ -107,7 +130,7 @@ Check the environment:
 vercel env ls production --scope <team-or-user-scope>
 ```
 
-You should see `REDIS_URL`, `TYPO3_CACHE_BACKEND`,
+You should see `TYPO3_REDIS_URL`, `TYPO3_CACHE_BACKEND`,
 `TYPO3_REDIS_REQUIRED`, and `TYPO3_REDIS_PREFIX`.
 
 ## Supported Environment Variables
@@ -141,8 +164,8 @@ TYPO3_REDIS_DATABASE=0
 ```
 
 `TYPO3_REDIS_HOST` may be only a hostname, or a scheme-bearing endpoint such as
-`rediss://default:<password>@<host>:6380/0`. Explicit component variables win
-when both are present.
+`rediss://default:<password>@<host>:6380/0`. URL variables are preferred; remove
+them before switching to separate component variables.
 
 Provider aliases are supported for common Vercel/Upstash names:
 
@@ -185,9 +208,10 @@ Those variables work for JavaScript/REST clients, but not for TYPO3's native
 
 ## Costs
 
-For the public demo, the Vercel Marketplace Redis integration provisioned a
-free Redis Cloud plan with 30 MB. That can be free for testing while usage
-stays inside the provider's free quota and terms.
+For the public demo, the Upstash Marketplace resource uses the `Free` plan with
+automatic upgrade disabled. It remains free while usage stays within the
+provider's current free quota and terms; requests over the quota can be rejected
+rather than silently moving this configured resource to a paid plan.
 
 For production:
 
@@ -227,3 +251,5 @@ database in this starter.
 - Vercel Redis docs: https://vercel.com/docs/redis
 - Vercel storage docs: https://vercel.com/docs/storage
 - Vercel Redis Marketplace listing: https://vercel.com/marketplace/redis
+- Vercel Upstash Marketplace listing: https://vercel.com/marketplace/upstash
+- Upstash Redis documentation: https://upstash.com/docs/redis

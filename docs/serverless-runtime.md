@@ -29,8 +29,9 @@ request speed.
 
 For shared cache state without using the SQL database for cache rows, set
 `TYPO3_CACHE_BACKEND=redis` and provide a Redis TCP/TLS endpoint through the
-Vercel Marketplace `REDIS_URL` or `TYPO3_REDIS_URL`. The public demo uses this
-Redis profile. Redis is still only cache storage here; TYPO3 content and
+Vercel Marketplace `REDIS_URL` or `TYPO3_REDIS_URL`. The public demo uses an
+Upstash free-plan TLS endpoint through `TYPO3_REDIS_URL`. Redis is still only
+cache storage here; TYPO3 content and
 backend sessions need a durable SQL database, and uploaded files need Blob or
 S3-compatible object storage.
 
