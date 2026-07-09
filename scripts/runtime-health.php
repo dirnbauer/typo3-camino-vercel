@@ -187,7 +187,7 @@ function typo3_vercel_health_solr(float $timeout = 20.0): array
         $url = rtrim($externalUrl, '/') . '/admin/ping?wt=json';
     }
 
-    return typo3_vercel_health_http($url, $timeout);
+    return typo3_vercel_health_http_with_retry($url, $timeout);
 }
 
 /**
@@ -236,6 +236,70 @@ function typo3_vercel_health_http(string $url, float $timeout, array $headers = 
 
         return ['http_status' => $status];
     });
+}
+
+/**
+ * Retry temporary service-start responses while keeping one total timeout.
+ *
+ * @param list<string> $headers
+ * @return array<string, mixed>
+ */
+function typo3_vercel_health_http_with_retry(string $url, float $timeout, array $headers = []): array
+{
+    return typo3_vercel_health_measure(static function () use ($url, $timeout, $headers): array {
+        $deadline = microtime(true) + max(0.1, $timeout);
+        $attempts = 0;
+        $lastStatus = 0;
+        $lastError = '';
+
+        do {
+            ++$attempts;
+            $remainingMilliseconds = max(1, (int)(($deadline - microtime(true)) * 1000));
+            $attemptMilliseconds = min(4000, $remainingMilliseconds);
+            $handle = curl_init($url);
+            if ($handle === false) {
+                throw new RuntimeException('Could not initialize cURL.');
+            }
+            curl_setopt_array($handle, [
+                CURLOPT_CONNECTTIMEOUT_MS => min(3000, $attemptMilliseconds),
+                CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT_MS => $attemptMilliseconds,
+            ]);
+            $body = curl_exec($handle);
+            $lastStatus = (int)curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
+            $lastError = curl_error($handle);
+            curl_close($handle);
+
+            if ($body !== false && $lastStatus >= 200 && $lastStatus < 400) {
+                return ['http_status' => $lastStatus, 'attempts' => $attempts];
+            }
+
+            if (!typo3_vercel_health_http_status_is_temporary($lastStatus)) {
+                break;
+            }
+
+            $remainingMicroseconds = (int)(($deadline - microtime(true)) * 1_000_000);
+            if ($remainingMicroseconds <= 0) {
+                break;
+            }
+            $backoffMicroseconds = min(1_000_000, 250_000 * $attempts);
+            usleep(min($remainingMicroseconds, $backoffMicroseconds));
+        } while (microtime(true) < $deadline);
+
+        throw new RuntimeException(sprintf(
+            'HTTP probe failed after %d attempt(s) with status %d%s.',
+            $attempts,
+            $lastStatus,
+            $lastError !== '' ? ': ' . $lastError : '',
+        ));
+    });
+}
+
+function typo3_vercel_health_http_status_is_temporary(int $status): bool
+{
+    return in_array($status, [0, 500, 502, 503, 504], true);
 }
 
 /**

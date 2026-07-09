@@ -178,7 +178,8 @@ starts.
 
 Operational caveat: the internal Solr service still has an independent cold
 start after scale-to-zero. The app proxy retries startup responses for at most
-20 seconds and the Camino renderer avoids a TYPO3 frontend exception. The Pro
+20 seconds, the health warmer retries temporary gateway statuses for at most 25
+seconds, and the Camino renderer avoids a TYPO3 frontend exception. The Pro
 warm-up pings Solr every three minutes; none of this makes its index durable.
 
 ## Pro Cold-Start Profile

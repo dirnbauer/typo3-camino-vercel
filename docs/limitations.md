@@ -121,10 +121,11 @@ production-safe. Large indexing jobs should run as chunked scheduler batches or
 on an external worker, not as one long Vercel invocation.
 
 The internal demo Solr service has an extra Vercel-specific cold-start problem:
-the internal service gateway can return HTTP `500 Starting...` before the Solr
-container has received the request. The repo works around that for demos by
-routing TYPO3/EXT:solr through a loopback-only app proxy that retries gateway
-startup responses. This is a workaround, not a replacement for managed Solr.
+the internal service gateway can return HTTP `500 Starting...` or a temporary
+`502/503/504` before the Solr container has received the request. The repo works
+around that for demos by routing TYPO3/EXT:solr through a loopback-only app
+proxy and by retrying those statuses in the protected warm-up. This is a
+workaround, not a replacement for managed Solr.
 
 ## Marketplace Status
 

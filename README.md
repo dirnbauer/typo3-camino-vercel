@@ -129,6 +129,12 @@ layers:
    TYPO3 frontend, `/typo3/`, the database, Redis, and Solr before Vercel's
    documented five-minute production idle scale-down window.
 
+**Measured result:** after the image reduction, the first `/typo3/` request on
+the production deployment still took 11.87 seconds. An immediate full warm-up
+then took 0.93 seconds externally (0.51 seconds inside the app). The image work
+alone did not remove Vercel's activation floor; the frequent Pro warm-up is the
+effective mitigation for normal demo traffic.
+
 Deploy the Pro configuration with:
 
 ```bash

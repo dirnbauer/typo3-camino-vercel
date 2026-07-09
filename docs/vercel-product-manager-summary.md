@@ -68,7 +68,7 @@ is unambiguous: the warm application was already fast; activation was not.
 
 | Component | Before | Current candidate | Change |
 |---|---:|---:|---:|
-| TYPO3 local image size | about 950 MB | about 448 MB | about 53% smaller |
+| TYPO3 local image size | about 950 MB | about 446 MB | about 53% smaller |
 | Solr local image size | about 843 MB | about 589 MB | about 30% smaller |
 | Solr local readiness | 4.13-4.62s | 1.94-3.21s; 2.48s median | roughly 40%+ faster at the median |
 | Final local first TYPO3 page | n/a | 4.27s | activation/bootstrap check |
@@ -78,6 +78,23 @@ Docker reports uncompressed local image sizes. Vercel transfers compressed
 layers, so these figures are directional rather than a prediction of the exact
 production delay. They nevertheless remove hundreds of megabytes and fewer
 services/processes must start.
+
+### Live Production Result
+
+The production deployment provided the most important counter-result:
+
+| Request | Result |
+|---|---:|
+| First `/typo3/` after deploy | 11.87s total; 11.84s TTFB |
+| First full warmer with TYPO3 and Solr cold | 14.91s external; 9.84s internal |
+| Immediate second full warmer | 0.93s external; 0.51s internal |
+
+The 53% application image reduction did **not** materially change the roughly
+12-second Vercel activation floor. This was the clearest experimental result:
+container slimming is useful hygiene, but periodic warming is the effective
+user-facing mitigation. The first full warmer also exposed a temporary Solr
+`502`; bounded readiness retries were added so one invocation can wait for the
+service instead of failing and relying on the next cron run.
 
 ### Search Work
 
@@ -193,6 +210,22 @@ around four seconds because PHP still compiled and bootstrapped TYPO3. This was
 a useful surprise: image size mainly targets remote activation, while the
 three-minute warmer targets the remaining framework bootstrap.
 
+The same surprise was stronger in production: the first backend request was
+still 11.87 seconds after the image fell from about 950 MB to 446 MB. The likely
+dominant time is Vercel image activation/orchestration plus first framework
+bootstrap, not raw PHP request execution. Vercel observability currently does
+not expose those phases separately enough to attribute the 11.84-second TTFB.
+
+### Rebuilding Unchanged Images Was Expensive
+
+An environment-only redeploy reported no previous build cache and rebuilt the
+unchanged application image in about 244 seconds. Inspection then found that
+the PHP Alpine base already supplied cURL, mbstring, and OPcache; recompiling
+them was redundant. Removing those duplicate builds retained all required
+modules and produced a 446 MB image. A clean local build completed in 97.6
+seconds, but that is not presented as a direct Vercel A/B comparison because
+the builders and caches differ.
+
 ### A Solr Container Is Not The Same As Managed Solr
 
 Running Java and answering queries was straightforward. Making Lucene state
@@ -233,6 +266,11 @@ images, not live index data.
   least useful after its image-size cost was measured.
 - A simple periodic request is currently more effective for CMS latency than
   Redis, more CPU, or JIT because it addresses scale-to-zero directly.
+- Cutting the application image by 53% did not move the measured production
+  cold request away from roughly 12 seconds; image size was not the dominant
+  end-to-end variable in this case.
+- An environment-only deployment rebuilt unchanged container sources for about
+  four minutes because prior build caches were unavailable.
 - A 4.5 MB Function request limit is surprisingly restrictive for a CMS media
   backend. Durable Blob storage does not remove the request limit when PHP
   remains in the upload path.

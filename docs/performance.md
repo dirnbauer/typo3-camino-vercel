@@ -31,6 +31,29 @@ A later Redis-enabled production window showed warmer medians around 0.046s,
 0.125s, and 0.100s respectively. That sample is useful directionally, but it is
 not an A/B test because deployment state and external services differed.
 
+## Production Validation After The Overhaul
+
+Measurements against `https://typo3-camino-vercel.vercel.app` on 2026-07-09,
+using the Pro performance CPU in `fra1`:
+
+| Request | External time | Application details |
+|---|---:|---|
+| First `/typo3/` after deploy | 11.87s | 11.84s time to first byte |
+| First authenticated full warm-up | 14.91s | 9.84s internal; TYPO3 and Solr were both cold |
+| Immediate second full warm-up | 0.93s | 0.51s internal |
+
+The second warm-up reported a 45 ms database check, 178 ms frontend loopback,
+88 ms backend loopback, and 200 ms Solr check. The first warm-up originally saw
+a temporary Solr gateway `502`; the health implementation now retries temporary
+`500/502/503/504` startup responses for up to the existing 25-second budget.
+
+**Verdict:** reducing the application image from roughly 950 MB to 446 MB did
+not materially move the observed Vercel end-to-end cold floor: it remained near
+12 seconds. The image change still reduces artifact weight and removes Apache,
+but it is not the user-visible cold-start solution. The three-minute Pro warmer
+is the effective mitigation. A platform minimum-instance feature, or an
+always-on host, is required for a hard guarantee.
+
 ## Implemented Cold-Start Strategy
 
 ### 1. Smaller Application Runtime
@@ -44,7 +67,7 @@ The old runtime used Debian, Apache, and mod_php. The current runtime uses:
 - a multi-stage extension build so compilers do not enter the runtime image
 - Composer authoritative classmaps
 
-Local Docker image size changed from about 950 MB to 448 MB, a reduction of
+Local Docker image size changed from about 950 MB to 446 MB, a reduction of
 about 53%. Required runtime support remains present:
 
 - MySQL and PostgreSQL drivers
@@ -86,6 +109,11 @@ The protected endpoint performs:
 3. local loopback request to `/` to populate the frontend path
 4. local loopback request to `/typo3/` to populate the backend path
 5. Solr core ping through the private service binding or external endpoint
+
+The Solr check uses bounded retries because a newly activated Vercel Service
+can temporarily return `500`, `502`, `503`, or `504` before Solr is ready. One
+warm-up request therefore primes both containers instead of requiring a second
+cron interval.
 
 The local loopback requests target the exact active application container and
 bypass the Vercel CDN. This is intentional: a CDN hit would not compile and
