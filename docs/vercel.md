@@ -193,7 +193,7 @@ The warm-up performs local loopback requests to both `/` and `/typo3/`, then
 checks database, Redis, and Solr. Configure `CRON_SECRET` and deploy with:
 
 ```bash
-vercel deploy --prod -A vercel.pro.json --scope webconsulting --yes
+VERCEL_SCOPE=webconsulting scripts/deploy-pro.sh
 ```
 
 Git-based Vercel deployments read `vercel.json`. Run the Pro command after a
@@ -218,7 +218,7 @@ user or added as encrypted Vercel environment variables.
    uploaded files.
 3. Add the production environment variables above.
 4. Add a durable database if this is not a disposable test.
-5. Deploy with `-A vercel.pro.json` when this is a Pro latency-sensitive site.
+5. Run `scripts/deploy-pro.sh` when this is a Pro latency-sensitive site.
 6. Confirm the frontend loads.
 7. Open `/typo3` and sign in with the configured admin credentials only after
    `DATABASE_URL` points to a durable database.

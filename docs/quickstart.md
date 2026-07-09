@@ -136,7 +136,7 @@ The Hobby-safe config cannot run frequent cron. On Pro, configure
 `CRON_SECRET` and deploy the three-minute frontend/backend/Solr warmer:
 
 ```bash
-vercel deploy --prod -A vercel.pro.json
+scripts/deploy-pro.sh
 ```
 
 This normally prevents the five-minute idle scale-down path. It is not a

@@ -58,8 +58,8 @@ when the deployment becomes more than a disposable demo.
 - `vercel.pro.json` is the production-latency profile. It warms frontend,
   backend, DB, Redis, and Solr every three minutes and runs Scheduler every 15
   minutes.
-- A production Git deployment reads `vercel.json`; deploy with
-  `vercel deploy --prod -A vercel.pro.json` when the Pro profile is required.
+- A production Git deployment reads `vercel.json`; run
+  `scripts/deploy-pro.sh` when the Pro profile is required.
 
 ## Documentation Rules
 

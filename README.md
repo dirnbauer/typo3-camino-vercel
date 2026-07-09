@@ -144,11 +144,11 @@ caching are mitigations, not a minimum-instance guarantee.
 Deploy the Pro configuration with:
 
 ```bash
-vercel deploy --prod -A vercel.pro.json --scope webconsulting --yes
+VERCEL_SCOPE=webconsulting scripts/deploy-pro.sh
 ```
 
-For your own account, omit `--scope webconsulting` or replace it with your team
-slug. Set a long random `CRON_SECRET`; Vercel Cron sends it as a Bearer token:
+For your own account, omit `VERCEL_SCOPE` or set it to your team slug. Set a
+long random `CRON_SECRET`; Vercel Cron sends it as a Bearer token:
 
 ```bash
 openssl rand -hex 32
@@ -252,12 +252,14 @@ vercel deploy --prod --scope webconsulting --yes
 CLI, Pro warm-up configuration:
 
 ```bash
-vercel deploy --prod -A vercel.pro.json --scope webconsulting --yes
+VERCEL_SCOPE=webconsulting scripts/deploy-pro.sh
 ```
 
 Git-based deployments read `vercel.json`, which intentionally remains
 Hobby-compatible. The public Pro demo must therefore be deployed with
-`-A vercel.pro.json` after changes if the frequent warm-up is required.
+`scripts/deploy-pro.sh` after changes if the frequent warm-up is required. The
+script creates a clean temporary archive of the committed revision and makes
+`vercel.pro.json` its canonical `vercel.json`; it never modifies the checkout.
 Confirm the active production schedules after every deployment:
 
 ```bash

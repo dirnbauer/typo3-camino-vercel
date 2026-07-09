@@ -27,7 +27,11 @@ run_lint() {
     | sort -z \
     | xargs -0 -n1 php -l >/dev/null
   php -l "${root}/public/index.php" >/dev/null
-  bash -n "${root}/docker/entrypoint.sh" "${root}/docker/serve.sh" "${root}/services/solr/start-vercel-solr.sh"
+  bash -n \
+    "${root}/docker/entrypoint.sh" \
+    "${root}/docker/serve.sh" \
+    "${root}/scripts/deploy-pro.sh" \
+    "${root}/services/solr/start-vercel-solr.sh"
   php -r 'foreach (array_slice($argv, 1) as $file) { json_decode(file_get_contents($file), true, 512, JSON_THROW_ON_ERROR); }' \
     "${root}/composer.json" "${root}/vercel.json" "${root}/vercel.pro.json"
   php -r '$dom = new DOMDocument(); foreach (array_slice($argv, 1) as $file) { if (!$dom->load($file)) { exit(1); } }' \

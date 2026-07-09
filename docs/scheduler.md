@@ -159,7 +159,7 @@ five-minute production idle scale-down window.
 Deploy it with:
 
 ```bash
-vercel deploy --prod -A vercel.pro.json
+scripts/deploy-pro.sh
 ```
 
 Do not copy this schedule into `vercel.json`. Hobby permits cron only once per

@@ -123,7 +123,7 @@ Then set the TYPO3 cache variables:
 vercel env add TYPO3_CACHE_BACKEND production --value redis --force --yes --scope <team-or-user-scope>
 vercel env add TYPO3_REDIS_REQUIRED production --value 1 --force --yes --scope <team-or-user-scope>
 vercel env add TYPO3_REDIS_PREFIX production --value typo3-camino-vercel: --force --yes --scope <team-or-user-scope>
-vercel deploy --prod -A vercel.pro.json --scope <team-or-user-scope> --yes
+VERCEL_SCOPE=<team-or-user-scope> scripts/deploy-pro.sh
 ```
 
 Check the environment:

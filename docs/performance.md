@@ -172,13 +172,16 @@ vercel env add CRON_SECRET production
 Deploy the Pro config:
 
 ```bash
-vercel deploy --prod -A vercel.pro.json --scope webconsulting --yes
+VERCEL_SCOPE=webconsulting scripts/deploy-pro.sh
 ```
 
 Git-based deployments always read the default `vercel.json` in this repository.
 That file must remain Hobby-compatible for one-click clones, so a Git deployment
 of the public Pro demo replaces the frequent jobs with the daily Hobby schedule.
-Run the Pro deployment command after each production push and verify it with:
+In the tested Container Services deployment, the CLI `-A vercel.pro.json`
+override was also replaced by the root config during the remote build. The
+deployment script avoids that ambiguity by staging the committed tree with the
+Pro file named `vercel.json`. Run it after each production push and verify with:
 
 ```bash
 vercel crons ls --scope webconsulting

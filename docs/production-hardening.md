@@ -34,7 +34,7 @@ Required pieces:
    not a Linux daemon inside the container.
 
 This is the shape used by the public demo. The default `vercel.json` remains
-Hobby-compatible, so Pro projects must deploy with `-A vercel.pro.json`.
+Hobby-compatible, so Pro projects must deploy with `scripts/deploy-pro.sh`.
 
 ## Target Architecture B: Strict Production
 
