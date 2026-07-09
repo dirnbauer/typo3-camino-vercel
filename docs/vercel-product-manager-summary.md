@@ -96,6 +96,23 @@ user-facing mitigation. The first full warmer also exposed a temporary Solr
 `502`; bounded readiness retries were added so one invocation can wait for the
 service instead of failing and relying on the next cron run.
 
+The final pass, with those retries and working Upstash Redis, was more
+diagnostic:
+
+| Request/check | Final result |
+|---|---:|
+| Cold full warmer, TYPO3 + Solr | 26.82s external; 21.73s internal; HTTP 200 |
+| Immediate full-warmer repeat | 0.70s external; 0.43s internal |
+| Warm frontend edge hit, 30 runs | 0.113s median; 0.207s p95 |
+| Warm backend, 30 runs | 0.208s median; 0.251s p95; 0.664s max |
+| Warm search, 30 runs | 0.351s median; 2.890s p95; 3.622s max |
+| Deep DB/Redis/Blob/Solr/filesystem check | 2.06s; all passed |
+
+One backend request still took 8.85 seconds after the warmer had succeeded.
+This is the key limitation of the workaround: a scheduled invocation cannot
+reserve the instance pool or stop Fluid Compute from selecting/creating a fresh
+instance. Public HTML can avoid this with the edge cache; `/typo3/` cannot.
+
 ### Search Work
 
 Warm local benchmarks against the same six-page Camino index:
@@ -234,6 +251,12 @@ modules and produced a 446 MB image. A clean local build completed in 97.6
 seconds, but that is not presented as a direct Vercel A/B comparison because
 the builders and caches differ.
 
+The next clean Vercel build still reported no previous cache, but the simplified
+extension stage completed the application image in 124.7 seconds. That is about
+half the earlier build time and confirms the duplicate compilation removal was
+useful for deployment throughput, even though it did not solve request-time
+cold activation.
+
 ### A Solr Container Is Not The Same As Managed Solr
 
 Running Java and answering queries was straightforward. Making Lucene state
@@ -274,6 +297,8 @@ images, not live index data.
   least useful after its image-size cost was measured.
 - A simple periodic request is currently more effective for CMS latency than
   Redis, more CPU, or JIT because it addresses scale-to-zero directly.
+- The warmer can succeed and a later backend request can still land on a fresh
+  instance; minimum-instance control would be materially stronger than cron.
 - Cutting the application image by 53% did not move the measured production
   cold request away from roughly 12 seconds; image size was not the dominant
   end-to-end variable in this case.

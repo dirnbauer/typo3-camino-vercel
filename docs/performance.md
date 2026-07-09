@@ -54,6 +54,49 @@ but it is not the user-visible cold-start solution. The three-minute Pro warmer
 is the effective mitigation. A platform minimum-instance feature, or an
 always-on host, is required for a hard guarantee.
 
+### Final Production Pass
+
+After adding Solr readiness retries and switching the cache to an Upstash TLS
+endpoint in `fra1`, the final deployment produced:
+
+| Check | Cold/full activation | Immediate repeat |
+|---|---:|---:|
+| Full protected warmer, external | 26.82s | 0.70s |
+| Full protected warmer, internal | 21.73s | 0.43s |
+| Database | 44 ms | 46 ms |
+| Redis | 27 ms | 25 ms |
+| TYPO3 frontend loopback | 5.93s | 187 ms |
+| TYPO3 backend loopback | 399 ms | 111 ms |
+| Solr | 15.34s, 6 attempts | 57 ms, 1 attempt |
+
+The cold warmer deliberately absorbs both independent container starts before a
+user does. The authenticated deep check then passed database, Redis TLS, Blob
+OIDC put/read/delete, Solr, and temporary filesystem checks in 2.06 seconds.
+
+Thirty sequential external requests after warming:
+
+| Route | Median | p95 | Max | Verdict |
+|---|---:|---:|---:|---|
+| `/` edge-cache hit | 0.113s | 0.207s | 0.245s | fast |
+| `/typo3/` | 0.208s | 0.251s | 0.664s | fast when warm |
+| Solr search | 0.351s | 2.890s | 3.622s | good median; demo-service outliers |
+
+The search outliers correlated with a new Solr Service instance returning a
+temporary `502` and taking about 7.1 seconds to become ready. The page remained
+HTTP 200 through graceful handling. This is acceptable for the transient demo,
+not a production Solr latency guarantee.
+
+One public `/typo3/` request still took 8.85 seconds after a successful warmer,
+then ten repeats were 0.19-0.42 seconds. That is direct evidence that a cron
+invocation warms one active instance but cannot reserve every instance Vercel
+may select or create. No documented minimum-instance field currently exists for
+this Container Image path.
+
+The first `/camino-route-comparison` edge miss took 11.42 seconds; subsequent
+Vercel edge hits were about 0.10 seconds. Public edge caching is therefore the
+strongest frontend protection, while the uncached backend remains subject to
+occasional activation.
+
 ## Implemented Cold-Start Strategy
 
 ### 1. Smaller Application Runtime

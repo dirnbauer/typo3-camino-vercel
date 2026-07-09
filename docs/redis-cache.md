@@ -36,7 +36,9 @@ the same credentials and `PING` from the local production Docker image, but
 connections from the deployed Vercel Container repeatedly ended with a Redis
 read error. The database and Vercel region were both Frankfurt. The replacement
 Upstash TLS endpoint passed `PING` and a write/read/delete probe with the same
-image before deployment.
+image before deployment. The final Vercel deep health check then passed Redis
+over TLS in 28 ms; the full warmer measured 27 ms cold and 25 ms on its immediate
+repeat.
 
 This is a record of one resource/runtime incident, not a claim that Redis Cloud
 is generally incompatible with Vercel. It demonstrates why the protected deep

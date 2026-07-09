@@ -110,6 +110,13 @@ idle scale-down path when cron runs normally. It does not reserve a minimum
 instance and cannot guarantee zero cold starts during deploys, scale-out,
 eviction, or delayed cron. Hobby cannot run the frequent cron.
 
+Production validation observed one `/typo3/` request at 8.85 seconds after the
+protected warmer had already succeeded; immediate repeats were about 0.2
+seconds. The warmer reduces the common idle case, but Vercel can still select or
+create another instance. Public pages can use edge caching. The private backend
+needs a platform minimum-instance guarantee or an always-on host for a hard
+latency SLO.
+
 ## Solr
 
 EXT:solr is installed as an optional Composer package, but Vercel does not

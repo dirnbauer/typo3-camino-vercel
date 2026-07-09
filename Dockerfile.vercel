@@ -73,7 +73,13 @@ COPY packages ./packages
 RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --classmap-authoritative
 
 COPY . .
-RUN grep -Fq 'return typo3_vercel_settings();' config/system/settings.php
+RUN set -eu; \
+    lowercase_source='public/fileadmin/camino/damien-dufour-2mmrxyi13qu-unsplash.webp'; \
+    camino_source='public/fileadmin/camino/damien-dufour-2mMrxyI13QU-unsplash.webp'; \
+    if [ -f "$lowercase_source" ] && [ ! -e "$camino_source" ]; then \
+        ln -s "$(basename "$lowercase_source")" "$camino_source"; \
+    fi; \
+    grep -Fq 'return typo3_vercel_settings();' config/system/settings.php
 COPY docker/php.ini /usr/local/etc/php/conf.d/typo3.ini
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/php-fpm.conf /usr/local/etc/php-fpm.d/zz-typo3.conf

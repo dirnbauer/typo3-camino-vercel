@@ -106,6 +106,10 @@ Deploy Button flow configures the store automatically.
 The repository also keeps a separate `vercel_s3` FAL driver for Cloudflare R2,
 AWS S3, MinIO, and other S3-compatible storage.
 
+The Camino files and their responsive demo derivatives are baked into the
+image for deterministic first-page rendering. New editor uploads and their
+derivatives use Blob/S3; they are not written to the image filesystem.
+
 Vercel Functions currently impose a 4.5 MB request-body limit. Normal TYPO3
 backend uploads are therefore configured to 4 MB. Larger assets require a
 direct browser-to-Blob upload flow, which this starter does not yet provide.
@@ -130,10 +134,12 @@ layers:
    documented five-minute production idle scale-down window.
 
 **Measured result:** after the image reduction, the first `/typo3/` request on
-the production deployment still took 11.87 seconds. An immediate full warm-up
-then took 0.93 seconds externally (0.51 seconds inside the app). The image work
-alone did not remove Vercel's activation floor; the frequent Pro warm-up is the
-effective mitigation for normal demo traffic.
+the production deployment still took 11.87 seconds. The final full cold warmer
+absorbed both TYPO3 and Solr activation in 26.82 seconds; its immediate repeat
+took 0.70 seconds. A 30-request warm backend run had a 0.208-second median and
+0.251-second p95, but one separate fresh instance still took 8.85 seconds. The
+image work alone did not remove Vercel's activation floor; Pro warming and edge
+caching are mitigations, not a minimum-instance guarantee.
 
 Deploy the Pro configuration with:
 

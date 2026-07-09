@@ -110,6 +110,12 @@ When object storage is enabled, `docker/entrypoint.sh` runs
 Keeping the Camino seed assets on uid `1` avoids breaking the demo records that
 already reference local files.
 
+The image also contains the generated responsive derivatives needed by Camino's
+seed pages. A Linux symlink covers one mixed-case filename in the upstream
+Camino database so fresh containers can generate additional sizes on a
+case-sensitive filesystem. These baked files are only demo fixtures. New
+uploads and their processed derivatives belong on Blob/S3 storage uid `2`.
+
 ## Vercel Blob Setup
 
 This is the all-Vercel durable upload path.
