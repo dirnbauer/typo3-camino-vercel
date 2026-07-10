@@ -27,13 +27,15 @@ final class CaminoDemoTranslationsTest extends TestCase
         $translations = require dirname(__DIR__, 2) . '/packages/typo3-camino-demo/Configuration/Demo/Translations.php';
         self::assertArrayHasKey($languageId, $translations);
         self::assertCount(9, $translations[$languageId]['pages']);
-        self::assertCount(14, $translations[$languageId]['content']);
+        self::assertCount(52, $translations[$languageId]['content']);
+        self::assertCount(18, $translations[$languageId]['listItems']);
         self::assertSame(
             ['/', '/footer-navigation', '/privacy', '/imprint', '/faqs', '/packing-list', '/camino-route-comparison', '/search', '/visual-editor'],
             array_keys($translations[$languageId]['pages']),
         );
-        self::assertArrayHasKey('visual.demo', $translations[$languageId]['content']);
-        self::assertNotSame('', $translations[$languageId]['content']['visual.demo']['bodytext']);
+        self::assertSame(range(1, 52), array_keys($translations[$languageId]['content']));
+        self::assertSame(range(1, 18), array_keys($translations[$languageId]['listItems']));
+        self::assertNotSame('', $translations[$languageId]['content'][52]['bodytext']);
 
         $site = Yaml::parseFile(dirname(__DIR__, 2) . '/config/sites/camino/config.yaml');
         $language = array_values(array_filter(

@@ -9,9 +9,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Cache\CacheManager;
-use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -23,26 +21,6 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 final class SetupCaminoDemoCommand extends Command
 {
     private const VISUAL_EDITOR_CTYPE = 'typo3_camino_visual_editor_demo';
-
-    private ?BackendUserAuthentication $setupUser = null;
-
-    /** @var array<string, array{pageSlug:string,contentType:string,header?:string}> */
-    private const CONTENT_TARGETS = [
-        'home.hero' => ['pageSlug' => '/', 'contentType' => 'camino_hero', 'header' => 'Walk the Camino de Compostela'],
-        'home.intro' => ['pageSlug' => '/', 'contentType' => 'text', 'header' => 'What Is the Camino de Compostela?'],
-        'privacy.hero' => ['pageSlug' => '/privacy', 'contentType' => 'camino_hero_text_only', 'header' => 'Privacy'],
-        'privacy.text' => ['pageSlug' => '/privacy', 'contentType' => 'text', 'header' => ''],
-        'imprint.hero' => ['pageSlug' => '/imprint', 'contentType' => 'camino_hero_text_only', 'header' => 'Imprint'],
-        'imprint.text' => ['pageSlug' => '/imprint', 'contentType' => 'text', 'header' => ''],
-        'faqs.hero' => ['pageSlug' => '/faqs', 'contentType' => 'camino_hero_small', 'header' => 'FAQs'],
-        'faqs.text' => ['pageSlug' => '/faqs', 'contentType' => 'text', 'header' => 'What is the Camino de Compostela?'],
-        'packing.hero' => ['pageSlug' => '/packing-list', 'contentType' => 'camino_hero_small', 'header' => 'Packing List'],
-        'packing.text' => ['pageSlug' => '/packing-list', 'contentType' => 'text', 'header' => 'Essential Items'],
-        'routes.hero' => ['pageSlug' => '/camino-route-comparison', 'contentType' => 'camino_hero_small', 'header' => 'Camino Route Comparison'],
-        'routes.text' => ['pageSlug' => '/camino-route-comparison', 'contentType' => 'textpic', 'header' => 'Camino Francés – The French Way'],
-        'search.results' => ['pageSlug' => '/search', 'contentType' => 'vercel_solr_demo_results', 'header' => 'Search'],
-        'visual.demo' => ['pageSlug' => '/visual-editor', 'contentType' => self::VISUAL_EDITOR_CTYPE, 'header' => 'Edit content where it lives'],
-    ];
 
     public function __construct(
         private readonly ConnectionPool $connectionPool,
@@ -67,6 +45,7 @@ final class SetupCaminoDemoCommand extends Command
         foreach ($translations as $languageId => $translation) {
             $this->applyPageTranslations((int)$languageId, $translation['pages'], $output);
             $this->applyContentTranslations((int)$languageId, $translation['content'], $output);
+            $this->applyListItemTranslations((int)$languageId, $translation['listItems'], $output);
         }
 
         if ((bool)$input->getOption('flush-caches')) {
@@ -164,9 +143,7 @@ final class SetupCaminoDemoCommand extends Command
             'l18n_parent' => 0,
         ] + $fields);
 
-        $target = self::CONTENT_TARGETS['visual.demo'];
-        return $this->findDefaultContentUid($target)
-            ?? throw new \RuntimeException('Could not create the Visual Editor demo content.', 1783681202);
+        return (int)$connection->lastInsertId();
     }
 
     /**
@@ -195,18 +172,13 @@ final class SetupCaminoDemoCommand extends Command
     }
 
     /**
-     * @param array<string, array<string, string>> $content
+     * @param array<int, array<string, string>> $content
      */
     private function applyContentTranslations(int $languageId, array $content, OutputInterface $output): void
     {
-        foreach ($content as $key => $fields) {
-            $target = self::CONTENT_TARGETS[$key]
-                ?? throw new \RuntimeException(sprintf('Unknown translation target "%s".', $key), 1783681204);
-            $defaultUid = $this->findDefaultContentUid($target);
-            if ($defaultUid === null) {
-                throw new \RuntimeException(sprintf('Default content for "%s" was not found.', $key), 1783681205);
-            }
-
+        $this->assertCatalogCoverage('tt_content', $content, $languageId);
+        foreach ($content as $defaultUid => $fields) {
+            $defaultUid = (int)$defaultUid;
             $translationUid = $this->findTranslationUid('tt_content', 'l18n_parent', $defaultUid, $languageId)
                 ?? $this->localizeRecord('tt_content', $defaultUid, $languageId);
             $this->connectionPool->getConnectionForTable('tt_content')->update(
@@ -214,39 +186,102 @@ final class SetupCaminoDemoCommand extends Command
                 ['tstamp' => time(), 'hidden' => 0] + $fields,
                 ['uid' => $translationUid],
             );
+            $this->ensureFileReferenceTranslations($defaultUid, $translationUid, $languageId);
         }
 
         $output->writeln(sprintf('Language %d: %d content translations are ready.', $languageId, count($content)));
     }
 
-    /** @param array{pageSlug:string,contentType:string,header?:string} $target */
-    private function findDefaultContentUid(array $target): ?int
+    /** @param array<int, array<string, string>> $listItems */
+    private function applyListItemTranslations(int $languageId, array $listItems, OutputInterface $output): void
     {
-        $pageUid = $this->findPageUid($target['pageSlug']);
-        if ($pageUid === null) {
-            return null;
+        $table = 'tx_themecamino_list_item';
+        $this->assertCatalogCoverage($table, $listItems, $languageId);
+        $connection = $this->connectionPool->getConnectionForTable($table);
+        foreach ($listItems as $defaultUid => $fields) {
+            $defaultUid = (int)$defaultUid;
+            $queryBuilder = $connection->createQueryBuilder();
+            $defaultParentUid = $queryBuilder
+                ->select('uid_foreign')
+                ->from($table)
+                ->where($queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($defaultUid, Connection::PARAM_INT)))
+                ->executeQuery()
+                ->fetchOne();
+            if ($defaultParentUid === false) {
+                throw new \RuntimeException(sprintf('Default Camino list item %d was not found.', $defaultUid), 1783681204);
+            }
+            $translatedParentUid = $this->findTranslationUid('tt_content', 'l18n_parent', (int)$defaultParentUid, $languageId);
+            if ($translatedParentUid === null) {
+                throw new \RuntimeException(sprintf('Translated parent content %d was not found.', $defaultParentUid), 1783681205);
+            }
+
+            $translationUid = $this->findTranslationUid($table, 'l10n_parent', $defaultUid, $languageId)
+                ?? $this->localizeRecord($table, $defaultUid, $languageId);
+            $connection->update(
+                $table,
+                ['tstamp' => time(), 'hidden' => 0, 'uid_foreign' => $translatedParentUid] + $fields,
+                ['uid' => $translationUid],
+            );
         }
 
-        $queryBuilder = $this->connectionPool->getConnectionForTable('tt_content')->createQueryBuilder();
-        $conditions = [
-            $queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($pageUid, Connection::PARAM_INT)),
-            $queryBuilder->expr()->eq('CType', $queryBuilder->createNamedParameter($target['contentType'])),
-            $queryBuilder->expr()->eq('sys_language_uid', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
-            $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
-        ];
-        if (array_key_exists('header', $target)) {
-            $conditions[] = $queryBuilder->expr()->eq('header', $queryBuilder->createNamedParameter($target['header']));
-        }
+        $output->writeln(sprintf('Language %d: %d nested list-item translations are ready.', $languageId, count($listItems)));
+    }
 
-        $uid = $queryBuilder
+    /** @param array<int, array<string, string>> $catalog */
+    private function assertCatalogCoverage(string $table, array $catalog, int $languageId): void
+    {
+        $queryBuilder = $this->connectionPool->getConnectionForTable($table)->createQueryBuilder();
+        $defaultUids = array_map('intval', $queryBuilder
             ->select('uid')
-            ->from('tt_content')
-            ->where(...$conditions)
-            ->orderBy('sorting')
-            ->setMaxResults(1)
+            ->from($table)
+            ->where(
+                $queryBuilder->expr()->eq('sys_language_uid', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
+            )
             ->executeQuery()
-            ->fetchOne();
-        return $uid === false ? null : (int)$uid;
+            ->fetchFirstColumn());
+        $catalogUids = array_map('intval', array_keys($catalog));
+        sort($defaultUids);
+        sort($catalogUids);
+        if ($defaultUids !== $catalogUids) {
+            $missing = array_diff($defaultUids, $catalogUids);
+            $unknown = array_diff($catalogUids, $defaultUids);
+            throw new \RuntimeException(sprintf(
+                'Language %d does not cover all %s records. Missing: %s. Unknown: %s.',
+                $languageId,
+                $table,
+                $missing === [] ? 'none' : implode(', ', $missing),
+                $unknown === [] ? 'none' : implode(', ', $unknown),
+            ), 1783681210);
+        }
+    }
+
+    private function ensureFileReferenceTranslations(int $defaultContentUid, int $translatedContentUid, int $languageId): void
+    {
+        $table = 'sys_file_reference';
+        $connection = $this->connectionPool->getConnectionForTable($table);
+        $queryBuilder = $connection->createQueryBuilder();
+        $referenceUids = array_map('intval', $queryBuilder
+            ->select('uid')
+            ->from($table)
+            ->where(
+                $queryBuilder->expr()->eq('uid_foreign', $queryBuilder->createNamedParameter($defaultContentUid, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('tablenames', $queryBuilder->createNamedParameter('tt_content')),
+                $queryBuilder->expr()->eq('sys_language_uid', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
+            )
+            ->executeQuery()
+            ->fetchFirstColumn());
+
+        foreach ($referenceUids as $referenceUid) {
+            $translatedReferenceUid = $this->findTranslationUid($table, 'l10n_parent', $referenceUid, $languageId)
+                ?? $this->localizeRecord($table, $referenceUid, $languageId);
+            $connection->update($table, [
+                'tstamp' => time(),
+                'hidden' => 0,
+                'uid_foreign' => $translatedContentUid,
+            ], ['uid' => $translatedReferenceUid]);
+        }
     }
 
     private function findPageUid(string $slug): ?int
@@ -285,17 +320,18 @@ final class SetupCaminoDemoCommand extends Command
 
     private function localizeRecord(string $table, int $uid, int $languageId): int
     {
-        $parentField = $table === 'pages' ? 'l10n_parent' : 'l18n_parent';
+        $parentField = $this->localizationParentField($table);
         $existingUid = $this->findTranslationUid($table, $parentField, $uid, $languageId);
         if ($existingUid !== null) {
             return $existingUid;
         }
 
         $connection = $this->connectionPool->getConnectionForTable($table);
-        $record = $connection->createQueryBuilder()
+        $queryBuilder = $connection->createQueryBuilder();
+        $record = $queryBuilder
             ->select('*')
             ->from($table)
-            ->where('uid = ' . $connection->quote((string)$uid))
+            ->where($queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($uid, Connection::PARAM_INT)))
             ->executeQuery()
             ->fetchAssociative();
         if ($record === false) {
@@ -305,8 +341,15 @@ final class SetupCaminoDemoCommand extends Command
         unset($record['uid']);
         $record['sys_language_uid'] = $languageId;
         $record[$parentField] = $uid;
-        $record['deleted'] = 0;
-        $record['hidden'] = 0;
+        if (array_key_exists('l10n_source', $record)) {
+            $record['l10n_source'] = $uid;
+        }
+        if (array_key_exists('deleted', $record)) {
+            $record['deleted'] = 0;
+        }
+        if (array_key_exists('hidden', $record)) {
+            $record['hidden'] = 0;
+        }
         if (array_key_exists('tstamp', $record)) {
             $record['tstamp'] = time();
         }
@@ -318,37 +361,11 @@ final class SetupCaminoDemoCommand extends Command
         return (int)$connection->lastInsertId();
     }
 
-    private function setupBackendUser(): BackendUserAuthentication
+    private function localizationParentField(string $table): string
     {
-        if ($this->setupUser instanceof BackendUserAuthentication) {
-            return $this->setupUser;
-        }
-
-        $queryBuilder = $this->connectionPool->getConnectionForTable('be_users')->createQueryBuilder();
-        $uid = $queryBuilder
-            ->select('uid')
-            ->from('be_users')
-            ->where(
-                $queryBuilder->expr()->eq('admin', $queryBuilder->createNamedParameter(1, Connection::PARAM_INT)),
-                $queryBuilder->expr()->eq('disable', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
-                $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
-            )
-            ->orderBy('uid')
-            ->setMaxResults(1)
-            ->executeQuery()
-            ->fetchOne();
-        if ($uid === false) {
-            throw new \RuntimeException('No active TYPO3 backend administrator exists for demo localization.', 1783681208);
-        }
-
-        $backendUser = GeneralUtility::makeInstance(BackendUserAuthentication::class);
-        $backendUser->setBeUserByUid((int)$uid);
-        $backendUser->fetchGroupData();
-        if (!$backendUser->isAdmin()) {
-            throw new \RuntimeException('The TYPO3 demo setup user is not an administrator.', 1783681209);
-        }
-
-        return $this->setupUser = $backendUser;
+        return in_array($table, ['pages', 'sys_file_reference', 'tx_themecamino_list_item'], true)
+            ? 'l10n_parent'
+            : 'l18n_parent';
     }
 
     private function nextSorting(string $table, int $pid): int

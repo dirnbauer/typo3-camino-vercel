@@ -40,7 +40,7 @@ so this is mitigation rather than an absolute zero-cold-start guarantee.
 | Files | Custom Vercel Blob FAL driver or retained S3-compatible FAL driver |
 | File auth | Vercel OIDC first; read/write token compatibility fallback |
 | Search | EXT:solr 14 beta + Solr 10 service for demo; external Solr for production |
-| Editing | Friends of TYPO3 Visual Editor with strict five-language Camino content |
+| Editing | Visual Editor plus complete strict translations of 9 pages, 52 content elements, 18 nested items, and image relations in five languages |
 | Jobs | Protected Vercel Cron endpoints; no daemon inside the image |
 | Security | Stable encryption key, trusted-host validation, protected deep probes |
 | Health | Shallow public health and authenticated DB/Redis/Blob/Solr write probes |

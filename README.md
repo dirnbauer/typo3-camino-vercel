@@ -129,10 +129,12 @@ is configured for inline editing. Sign in to the TYPO3 backend and open
 **Content > Editor**. A short, captioned demonstration is embedded on the
 frontend at `/visual-editor` and stored in this repository.
 
-The demo contains strict, connected translations in German, Spanish,
-Simplified Chinese, and Hungarian. Use the language selector in the Visual
-Editor to edit one language or compare it with English. Strict mode never shows
-English content as an accidental fallback when a translated record is missing.
+The complete seeded site has strict, connected translations in German, Spanish,
+Simplified Chinese, and Hungarian: 9 page records, all 52 content elements, all
+18 nested Camino list items, and the related images in every language. Use the
+language selector in the Visual Editor to edit one language or compare it with
+English. Strict mode never shows English content as an accidental fallback when
+a translated record is missing.
 
 New empty databases receive the Visual Editor page and translations during
 automatic setup. For an existing database with shell access, run this once:
@@ -346,7 +348,7 @@ docker compose up --build
 - Vercel Blob and S3-compatible TYPO3 FAL storage
 - secure direct-to-Blob uploads above the normal 4 MB request limit
 - inline Camino editing with `friendsoftypo3/visual-editor`
-- strict German, Spanish, Simplified Chinese, and Hungarian page translations
+- complete strict German, Spanish, Simplified Chinese, and Hungarian content translations
 - ImageMagick, AVIF, WebP, Ghostscript, and writable `/tmp` processing paths
 - Vercel Marketplace Redis through a TCP/TLS connection
 - protected Vercel Cron endpoints

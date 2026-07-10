@@ -33,9 +33,17 @@ Strict mode is intentional: TYPO3 does not display the English source record
 when a translated page or content element is missing. Editors can immediately
 see incomplete localization instead of publishing a mixed-language page.
 
-The seed command creates connected translations for nine pages and the core
-content needed by the demo in every language. It does not machine-translate
-future editor content.
+The committed seed catalog covers the complete demo site in every language:
+
+- 9 page records, including the non-public footer-navigation folder
+- all 52 `tt_content` records
+- all 18 nested Camino list and navigation items
+- all 10 content image references
+
+The setup command checks this coverage before writing anything. If new English
+content is added to the seed without a corresponding catalog entry, setup fails
+with the missing record IDs instead of silently publishing mixed-language or
+empty pages. It does not translate future editor content automatically.
 
 ## Initial Setup
 
@@ -63,8 +71,10 @@ never accepts the secret in the URL. It does not run automatically on every
 container start.
 
 The setup command is idempotent. It creates or updates the Visual Editor page,
-its custom content element, all site-language page overlays, and connected
-content overlays without duplicating records.
+all site-language page overlays, every connected content overlay, nested Camino
+items, and localized file references without duplicating records. It reapplies
+the committed demo translations, so do not run the seed command after editors
+have replaced those translations with production copy.
 
 ## Editing A Translation
 
