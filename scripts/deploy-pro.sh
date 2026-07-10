@@ -42,6 +42,7 @@ args=(
   --prod
   --yes
   --project "${project}"
+  --env "TYPO3_DEPLOYMENT_REVISION=${revision}"
   --meta "githubCommitSha=${revision}"
   --meta "githubCommitRef=${branch}"
   --meta "githubCommitMessage=${message}"

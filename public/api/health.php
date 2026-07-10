@@ -11,10 +11,11 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
 $deep = isset($_GET['deep']) && in_array(strtolower((string)$_GET['deep']), ['1', 'true', 'yes', 'on'], true);
+$revision = getenv('TYPO3_DEPLOYMENT_REVISION') ?: getenv('VERCEL_GIT_COMMIT_SHA') ?: 'local';
 $response = [
     'status' => 'ok',
     'service' => 'typo3',
-    'revision' => substr((string)(getenv('VERCEL_GIT_COMMIT_SHA') ?: 'local'), 0, 12),
+    'revision' => substr((string)$revision, 0, 12),
     'region' => (string)(getenv('VERCEL_REGION') ?: 'local'),
     'php' => PHP_VERSION,
 ];
