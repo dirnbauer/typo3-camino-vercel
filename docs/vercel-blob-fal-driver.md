@@ -62,6 +62,7 @@ Important files:
 packages/typo3-vercel-blob-storage/ext_localconf.php
 packages/typo3-vercel-blob-storage/Classes/Client/VercelBlobClient.php
 packages/typo3-vercel-blob-storage/Classes/Authentication/BlobCredentials.php
+packages/typo3-vercel-blob-storage/Classes/DirectUpload/DirectUploadService.php
 packages/typo3-vercel-blob-storage/Classes/Resource/Driver/BlobDriver.php
 packages/typo3-vercel-blob-storage/Configuration/Resource/Driver/BlobDriverFlexForm.xml
 scripts/apply-object-storage.php
@@ -225,10 +226,31 @@ uses a 4 MB upload limit to leave room for multipart metadata. Blob itself can
 store much larger objects, but the normal TYPO3 backend upload travels through
 PHP first. Increasing `upload_max_filesize` does not bypass Vercel's limit.
 
-A future direct browser-to-Blob adapter could support larger media. It would
-need an authenticated upload-token endpoint, TYPO3 permission checks, file
-validation, and a final FAL metadata registration step. That is not part of the
-current extension.
+The extension therefore includes a separate **Media > Large upload** module and
+a **Large upload** button in writable Blob folders. Its sequence is:
+
+1. validate the authenticated backend user, FAL file mount and permissions,
+   filename, declared MIME type, and size
+2. issue a short-lived Vercel token restricted to one exact path/type/size
+3. upload browser-to-Blob, using multipart for files above 100 MB
+4. verify the remote size and MIME type, then create the `sys_file` record
+
+The payload never passes through PHP and FAL hashing uses remote object
+fingerprint data rather than downloading a multi-gigabyte object. The default
+limit is 5 GiB; `TYPO3_BLOB_DIRECT_UPLOAD_MAX_BYTES` can raise it up to Vercel
+Blob's 5 TB hard limit. `TYPO3_BLOB_DIRECT_UPLOAD_TOKEN_TTL` defaults to four
+hours and accepts 300 to 86,400 seconds.
+
+Security trade-off: the browser-declared MIME type is constrained by the file
+extension and rechecked against Blob metadata, but the server does not download
+the full file for magic-byte or malware inspection. HTML, JavaScript, SVG, XML,
+and related active formats are therefore blocked by default. Add an asynchronous
+scanner/quarantine workflow before using this path for untrusted public uploads.
+
+Very large images can upload successfully but later fail when TYPO3/ImageMagick
+must download and transform the original within Vercel's temporary disk and
+request-duration limits. Store large videos and archives as downloads; process
+large media asynchronously outside the request path.
 
 ## Public Versus Private Blob Stores
 

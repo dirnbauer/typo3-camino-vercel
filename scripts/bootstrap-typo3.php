@@ -147,8 +147,18 @@ function typo3_vercel_acquire_bootstrap_lock(array $database): ?PDO
         } else {
             $statement = $pdo->prepare('SELECT GET_LOCK(:name, :timeout)');
             $statement->execute(['name' => 'typo3-camino-vercel:bootstrap', 'timeout' => $timeout]);
+            $lockResult = $statement->fetchColumn();
+            if ($lockResult === 0 || $lockResult === '0') {
+                throw new RuntimeException('Timed out while waiting for the TYPO3 bootstrap lock.');
+            }
+            if ((int)$lockResult !== 1) {
+                throw new PDOException('The database did not grant the TYPO3 bootstrap lock.');
+            }
         }
     } catch (PDOException $exception) {
+        if ($driver === 'pdo_pgsql' && (string)$exception->getCode() === '55P03') {
+            throw new RuntimeException('Timed out while waiting for the TYPO3 bootstrap lock.', 0, $exception);
+        }
         // If the lock cannot be taken (e.g. permission), continue without it rather
         // than blocking the container from starting.
         fwrite(STDERR, sprintf("Could not acquire bootstrap lock (%s); continuing without it.\n", $exception->getMessage()));

@@ -1,0 +1,60 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+      xmlns:be="http://typo3.org/ns/TYPO3/CMS/Backend/ViewHelpers"
+      xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers"
+      data-namespace-typo3-fluid="true">
+<f:layout name="Module" />
+
+<f:section name="Content">
+    <f:asset.module identifier="@webconsulting/typo3-vercel-blob-storage/large-upload.js" />
+
+    <h1>Large upload</h1>
+    <f:if condition="{configured}">
+        <f:then>
+            <div
+                data-vercel-blob-large-upload
+                data-folder="{folder.combinedIdentifier}"
+                data-prepare-url="{prepareUrl}"
+                data-authorize-url="{authorizeUrl}"
+                data-finalize-url="{finalizeUrl}"
+                data-maximum-size="{maximumSizeInBytes}"
+            >
+                <dl class="row mb-4">
+                    <dt class="col-sm-2">Destination</dt>
+                    <dd class="col-sm-10"><code>{folder.storage.name}: {folder.identifier}</code></dd>
+                    <dt class="col-sm-2">File limit</dt>
+                    <dd class="col-sm-10" data-upload-limit></dd>
+                </dl>
+
+                <div class="mb-3">
+                    <label class="form-label" for="vercel-blob-files">Files</label>
+                    <input class="form-control" id="vercel-blob-files" type="file" multiple data-upload-files />
+                </div>
+
+                <div class="d-flex gap-2 mb-4">
+                    <button class="btn btn-primary" type="button" data-upload-start disabled>
+                        <core:icon identifier="actions-upload" size="small" />
+                        Upload
+                    </button>
+                    <button class="btn btn-default" type="button" data-upload-cancel disabled>
+                        <core:icon identifier="actions-close" size="small" />
+                        Cancel
+                    </button>
+                    <a class="btn btn-default" href="{fileListUrl}">
+                        <core:icon identifier="actions-view-go-back" size="small" />
+                        Back to files
+                    </a>
+                </div>
+
+                <div class="alert d-none" role="status" aria-live="polite" data-upload-message></div>
+                <ul class="list-group" aria-live="polite" data-upload-list></ul>
+            </div>
+        </f:then>
+        <f:else>
+            <f:be.infobox state="2" title="Vercel Blob is not ready">
+                <p>{error}</p>
+                <a class="btn btn-default" href="{fileListUrl}">Back to files</a>
+            </f:be.infobox>
+        </f:else>
+    </f:if>
+</f:section>
+</html>

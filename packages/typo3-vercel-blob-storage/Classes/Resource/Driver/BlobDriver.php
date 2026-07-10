@@ -298,7 +298,22 @@ final class BlobDriver extends AbstractHierarchicalFilesystemDriver implements S
 
     public function hash(string $fileIdentifier, string $hashAlgorithm): string
     {
-        $hash = hash_file($hashAlgorithm, $this->getFileForLocalProcessing($fileIdentifier, false));
+        $fileIdentifier = $this->canonicalizeAndCheckFileIdentifier($fileIdentifier);
+        $head = $this->headObject($this->keyFromFileIdentifier($fileIdentifier));
+        if ($head === null) {
+            throw new FileDoesNotExistException('File "' . $fileIdentifier . '" does not exist.', 1720010014);
+        }
+
+        // A FAL content fingerprint must change when the remote object changes, but
+        // downloading a multi-gigabyte Blob merely to populate sys_file.sha1 would
+        // defeat direct uploads and can exceed the Vercel runtime disk limit.
+        $fingerprint = implode('|', [
+            (string)($head['etag'] ?? ''),
+            (string)($head['size'] ?? ''),
+            (string)($head['uploadedAt'] ?? ''),
+            $fileIdentifier,
+        ]);
+        $hash = hash($hashAlgorithm, $fingerprint);
         if ($hash === false) {
             throw new FileOperationErrorException('Could not hash file "' . $fileIdentifier . '".', 1720010008);
         }

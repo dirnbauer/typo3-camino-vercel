@@ -300,7 +300,10 @@ Final uploads and processed FAL derivatives must use Blob or S3/R2.
 
 Normal backend upload size is 4 MB because Vercel Functions reject total request
 bodies above 4.5 MB. Increasing PHP's `upload_max_filesize` cannot bypass the
-platform limit.
+platform limit. The included **Media > Large upload** flow bypasses PHP and sends
+the file directly to Blob, using multipart above 100 MB. It avoids Function body
+and PHP memory pressure, but subsequent image processing can still consume
+temporary disk and request time when TYPO3 downloads a large original.
 
 ## Database Performance
 

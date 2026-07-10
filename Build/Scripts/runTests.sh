@@ -33,9 +33,11 @@ run_lint() {
     "${root}/scripts/deploy-pro.sh" \
     "${root}/services/solr/start-vercel-solr.sh"
   php -r 'foreach (array_slice($argv, 1) as $file) { json_decode(file_get_contents($file), true, 512, JSON_THROW_ON_ERROR); }' \
-    "${root}/composer.json" "${root}/vercel.json" "${root}/vercel.pro.json"
+    "${root}/composer.json" "${root}/package.json" "${root}/package-lock.json" \
+    "${root}/vercel.json" "${root}/vercel.pro.json"
   php -r '$dom = new DOMDocument(); foreach (array_slice($argv, 1) as $file) { if (!$dom->load($file)) { exit(1); } }' \
     "${root}/phpunit.xml" \
+    "${root}/packages/typo3-vercel-blob-storage/Resources/Private/Language/module.xlf" \
     "${root}/packages/typo3-vercel-blob-storage/Configuration/Resource/Driver/BlobDriverFlexForm.xml" \
     "${root}/packages/typo3-vercel-storage/Configuration/Resource/Driver/S3DriverFlexForm.xml"
   composer validate --strict --no-interaction

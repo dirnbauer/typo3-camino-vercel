@@ -194,8 +194,32 @@ The container therefore sets `post_max_size` and `upload_max_filesize` to 4 MB.
 This is independent of Blob capacity: a normal TYPO3 backend upload still
 passes through PHP before the FAL driver writes it to Blob.
 
-Larger media requires a separate direct browser-to-Blob upload flow. That flow
-is not implemented by the standard TYPO3 FAL upload widget in this starter.
+For larger media, use **Media > Large upload** or the **Large upload** toolbar
+button while viewing a Vercel Blob folder. The implemented flow is:
+
+1. TYPO3 checks the backend user, file mount, folder permissions, name, type,
+   and configured size limit.
+2. Vercel returns a short-lived upload token scoped to that exact Blob path,
+   content type, and size. Overwrite and random suffixes are disabled.
+3. The browser uploads directly to Blob. Files above 100 MB use multipart upload.
+4. TYPO3 verifies the resulting remote object and registers it in FAL without
+   downloading the complete file into PHP.
+
+The default direct-upload limit is 5 GiB. Change it only when needed:
+
+```dotenv
+TYPO3_BLOB_DIRECT_UPLOAD_MAX_BYTES=5368709120
+TYPO3_BLOB_DIRECT_UPLOAD_TOKEN_TTL=14400
+```
+
+The size is capped at Vercel Blob's 5 TB platform limit, and token lifetime is
+bounded between five minutes and 24 hours. Active web formats such as HTML,
+JavaScript, SVG, and XML are blocked because this path cannot safely run
+content inspection on a local upload first.
+
+This large-upload module is specific to `vercel_blob`. The S3-compatible driver
+still uses TYPO3's normal uploader and therefore remains subject to the 4 MB
+request limit unless a separate direct-to-S3 integration is added.
 
 ## S3-Compatible Setup
 

@@ -314,8 +314,22 @@ images, not live index data.
   connection from the deployed Container would survive authentication and
   `PING`; the health probe caught this before the setup was called complete.
 - A 4.5 MB Function request limit is surprisingly restrictive for a CMS media
-  backend. Durable Blob storage does not remove the request limit when PHP
+  backend. Durable Blob storage alone does not remove the request limit when PHP
   remains in the upload path.
+
+### Large Upload Solution
+
+The repo now bypasses that limit without weakening TYPO3 permissions:
+
+1. TYPO3 validates the editor, FAL folder, filename, MIME type, and size.
+2. Vercel issues a short-lived token scoped to the exact Blob pathname.
+3. The browser uploads directly to Blob; files above 100 MB use multipart data.
+4. TYPO3 verifies the stored object and registers it in FAL without downloading it.
+5. The normal Blob FAL driver serves the durable file.
+
+The standard TYPO3 uploader remains limited to about 4 MB. **Media > Large
+upload** supports 5 GiB by default and can be configured up to Blob's platform
+limit. Executable web formats are blocked by default.
 
 ## Product Opportunities For Vercel
 
@@ -335,8 +349,8 @@ images, not live index data.
 - Let Deploy Buttons provision Blob and a Marketplace database in one guided
   flow, with post-provision environment validation.
 - Document Blob OIDC REST usage for PHP, Python, Go, and generic HTTP clients.
-- Provide a supported direct-to-Blob browser upload pattern for non-Next.js
-  backends so CMS users can avoid the Function request-body limit.
+- Turn the repo's working direct-to-Blob browser flow into a supported,
+  framework-neutral recipe for non-Next.js backends.
 - Clearly distinguish deployment File API, Blob, database storage, cache, and
   persistent mounted volumes in product guidance.
 

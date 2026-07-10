@@ -88,7 +88,14 @@ assets.
 
 Normal TYPO3 uploads pass through the Function request body and are limited to
 4 MB by this image, below Vercel's 4.5 MB total request limit. Blob can hold
-larger objects, but that requires a separate direct-upload integration.
+larger objects through the included **Media > Large upload** flow. It uploads
+browser-to-Blob with a short-lived scoped token, defaults to 5 GiB, and is
+available only for the `vercel_blob` storage.
+
+The direct path does not stream file contents through TYPO3, so it cannot do
+server-side magic-byte or malware inspection before storage. Active web formats
+are blocked. Image processing can still hit Vercel temporary-disk or invocation
+limits when TYPO3 later downloads and transforms a very large original.
 
 Blob and S3/R2 are object storage. Neither can be mounted as a Solr Lucene
 volume or used as TYPO3's SQL database.

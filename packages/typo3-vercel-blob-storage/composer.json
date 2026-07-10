@@ -1,12 +1,15 @@
 {
     "name": "webconsulting/typo3-vercel-blob-storage",
-    "description": "TYPO3 FAL driver for Vercel Blob storage",
+    "description": "TYPO3 FAL driver and secure direct-upload integration for Vercel Blob storage",
     "type": "typo3-cms-extension",
     "license": "GPL-2.0-or-later",
     "require": {
         "guzzlehttp/guzzle": "^7.4",
         "php": "^8.4",
-        "typo3/cms-core": "^14.3"
+        "symfony/mime": "^7.4 || ^8.0",
+        "typo3/cms-backend": "^14.3",
+        "typo3/cms-core": "^14.3",
+        "typo3/cms-filelist": "^14.3"
     },
     "autoload": {
         "psr-4": {

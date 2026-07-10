@@ -105,8 +105,11 @@ startup and creates the TYPO3 upload and processed-file folders in object
 storage. Bad credentials fail the deployment loudly.
 
 Normal TYPO3 backend uploads are limited to 4 MB because Vercel Functions
-reject total request bodies above 4.5 MB. Blob itself can store larger files,
-but those need a separate direct-upload flow.
+reject total request bodies above 4.5 MB. For larger files, open **Media > Large
+upload**, or select a Vercel Blob folder and use its **Large upload** toolbar
+button. The browser sends the file directly to Blob; TYPO3 still checks the
+logged-in editor, destination, filename, type, and size. The default limit is
+5 GiB.
 
 ## Optional Redis Cache
 

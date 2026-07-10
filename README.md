@@ -110,9 +110,12 @@ The Camino files and their responsive demo derivatives are baked into the
 image for deterministic first-page rendering. New editor uploads and their
 derivatives use Blob/S3; they are not written to the image filesystem.
 
-Vercel Functions currently impose a 4.5 MB request-body limit. Normal TYPO3
-backend uploads are therefore configured to 4 MB. Larger assets require a
-direct browser-to-Blob upload flow, which this starter does not yet provide.
+Vercel Functions currently impose a 4.5 MB request-body limit, so the normal
+TYPO3 uploader is configured to 4 MB. For larger files, use **Media > Large
+upload** or the **Large upload** button in a Vercel Blob folder. The included
+flow checks TYPO3 permissions, then uploads directly from the browser to Blob
+with a short-lived path/size/type-scoped token. The default limit is 5 GiB and
+can be configured up to Vercel Blob's 5 TB limit.
 
 See [Object storage](docs/object-storage.md) and the
 [Vercel Blob FAL manual](docs/vercel-blob-fal-driver.md).
@@ -307,6 +310,7 @@ docker compose up --build
 - durable PostgreSQL or MySQL-compatible databases
 - stable backend sessions with a durable database
 - Vercel Blob and S3-compatible TYPO3 FAL storage
+- secure direct-to-Blob uploads above the normal 4 MB request limit
 - ImageMagick, AVIF, WebP, Ghostscript, and writable `/tmp` processing paths
 - Vercel Marketplace Redis through a TCP/TLS connection
 - protected Vercel Cron endpoints
@@ -319,7 +323,7 @@ docker compose up --build
 - durable TYPO3 database state in the initial SQLite-only clone
 - durable local `var/`, `fileadmin/`, Solr index, or ImageMagick temp files
 - reliable backend sessions without a shared SQL database
-- files larger than Vercel's Function request-body limit through normal FAL upload
+- files above 4 MB through the normal uploader; use **Media > Large upload** for Blob
 - a Linux daemon, multi-hour Scheduler request, or always-on worker
 - durable production Solr inside the Vercel service without a persistent volume
 - guaranteed zero cold starts on Hobby or without an always-on/minimum-instance feature

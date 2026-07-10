@@ -8,7 +8,7 @@ It uses:
 - `typo3solr/ext-solr:14.0.0-beta3`
 - Apache Solr 10.0.0
 - EXT:solr configset `ext_solr_14_0_0`
-- enabled cores: `core_en` and `core_de`
+- enabled core: `core_en` (the English Camino demo core)
 
 The service is wired through Vercel Services and a private service binding. It
 is not exposed through a public rewrite. TYPO3 receives the generated internal

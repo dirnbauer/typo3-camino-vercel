@@ -143,18 +143,16 @@ Vercel offers a minimum-instances or always-warm option for Container Images.
 ## Remaining Engineering Work
 
 The runtime image, Pro warm-up profile, protected deep health endpoint, Blob
-write probe, and benchmark documentation are implemented. Remaining useful
-work is:
+write probe, direct large-upload flow, and benchmark documentation are
+implemented. Remaining useful work is:
 
-1. **Direct large uploads:** add a browser-to-Blob flow for media above the
-   Vercel 4.5 MB Function body limit, with TYPO3 permission and metadata checks.
-2. **Blob backup/export:** automate inventory and restore tests for projects
+1. **Blob backup/export:** automate inventory and restore tests for projects
    that require independent file backups.
-3. **External worker example:** provide a complete multi-hour Solr reindex job
+2. **External worker example:** provide a complete multi-hour Solr reindex job
    for an always-on runner.
-4. **Live regression benchmark:** run a deployment-tagged warm/cold suite in CI
+3. **Live regression benchmark:** run a deployment-tagged warm/cold suite in CI
    without accidentally keeping the target warm before the cold sample.
-5. **Stable EXT:solr 14:** remove beta compatibility fallbacks after the stable
+4. **Stable EXT:solr 14:** remove beta compatibility fallbacks after the stable
    PostgreSQL-safe release is verified.
 
 ## Decision Rule

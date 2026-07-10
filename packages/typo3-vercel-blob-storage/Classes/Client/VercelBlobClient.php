@@ -152,6 +152,40 @@ final class VercelBlobClient
         ]);
     }
 
+    /**
+     * @return array{delegationToken: string, clientSigningToken: string, validUntil: int}
+     */
+    public function issueSignedUploadToken(
+        string $pathname,
+        string $contentType,
+        int $maximumSizeInBytes,
+        int $validUntil,
+    ): array {
+        $response = $this->apiRequest('POST', '/signed-token', [
+            'headers' => ['content-type' => 'application/json'],
+            'body' => json_encode([
+                'pathname' => $pathname,
+                'operations' => ['put'],
+                'validUntil' => $validUntil,
+                'maximumSizeInBytes' => $maximumSizeInBytes,
+                'allowedContentTypes' => [$contentType],
+            ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES),
+        ]);
+
+        if (!is_string($response['delegationToken'] ?? null)
+            || !is_string($response['clientSigningToken'] ?? null)
+            || !is_numeric($response['validUntil'] ?? null)
+        ) {
+            throw new \RuntimeException('Vercel Blob returned an invalid signed-token response.', 1720100004);
+        }
+
+        return [
+            'delegationToken' => $response['delegationToken'],
+            'clientSigningToken' => $response['clientSigningToken'],
+            'validUntil' => (int)$response['validUntil'],
+        ];
+    }
+
     public function copy(string $sourceUrlOrPathname, string $targetPathname): void
     {
         $this->apiRequest('PUT', '/', [

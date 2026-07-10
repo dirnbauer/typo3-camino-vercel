@@ -20,7 +20,7 @@ when the deployment becomes more than a disposable demo.
 | [Database](database.md) | PostgreSQL/MySQL setup and stable backend sessions |
 | [Backend login](backend-login.md) | Credentials, sessions, and login troubleshooting |
 | [Object storage](object-storage.md) | Blob and S3/R2 durability model |
-| [Vercel Blob FAL](vercel-blob-fal-driver.md) | Custom driver, OIDC, token fallback, and operations |
+| [Vercel Blob FAL](vercel-blob-fal-driver.md) | Custom driver, large uploads, OIDC, fallback, and operations |
 | [Redis](redis-cache.md) | Shared TYPO3 cache, setup, value, and limits |
 
 ## Runtime And Performance

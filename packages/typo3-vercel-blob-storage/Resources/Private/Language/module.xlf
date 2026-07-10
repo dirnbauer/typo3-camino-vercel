@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+  <file source-language="en" datatype="plaintext" original="EXT:typo3_vercel_blob_storage/Resources/Private/Language/module.xlf" product-name="typo3-vercel-blob-storage">
+    <header/>
+    <body>
+      <trans-unit id="title">
+        <source>Large upload</source>
+      </trans-unit>
+      <trans-unit id="short_description">
+        <source>Upload large files directly to Vercel Blob</source>
+      </trans-unit>
+      <trans-unit id="description">
+        <source>Secure multipart uploads that bypass the Vercel Function request-body limit and register completed files in TYPO3 FAL.</source>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
