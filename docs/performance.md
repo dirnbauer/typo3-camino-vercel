@@ -321,6 +321,10 @@ instances do not share `/tmp`.
 
 Redis shares TYPO3 `pages`, `hash`, and `rootline` caches across instances. It
 can improve warm backend/frontend work and reduce duplicate cache builds.
+Rendered `pages` cache keys include the first 12 characters of
+`VERCEL_GIT_COMMIT_SHA`. A new code deployment therefore cannot serve HTML
+rendered by an older template, while `hash` and `rootline` remain reusable.
+Old rendered-page entries expire according to their normal TYPO3 lifetime.
 
 It cannot:
 

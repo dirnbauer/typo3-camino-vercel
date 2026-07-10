@@ -90,6 +90,18 @@ final class EnvironmentTest extends TestCase
         self::assertSame('p@ss', $options['password']);
     }
 
+    public function testScopesRenderedPageCacheToVercelCommit(): void
+    {
+        $this->setEnv('TYPO3_REDIS_PREFIX', 'camino:');
+        $this->setEnv('VERCEL_GIT_COMMIT_SHA', '0123456789abcdef0123456789abcdef01234567');
+
+        $pages = \typo3_vercel_redis_cache_configuration('pages', true, [], true);
+        $hash = \typo3_vercel_redis_cache_configuration('hash');
+
+        self::assertSame('camino:pages:deploy-0123456789ab:', $pages['options']['keyPrefix']);
+        self::assertSame('camino:hash:', $hash['options']['keyPrefix']);
+    }
+
     public function testExportsRequestScopedOidcTokenForChildProcesses(): void
     {
         $_SERVER['HTTP_X_VERCEL_OIDC_TOKEN'] = 'request-token';
@@ -118,6 +130,8 @@ final class EnvironmentTest extends TestCase
             'TYPO3_DB_DRIVER',
             'REDIS_URL',
             'TYPO3_REDIS_URL',
+            'TYPO3_REDIS_PREFIX',
+            'VERCEL_GIT_COMMIT_SHA',
             'VERCEL_OIDC_TOKEN',
             'HTTP_X_VERCEL_OIDC_TOKEN',
             'X_VERCEL_OIDC_TOKEN',

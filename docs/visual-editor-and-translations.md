@@ -14,10 +14,11 @@ Camino distribution.
 
 The video is deliberately committed to
 `public/fileadmin/camino/visual-editor-demo.mp4`. It shows the complete basic
-workflow: open the page in the backend, select the headline, change it to
-“Plan your Camino”, save it, and see the updated frontend result. It uses H.264
-at 1280 x 720, has no audio, and includes English WebVTT captions. It therefore
-works without an external video account or a runtime upload.
+workflow recorded in the real TYPO3 backend: open the page, select the headline,
+change it from "Walk the Camino de Compostela" to "100 Kilometers of Fun",
+click TYPO3's real save button, and see the persisted frontend result. It uses
+H.264 at 1280 x 720, has no audio, and includes English WebVTT captions. It
+therefore works without an external video account or a runtime upload.
 
 ## Included Languages
 

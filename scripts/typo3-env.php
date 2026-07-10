@@ -410,11 +410,26 @@ function typo3_vercel_redis_component_options(): ?array
     return $options;
 }
 
-function typo3_vercel_redis_cache_configuration(string $cacheName, bool $compression = false, array $extraOptions = []): array
+function typo3_vercel_redis_cache_configuration(
+    string $cacheName,
+    bool $compression = false,
+    array $extraOptions = [],
+    bool $deploymentScoped = false,
+): array
 {
     $options = typo3_vercel_redis_cache_base_options() ?? [];
     $prefix = typo3_vercel_env('TYPO3_REDIS_PREFIX', 'typo3-camino-vercel:') ?? 'typo3-camino-vercel:';
-    $options['keyPrefix'] = $prefix . $cacheName . ':';
+    $keyPrefix = $prefix . $cacheName . ':';
+    if ($deploymentScoped) {
+        $deployment = typo3_vercel_env('VERCEL_GIT_COMMIT_SHA');
+        $deployment = is_string($deployment)
+            ? preg_replace('/[^a-zA-Z0-9_-]/', '', $deployment)
+            : null;
+        if (is_string($deployment) && $deployment !== '') {
+            $keyPrefix .= 'deploy-' . substr($deployment, 0, 12) . ':';
+        }
+    }
+    $options['keyPrefix'] = $keyPrefix;
     $options['compression'] = $compression;
 
     return [
@@ -428,7 +443,7 @@ function typo3_vercel_cache_configurations(): array
     if (typo3_vercel_cache_backend() === 'redis') {
         return [
             'hash' => typo3_vercel_redis_cache_configuration('hash'),
-            'pages' => typo3_vercel_redis_cache_configuration('pages', true),
+            'pages' => typo3_vercel_redis_cache_configuration('pages', true, [], true),
             'rootline' => typo3_vercel_redis_cache_configuration('rootline', true, [
                 'defaultLifetime' => 2592000,
             ]),
