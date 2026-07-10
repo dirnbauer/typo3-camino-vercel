@@ -315,6 +315,10 @@ images, not live index data.
   end-to-end variable in this case.
 - An environment-only deployment rebuilt unchanged container sources for about
   four minutes because prior build caches were unavailable.
+- A repository MP4 was valid and played locally, but a cached Vercel byte-range
+  response returned partial bytes with status `200` instead of `206`. Chromium
+  stopped decoding after roughly half a second. The demo now streams through a
+  small range-aware PHP endpoint with Vercel edge caching disabled.
 - A provisioned Redis resource and valid injected URL did not guarantee that a
   connection from the deployed Container would survive authentication and
   `PING`; the health probe caught this before the setup was called complete.

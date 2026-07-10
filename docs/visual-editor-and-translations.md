@@ -20,6 +20,13 @@ click TYPO3's real save button, and see the persisted frontend result. It uses
 H.264 at 1280 x 720, has no audio, and includes English WebVTT captions. It
 therefore works without an external video account or a runtime upload.
 
+The page delivers the committed MP4 through
+`/api/media/visual-editor-demo.php`. That endpoint supports single HTTP byte
+ranges, preserves `206 Partial Content`, and disables Vercel edge caching while
+the content-hashed browser URL remains immutable. Serving the MP4 directly from
+the container's static-file route is unsafe here: a cached partial response was
+observed returning status `200`, which made Chromium stop with a decode error.
+
 ## Included Languages
 
 | ID | Language | Base path | Locale | Fallback |
