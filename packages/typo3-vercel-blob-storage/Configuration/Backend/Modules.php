@@ -11,7 +11,7 @@ return [
         'access' => 'user',
         'path' => '/module/file/vercel-blob-upload',
         'iconIdentifier' => 'actions-upload',
-        'labels' => 'LLL:EXT:typo3_vercel_blob_storage/Resources/Private/Language/module.xlf',
+        'labels' => 'typo3_vercel_blob_storage.module',
         'routes' => [
             '_default' => [
                 'methods' => ['GET'],

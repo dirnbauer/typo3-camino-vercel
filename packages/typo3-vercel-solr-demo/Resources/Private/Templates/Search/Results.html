@@ -58,9 +58,10 @@
                         </f:if>
                     </f:then>
                     <f:else>
+                        <meta http-equiv="refresh" content="5" />
                         <div class="camino-solr-search__empty camino-solr-search__empty--warning" role="status">
                             <h2 id="camino-solr-results-title"><f:translate key="results.warming.title" extensionName="Typo3VercelSolrDemo">Search is warming up</f:translate></h2>
-                            <p><f:translate key="results.warming.text" extensionName="Typo3VercelSolrDemo">The Solr service is starting. Please retry in a moment.</f:translate></p>
+                            <p><f:translate key="results.warming.text" extensionName="Typo3VercelSolrDemo">The Solr service is starting. This search will retry automatically in a few seconds.</f:translate></p>
                         </div>
                     </f:else>
                 </f:if>

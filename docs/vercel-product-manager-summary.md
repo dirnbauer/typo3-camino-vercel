@@ -306,6 +306,10 @@ images, not live index data.
   replaced during the remote Container build. The repository now stages the Pro
   file under the canonical name before deploying, but a project-level production
   config selection would remove this operational trap.
+- A newly built seed cannot update an already connected durable database. The
+  project now exposes a protected, idempotent maintenance POST so existing
+  Vercel installations can apply demo records without an interactive shell or
+  repeated cold-start migrations.
 - Cutting the application image by 53% did not move the measured production
   cold request away from roughly 12 seconds; image size was not the dominant
   end-to-end variable in this case.

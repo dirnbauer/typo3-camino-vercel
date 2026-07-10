@@ -16,6 +16,7 @@
     "require": {
         "apache-solr-for-typo3/solr": "^14.0@beta",
         "friendsoftypo3/visual-editor": "^1.8",
+        "lochmueller/staticfilecache": "^16.1",
         "typo3/cms-adminpanel": "^14.3",
         "typo3/cms-backend": "^14.3",
         "typo3/cms-belog": "^14.3",

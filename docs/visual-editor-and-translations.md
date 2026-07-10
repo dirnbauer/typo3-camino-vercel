@@ -13,7 +13,9 @@ Camino distribution.
 - `/visual-editor` contains a short captioned demonstration of the workflow.
 
 The video is deliberately committed to
-`public/fileadmin/camino/visual-editor-demo.mp4`. It is about 1.3 MB, uses H.264
+`public/fileadmin/camino/visual-editor-demo.mp4`. It shows the complete basic
+workflow: open the page in the backend, select the headline, change it to
+“Plan your Camino”, save it, and see the updated frontend result. It uses H.264
 at 1280 x 720, has no audio, and includes English WebVTT captions. It therefore
 works without an external video account or a runtime upload.
 
@@ -46,6 +48,19 @@ vendor/bin/typo3 webconsulting:camino-demo:setup --flush-caches
 ```
 
 For local DDEV development, prefix both commands with `ddev exec`.
+
+Vercel does not expose an interactive production shell. Existing Vercel
+databases can run the same idempotent content setup through a protected POST:
+
+```bash
+curl --request POST \
+  --header "Authorization: Bearer $CRON_SECRET" \
+  https://your-project.vercel.app/api/maintenance/camino-demo.php
+```
+
+The endpoint rejects GET requests, requires the same secret as Vercel Cron, and
+never accepts the secret in the URL. It does not run automatically on every
+container start.
 
 The setup command is idempotent. It creates or updates the Visual Editor page,
 its custom content element, all site-language page overlays, and connected

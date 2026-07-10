@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e131c45f501e9e75a6aed33d632dc382",
+    "content-hash": "23d7ff96e543a4c0af002ad3591d870e",
     "packages": [
         {
             "name": "apache-solr-for-typo3/solr",
@@ -1599,6 +1599,90 @@
                 }
             ],
             "time": "2025-12-05T14:53:09+00:00"
+        },
+        {
+            "name": "lochmueller/staticfilecache",
+            "version": "16.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/lochmueller/staticfilecache.git",
+                "reference": "4bdb78b9e4a2abcbf5ca1f726d01d8824dfb1bf2"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/lochmueller/staticfilecache/zipball/4bdb78b9e4a2abcbf5ca1f726d01d8824dfb1bf2",
+                "reference": "4bdb78b9e4a2abcbf5ca1f726d01d8824dfb1bf2",
+                "shasum": ""
+            },
+            "require": {
+                "ext-pdo": "*",
+                "ext-zlib": "*",
+                "php": "^8.3",
+                "typo3/cms-backend": "^14.0",
+                "typo3/cms-core": "^14.0",
+                "typo3/cms-extensionmanager": "^14.0"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.30",
+                "phpstan/phpstan": "^2.1",
+                "typo3/testing-framework": "^9.3"
+            },
+            "suggest": {
+                "friendsofsymfony/http-cache": "For HTTP proxy cache services like Varnish",
+                "lochmueller/seocli": "Scan websites against SEO criteria and/or trigger the indexing process and cache warming in deployment scripts"
+            },
+            "type": "typo3-cms-extension",
+            "extra": {
+                "typo3/cms": {
+                    "web-dir": ".Build/Web",
+                    "extension-key": "staticfilecache",
+                    "cms-package-dir": "{$vendor-dir}/typo3/cms"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "SFC\\Staticfilecache\\": "Classes"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "Tim Lochmüller",
+                    "email": "tim@fruit-lab.de",
+                    "homepage": "https://github.com/lochmueller",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Transparent static file cache solution using mod_rewrite and mod_expires. Increase performance for static pages by a factor of 230!!",
+            "homepage": "https://extensions.typo3.org/extension/staticfilecache",
+            "keywords": [
+                "StaticFileCache",
+                "TYPO3 CMS",
+                "cache",
+                "file",
+                "magic",
+                "speed",
+                "static"
+            ],
+            "support": {
+                "docs": "https://docs.typo3.org/p/lochmueller/staticfilecache/main/en-us/",
+                "issues": "https://github.com/lochmueller/staticfilecache/issues",
+                "source": "https://github.com/lochmueller/staticfilecache"
+            },
+            "funding": [
+                {
+                    "url": "https://paypal.me/lochmueller",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/lochmueller",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-06-01T08:00:46+00:00"
         },
         {
             "name": "lolli42/finediff",

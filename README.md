@@ -135,11 +135,19 @@ Editor to edit one language or compare it with English. Strict mode never shows
 English content as an accidental fallback when a translated record is missing.
 
 New empty databases receive the Visual Editor page and translations during
-automatic setup. For an existing database, run this once and deploy the changed
-database state:
+automatic setup. For an existing database with shell access, run this once:
 
 ```bash
 vendor/bin/typo3 webconsulting:camino-demo:setup --flush-caches
+```
+
+On Vercel, where there is no interactive container shell, call the protected
+maintenance endpoint after deploying the new code:
+
+```bash
+curl --request POST \
+  --header "Authorization: Bearer $CRON_SECRET" \
+  https://your-project.vercel.app/api/maintenance/camino-demo.php
 ```
 
 Database-backed pages and translations are temporary in the one-click SQLite
@@ -342,6 +350,7 @@ docker compose up --build
 - ImageMagick, AVIF, WebP, Ghostscript, and writable `/tmp` processing paths
 - Vercel Marketplace Redis through a TCP/TLS connection
 - protected Vercel Cron endpoints
+- protected, idempotent existing-database setup for the Camino Visual Editor demo
 - EXT:solr with internal demo or external managed Solr 10
 - Vercel Firewall/WAF in front of the public application
 - Pro performance CPU and `fra1` region configuration for the public demo

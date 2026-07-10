@@ -86,7 +86,7 @@ final class SolrSearchContent
 
     private function warmingMarkup(): string
     {
-        return '<div class="alert alert-warning mt-3" role="status">Search is warming up. Please retry in a moment.</div>';
+        return '<div class="alert alert-warning mt-3" role="status">Search is warming up. This search will retry automatically in a few seconds.</div>';
     }
 
     private function searchQuery(?ServerRequestInterface $request = null): string
@@ -120,7 +120,9 @@ final class SolrSearchContent
 
         $lastBody = '';
         $timeout = $this->requestTimeout();
-        $attempts = $this->usesInternalVercelSolrService() ? [1] : [1, 2];
+        // A Vercel service can be waking up while the TYPO3 container is already serving.
+        // A short bounded retry turns most cold-start races into a normal search response.
+        $attempts = $this->usesInternalVercelSolrService() ? [1, 2, 3] : [1, 2];
         foreach ($attempts as $attempt) {
             $response = $this->request($url, $timeout);
             if ($response['status'] === 200 && $response['body'] !== '') {
@@ -156,8 +158,8 @@ final class SolrSearchContent
 
     private function requestTimeout(): float
     {
-        $default = $this->usesInternalVercelSolrService() ? 5.0 : 6.0;
-        $max = $this->usesInternalVercelSolrService() ? 8.0 : 10.0;
+        $default = $this->usesInternalVercelSolrService() ? 2.0 : 6.0;
+        $max = $this->usesInternalVercelSolrService() ? 3.0 : 10.0;
         $timeout = (float)(getenv('TYPO3_SOLR_DEMO_REQUEST_TIMEOUT') ?: $default);
         return max(1.0, min($max, $timeout));
     }

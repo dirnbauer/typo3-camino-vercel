@@ -285,26 +285,37 @@ final class SetupCaminoDemoCommand extends Command
 
     private function localizeRecord(string $table, int $uid, int $languageId): int
     {
-        $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
-        $dataHandler->bypassAccessCheckForRecords = true;
-        $dataHandler->start(
-            [],
-            [$table => [$uid => ['localize' => $languageId]]],
-            $this->setupBackendUser(),
-        );
-        $dataHandler->process_cmdmap();
-        if ($dataHandler->errorLog !== []) {
-            throw new \RuntimeException(implode(' ', $dataHandler->errorLog), 1783681206);
-        }
-
-        $localizedUid = $dataHandler->copyMappingArray_merged[$table][$uid] ?? null;
-        if (is_numeric($localizedUid)) {
-            return (int)$localizedUid;
-        }
-
         $parentField = $table === 'pages' ? 'l10n_parent' : 'l18n_parent';
-        return $this->findTranslationUid($table, $parentField, $uid, $languageId)
-            ?? throw new \RuntimeException(sprintf('TYPO3 did not localize %s:%d.', $table, $uid), 1783681207);
+        $existingUid = $this->findTranslationUid($table, $parentField, $uid, $languageId);
+        if ($existingUid !== null) {
+            return $existingUid;
+        }
+
+        $connection = $this->connectionPool->getConnectionForTable($table);
+        $record = $connection->createQueryBuilder()
+            ->select('*')
+            ->from($table)
+            ->where('uid = ' . $connection->quote((string)$uid))
+            ->executeQuery()
+            ->fetchAssociative();
+        if ($record === false) {
+            throw new \RuntimeException(sprintf('Could not read %s:%d for localization.', $table, $uid), 1783681206);
+        }
+
+        unset($record['uid']);
+        $record['sys_language_uid'] = $languageId;
+        $record[$parentField] = $uid;
+        $record['deleted'] = 0;
+        $record['hidden'] = 0;
+        if (array_key_exists('tstamp', $record)) {
+            $record['tstamp'] = time();
+        }
+        if (array_key_exists('crdate', $record)) {
+            $record['crdate'] = time();
+        }
+        $connection->insert($table, $record);
+
+        return (int)$connection->lastInsertId();
     }
 
     private function setupBackendUser(): BackendUserAuthentication
