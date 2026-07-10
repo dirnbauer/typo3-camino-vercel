@@ -16,7 +16,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 #[AsCommand(
     name: 'webconsulting:camino-demo:setup',
-    description: 'Creates the Visual Editor video page and strict Camino translations.'
+    description: 'Creates the Visual Editor page, corrects the Camino demo, and adds strict translations.'
 )]
 final class SetupCaminoDemoCommand extends Command
 {
@@ -40,6 +40,9 @@ final class SetupCaminoDemoCommand extends Command
         $rootPageId = max(1, (int)$input->getOption('root-page-id'));
         $visualPageUid = $this->ensureVisualEditorPage($rootPageId);
         $this->ensureVisualEditorContent($visualPageUid);
+
+        $sourceCorrections = require dirname(__DIR__, 2) . '/Configuration/Demo/SourceCorrections.php';
+        $this->applyContentSourceCorrections($sourceCorrections, $output);
 
         $translations = require dirname(__DIR__, 2) . '/Configuration/Demo/Translations.php';
         foreach ($translations as $languageId => $translation) {
@@ -144,6 +147,33 @@ final class SetupCaminoDemoCommand extends Command
         ] + $fields);
 
         return (int)$connection->lastInsertId();
+    }
+
+    /** @param array<int, array<string, string>> $corrections */
+    private function applyContentSourceCorrections(array $corrections, OutputInterface $output): void
+    {
+        $connection = $this->connectionPool->getConnectionForTable('tt_content');
+        foreach ($corrections as $uid => $fields) {
+            $uid = (int)$uid;
+            $queryBuilder = $connection->createQueryBuilder();
+            $exists = $queryBuilder
+                ->count('uid')
+                ->from('tt_content')
+                ->where(
+                    $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($uid, Connection::PARAM_INT)),
+                    $queryBuilder->expr()->eq('sys_language_uid', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
+                    $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
+                )
+                ->executeQuery()
+                ->fetchOne();
+            if ((int)$exists !== 1) {
+                throw new \RuntimeException(sprintf('Default Camino content %d was not found.', $uid), 1783681211);
+            }
+
+            $connection->update('tt_content', ['tstamp' => time()] + $fields, ['uid' => $uid]);
+        }
+
+        $output->writeln(sprintf('%d Camino source content correction(s) are ready.', count($corrections)));
     }
 
     /**

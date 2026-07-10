@@ -77,23 +77,10 @@ vercel env add CRON_SECRET production
 
 ## Vercel Cron In This Repo
 
-`vercel.json` includes a safe daily Scheduler cron by default:
-
-```json
-{
-  "crons": [
-    {
-      "path": "/api/cron/typo3-scheduler.php",
-      "schedule": "0 3 * * *"
-    }
-  ]
-}
-```
-
-This is intentionally daily so free/Hobby clones still deploy. On Vercel Hobby,
-cron jobs are limited to once per day and can run within the selected hour
-rather than exactly at the selected minute. A more frequent cron expression in
-the public template would make Hobby deployments fail.
+`vercel.json` registers no cron jobs. The one-click profile has temporary
+SQLite state and does not need background processing. Vercel Hobby permits only
+daily cron, with execution occurring within the selected hour; a user may add a
+daily task for an experiment, but this starter does not register one by default.
 
 `vercel.pro.json` is the supported Pro profile. It adds a three-minute warm-up
 and runs Scheduler every 15 minutes:
@@ -163,7 +150,7 @@ scripts/deploy-pro.sh
 ```
 
 Do not copy this schedule into `vercel.json`. Hobby permits cron only once per
-day, so the public one-click profile must remain daily.
+day, so the public one-click profile must remain free of frequent jobs.
 
 ## Sources
 

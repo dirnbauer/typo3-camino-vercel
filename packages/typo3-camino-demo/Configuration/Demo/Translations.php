@@ -98,7 +98,7 @@ return array (
       7 =>
       array (
         'header' => 'Camino Francés – Der französische Weg',
-        'bodytext' => '<ul><li data-list-item-id="e4427baccbfa326757c83a5dd887cb2ed">Entfernung: 240 km von Porto oder 620 km von Lissabon (ca. 14–42 Tage) </li><li data-list-item-id="e808930077fe600a2c17c905a302e26ee">Schwierigkeit: Mittel </li><li data-list-item-id="e7cb7a708fe43a9546e95a7280f3fd2c2">Geeignet für: Diejenigen, die eine ruhigere Route, Küstenlandschaft oder eine kürzere Route suchen Reise</li></ul>
+        'bodytext' => '<ul><li data-list-item-id="e4427baccbfa326757c83a5dd887cb2ed">Entfernung: ca. 780 km (30–35 Tage)</li><li data-list-item-id="e808930077fe600a2c17c905a302e26ee">Schwierigkeit: Mittel</li><li data-list-item-id="e7cb7a708fe43a9546e95a7280f3fd2c2">Am besten geeignet für: Erstpilger, gesellige Wanderer und alle, die die am besten ausgebaute Route wünschen</li></ul>
 <p>Der Camino Francés führt durch einige der berühmtesten Städte entlang aller Camino-Route, darunter Pamplona, Burgos und León. Die Landschaft wechselt von den üppigen grünen Hügeln der Pyrenäen über Weinberge und hügelige Landschaften bis nach Galizien. Mit einer lebhaften Atmosphäre und einem ständigen Strom von Mitpilgern ist es eine Route, auf der Gemeinschaft und Verbundenheit ganz selbstverständlich sind.</p>
 <p>Als beliebteste und am besten ausgebaute Route ist der Camino Francés eine ideale Wahl für Erstpilger. Die Wege sind gut markiert, es gibt genügend Übernachtungsmöglichkeiten und es ist immer jemand da, der nebenher gehen kann.</p>',
       ),
@@ -549,7 +549,7 @@ return array (
       7 =>
       array (
         'header' => 'Camino Francés – El Camino Francés',
-        'bodytext' => '<ul><li data-list-item-id="e4427baccbfa326757c83a5dd887cb2ed">Distancia: 240 km desde Oporto o 620 km desde Lisboa (aproximadamente entre 14 y 42 días) </li><li data-list-item-id="e808930077fe600a2c17c905a302e26ee">Dificultad: moderada </li><li data-list-item-id="e7cb7a708fe43a9546e95a7280f3fd2c2">Ideal para: quienes buscan una ruta más tranquila, un paisaje costero o una ruta más corta. viaje</li></ul>
+        'bodytext' => '<ul><li data-list-item-id="e4427baccbfa326757c83a5dd887cb2ed">Distancia: aproximadamente 780 km (30–35 días)</li><li data-list-item-id="e808930077fe600a2c17c905a302e26ee">Dificultad: moderada</li><li data-list-item-id="e7cb7a708fe43a9546e95a7280f3fd2c2">Ideal para: peregrinos primerizos, caminantes sociables y quienes buscan la ruta con mejores servicios</li></ul>
 <p>El Camino Francés pasa por algunos de los pueblos más emblemáticos de cualquier ruta del Camino, incluidos Pamplona, Burgos y León. El paisaje cambia desde las exuberantes colinas verdes de los Pirineos a través de viñedos y paisajes ondulados hasta llegar a Galicia. Con un ambiente animado y un flujo constante de compañeros peregrinos, es una ruta donde la comunidad y la conexión son naturales.</p>
 <p>Al ser la ruta más popular y con mayor apoyo, el Camino Francés es una opción ideal para quienes peregrinan por primera vez. Los caminos están bien señalizados, el alojamiento es abundante y siempre hay alguien con quien caminar.</p>',
       ),
@@ -714,24 +714,24 @@ return array (
       array (
         'bodytext' => '<p><strong>Política de Privacidad</strong></p>
 <p><i>Este es contenido ficticio sólo con fines de demostración. Reemplace todos los campos de marcador de posición marcados con [corchetes] con su información real y haga que un profesional legal revise esta política antes de publicarla.</i></p>
-<p><fuerte>1. Responsable del tratamiento</strong></p>
+<p><strong>1. Responsable del tratamiento</strong></p>
 <p>[Nombre de la empresa] [Dirección] [Código postal, ciudad] [País]<br />Correo electrónico: [email@example.com] Teléfono: [+00 000 000000]</p>
-<p><fuerte>2. Qué datos recopilamos</strong></p>
+<p><strong>2. Qué datos recopilamos</strong></p>
 <p>Podemos recopilar los siguientes tipos de datos personales:</p>
 <ul><li data-list-item-id="e73f7ed080829a7ac2cac007851b4ae14">Nombre e información de contacto (por ejemplo, dirección de correo electrónico, número de teléfono)</li><li data-list-item-id="eb0a6937c4dcdde11e1e7b931d167e055">Datos de uso (por ejemplo, dirección IP, navegador tipo, páginas visitadas)</li><li data-list-item-id="ecaca2c0bde0d835147d1d1224e40eeb7">Datos que proporcionas voluntariamente a través de formularios de contacto o suscripciones a boletines</li></ul>
-<p><fuerte>3. Cómo utilizamos tus datos</strong></p>
+<p><strong>3. Cómo utilizamos tus datos</strong></p>
 <p>Utilizamos tus datos para:</p>
 <ul><li data-list-item-id="e0968fad6a96fb360521235e775efe232">Brindar y mejorar nuestros servicios</li><li data-list-item-id="ea6e7a178a7483e7bd304fa48e40bc95d">Responder a sus consultas</li><li data-list-item-id="ea10996ff2384057302f3e1c1335c9039">Enviar newsletters o actualizaciones (solo con tu consentimiento)</li><li data-list-item-id="eae60168359bdcdb66d48e71ee7ec76ba">Cumplir obligaciones legales</li></ul>
-<p><fuerte>4. Base Legal para el Tratamiento</strong></p>
+<p><strong>4. Base Legal para el Tratamiento</strong></p>
 <p>Procesamos sus datos sobre las siguientes bases legales según el art. 6:</p>
 <ul><li data-list-item-id="ec27dc6763480f01e298ddf7cdfdebef5">[Consentimiento / Contrato / Obligación legal / Interés legítimo – elegir según corresponda]</li></ul>
-<p><fuerte>5. Compartir datos</strong></p>
+<p><strong>5. Compartir datos</strong></p>
 <p>No vendemos sus datos personales. Podemos compartir datos con [proveedores de servicios externos, p. alojamiento, análisis] solo según sea necesario para operar nuestros servicios.</p>
-<p><fuerte>6. Galletas</strong></p>
+<p><strong>6. Galletas</strong></p>
 <p>Este sitio web utiliza cookies. [Describa aquí su uso de cookies o consulte una política de cookies independiente.]</p>
-<p><fuerte>7. Retención de datos</strong></p>
+<p><strong>7. Retención de datos</strong></p>
 <p>Conservamos datos personales solo durante el tiempo necesario para los fines indicados anteriormente o según lo exija la ley. [Especifique los períodos de retención cuando corresponda.]</p>
-<p><fuerte>8. Tus derechos</strong></p>
+<p><strong>8. Tus derechos</strong></p>
 <p>Según la ley de protección de datos aplicable, usted tiene derecho a:</p>
 <ul><li data-list-item-id="efb0e8b720a64d18529aaa52d599138ac">Acceder a sus datos personales</li><li data-list-item-id="e649073f2c3af6b9b76d808c2f4fdae7d">Solicitar corrección o eliminación</li><li data-list-item-id="e50465a90f09b896b022b6dc6f2069c5d">Objetar o restringir el procesamiento</li><li data-list-item-id="e8caaadbefc61a346dc99a4e58fca72ef">Portabilidad de datos</li><li data-list-item-id="e346f5fc748730cb30e43802b58ffdd5d">Presentar una queja ante una autoridad supervisora</li></ul>
 <p>Para ejercer sus derechos, contáctenos en: [email@example.com]</p>
@@ -1000,7 +1000,7 @@ return array (
       7 =>
       array (
         'header' => 'Camino Francés——法国之路',
-        'bodytext' => '<ul><li data-list-item-id="e4427baccbfa326757c83a5dd887cb2ed">距离：距离波尔图 240 公里，距离里斯本 620 公里（约 14–42 天） </li><li data-list-item-id="e808930077fe600a2c17c905a302e26ee">难度：中等</li><li data-list-item-id="e7cb7a708fe43a9546e95a7280f3fd2c2">最适合：那些寻求更安静路线、沿海风景或更短距离的人旅程</li></ul>
+        'bodytext' => '<ul><li data-list-item-id="e4427baccbfa326757c83a5dd887cb2ed">距离：约 780 公里（30–35 天）</li><li data-list-item-id="e808930077fe600a2c17c905a302e26ee">难度：中等</li><li data-list-item-id="e7cb7a708fe43a9546e95a7280f3fd2c2">最适合：首次朝圣者、喜欢结伴步行的人，以及希望选择配套最完善路线的人</li></ul>
 <p>卡米诺法兰西斯 (Camino Francés) 经过卡米诺路线上一些最具标志性的城镇，包括潘普洛纳、布尔戈斯和莱昂。风景从比利牛斯山脉郁郁葱葱的绿色山丘、葡萄园和连绵起伏的乡村一直到加利西亚。气氛活跃，朝圣者源源不断，这是一条自然形成社区和联系的路线。</p>
 <p>作为最受欢迎和最受支持的路线，Camino Francés 是首次朝圣者的理想选择。道路标记清晰，住宿条件充足，并且总有人可以并肩行走。</p>',
       ),
@@ -1165,28 +1165,28 @@ return array (
       array (
         'bodytext' => '<p><strong>隐私政策</strong></p>
 <p><i>这是仅用于演示目的的虚拟内容。请将所有标有 [括号] 的占位符字段替换为您的实际信息，并在发布前让法律专业人士审核此政策。</i></p>
-<p><强>1。数据控制器</strong></p>
+<p><strong>1。数据控制器</strong></p>
 <p>[公司名称][街道地址][邮政编码，城市][国家/地区]<br />电子邮件：[email@example.com] 电话：[+00 000 000000]</p>
-<p><强>2。我们收集哪些数据</strong></p>
+<p><strong>2。我们收集哪些数据</strong></p>
 <p>我们可能会收集以下类型的个人数据：</p>
 <ul><li data-list-item-id="e73f7ed080829a7ac2cac007851b4ae14">姓名和联系信息（例如电子邮件地址、电话号码）</li><li data-list-item-id="eb0a6937c4dcdde11e1e7b931d167e055">使用数据（例如 IP 地址、浏览器）类型、访问的页面）</li><li data-list-item-id="ecaca2c0bde0d835147d1d1224e40eeb7">您通过联系表单或新闻通讯注册自愿提供的数据</li></ul>
-<p><强>3。我们如何使用您的数据</strong></p>
+<p><strong>3。我们如何使用您的数据</strong></p>
 <p>我们使用您的数据来：</p>
 <ul><li data-list-item-id="e0968fad6a96fb360521235e775efe232">提供并改进我们的服务</li><li data-list-item-id="ea6e7a178a7483e7bd304fa48e40bc95d">回复您的询问</li><li data-list-item-id="ea10996ff2384057302f3e1c1335c9039">发送简讯或更新（仅在您同意的情况下）</li><li data-list-item-id="eae60168359bdcdb66d48e71ee7ec76ba">遵守法律义务</li></ul>
-<p><强>4。处理的法律依据</strong></p>
+<p><strong>4。处理的法律依据</strong></p>
 <p>我们根据 GDPR 第 1 条的以下法律依据处理您的数据。 6：</p>
 <ul><li data-list-item-id="ec27dc6763480f01e298ddf7cdfdebef5">[同意/合同/法律义务/合法权益 - 选择适用项]</li></ul>
-<p><强>5。数据共享</strong></p>
+<p><strong>5。数据共享</strong></p>
 <p>我们不会出售您的个人数据。我们可能会与[第三方服务提供商，例如托管、分析]仅在运营我们的服务所需时使用。</p>
-<p><强>6。 Cookie</strong></p>
+<p><strong>6。 Cookie</strong></p>
 <p>本网站使用 cookie。 [在此处描述您的 cookie 使用情况或参阅单独的 cookie 政策。]</p>
-<p><强>7。数据保留</strong></p>
+<p><strong>7。数据保留</strong></p>
 <p>我们仅在上述目的所需的期限内或法律要求的期限内保留个人数据。 [指定保留期限（如适用）。]</p>
-<p><强>8。您的权利</strong></p>
+<p><strong>8。您的权利</strong></p>
 <p>根据适用的数据保护法，您有权：</p>
 <ul><li data-list-item-id="efb0e8b720a64d18529aaa52d599138ac">访问您的个人数据</li><li data-list-item-id="e649073f2c3af6b9b76d808c2f4fdae7d">请求更正或删除</li><li data-list-item-id="e50465a90f09b896b022b6dc6f2069c5d">反对或限制处理</li><li data-list-item-id="e8caaadbefc61a346dc99a4e58fca72ef">数据可移植性</li><li data-list-item-id="e346f5fc748730cb30e43802b58ffdd5d">向监管机构提出投诉</li></ul>
 <p>要行使您的权利，请通过以下方式联系我们：[email@example.com]</p>
-<p><强>9。本政策的变更</strong></p>
+<p><strong>9。本政策的变更</strong></p>
 <p>我们可能会不时更新本隐私政策。当前版本始终在此页面上可用。</p>
 <p><strong>上次更新：</strong>[日期]</p>',
       ),
@@ -1416,42 +1416,42 @@ return array (
       2 =>
       array (
         'header' => 'Camino de Finisterre – Út a világ végére',
-        'bodytext' => '<ul><li data-list-item-id="e6e92c6a56010a050515893fcaefde71e">Távolság: 90 km (kb. 4 nap) </li><li data-list-item-id="e36427da8959003d95">D8959003d95beeffii405culty: Mérsékelt </li><li data-list-item-id="e18ebe20575240c5671424350f877f5a4">A legjobb: azoknak a zarándokoknak, akik Santiago de Compostelán túl szeretnék folytatni útjukat</li></ul>
+        'bodytext' => '<ul><li data-list-item-id="e6e92c6a56010a050515893fcaefde71e">Távolság: 90 km (kb. 4 nap) </li><li data-list-item-id="e36427da8959003d95bee4be5f38ecc02">Nehézség: közepes </li><li data-list-item-id="e18ebe20575240c5671424350f877f5a4">A legjobb: azoknak a zarándokoknak, akik Santiago de Compostelán túl szeretnék folytatni útjukat</li></ul>
 <p>A Camino de Finisterre a zarándoklat természetes kiterjesztése azok számára, akik nem állnak készen arra, hogy abbahagyják a gyaloglást. Santiago-tól nyugat felé vezet az útvonal lenyűgöző tengerparti tájakon keresztül egészen az Atlanti-óceánon fekvő Finisterre-fokig – egy olyan helyre, amelyet egykor a középkori zarándokok az ismert világ legszélének hittek.</p>
 <p>A köpeny elérése mélyen megrendítő pillanat. Sok zarándok az óceán feletti naplementével emlékezik meg, ami egy rendkívüli utazás méltó és felejthetetlen befejezése.</p>',
       ),
       3 =>
       array (
         'header' => 'Camino Inglés – Az angol út',
-        'bodytext' => '<ul><li data-list-item-id="e5c0ffc19bf05372033315bb33cb7b4e4">Távolság: 115 km (kb. 5–7 nap) </li><li data-list-item-id="e61da94bfef3a661d0d74ffficulu: Mérsékelt </li><li data-list-item-id="e7c9c2dbeab4936aa4d7e4d1e2239ce16">A legjobb: azoknak, akiknek korlátozott az ideje, vagy akik rövidebb, csendesebb Camino-t keresnek</li></ul>
+        'bodytext' => '<ul><li data-list-item-id="e5c0ffc19bf05372033315bb33cb7b4e4">Távolság: 115 km (kb. 5–7 nap) </li><li data-list-item-id="e61da94bfef3a661d0d4fde9d72eecc03">Nehézség: könnyű–közepes </li><li data-list-item-id="e7c9c2dbeab4936aa4d7e4d1e2239ce16">A legjobb: azoknak, akiknek korlátozott az ideje, vagy akik rövidebb, csendesebb Camino-t keresnek</li></ul>
 <p>A Camino Inglés A Coruñából vagy Ferrolból indul, és kompaktabb útvonalat kínál Santiagoba anélkül, hogy feláldozná a zarándoklat szellemét. Az ösvény kis halászfalvakon és gyönyörű tengerparti szakaszokon halad át, békés és magába mélyedő légkörrel, amely megkülönbözteti a forgalmasabb útvonalaktól.</p>
 <p>Azok számára, akik nem tudnak elkötelezni egy hosszabb utazást, de mégis igazi Camino-élményre vágynak, az Inglés ideális választás – sietve, festői és csendesen kifizetődő.</p>',
       ),
       4 =>
       array (
         'header' => 'Camino Primitivo – Az eredeti út',
-        'bodytext' => '<ul><li data-list-item-id="e6dee9acdc35898b2b524076fde110e53">Távolság: 320 km (kb. 12–14 nap) </li><li data-list-item-id="e32bb04cb9beca73c98c">D6dffia2853d Kihívó </li><li data-list-item-id="e9a21debace0cfd3ae6179242de3ddbb6">A legjobb: kalandvágyó zarándokok, akik magányt és történelmi élményt keresnek</li></ul>
+        'bodytext' => '<ul><li data-list-item-id="e6dee9acdc35898b2b524076fde110e53">Távolság: 320 km (kb. 12–14 nap) </li><li data-list-item-id="e32bb04cb9beca73c9821d7a5cdda6284">Nehézség: kihívást jelentő </li><li data-list-item-id="e9a21debace0cfd3ae6179242de3ddbb6">A legjobb: kalandvágyó zarándokok, akik magányt és történelmi élményt keresnek</li></ul>
 <p>A Camino Primitivo különleges helyet foglal el a zarándoklatok történetében – ez a legrégebbi Camino-útvonal, amelyet először II. Alfonz király járt be a 9. században. Oviedótól kezdve Asztúria és Galícia hegyei és távoli falvai között kanyarog, elszigeteltebb és szemlélődőbb élményt kínálva, sokkal kevesebb zarándok mellett.</p>
 <p>A terep egyenetlen, az emelkedők pedig megerőltetőek, de a lenyűgöző hegyi táj és a legkorábbi zarándokok nyomdokaiban járás érzése az egyik legkifizetődőbb útvonal a kihívásra készek számára.</p>',
       ),
       5 =>
       array (
         'header' => 'Camino del Norte – Az északi út',
-        'bodytext' => '<ul><li data-list-item-id="eb81577a658bbaaf3cbbdea9fab1eb8e9">Távolság: 825 km (kb. 34 nap) </li><li data-list-item-id="eac840a357cab461f47f7b577faty">Dfffieculaty: Kihívást jelentő </li><li data-list-item-id="e146334c28aac54323aa0c8689469dc74">A legjobb: Tapasztalt sétálók, akik egy zord, tengerparti útvonalat keresnek kevesebb tömeggel</li></ul>
+        'bodytext' => '<ul><li data-list-item-id="eb81577a658bbaaf3cbbdea9fab1eb8e9">Távolság: 825 km (kb. 34 nap) </li><li data-list-item-id="eac840a357cab461f47f7b67d0bf5efaa">Nehézség: kihívást jelentő </li><li data-list-item-id="e146334c28aac54323aa0c8689469dc74">A legjobb: tapasztalt gyaloglóknak, akik zord, kevésbé zsúfolt tengerparti útvonalat keresnek</li></ul>
 <p>A Camino del Norte Spanyolország északi partját követi a Vizcayai-öböl mentén, és a Camino útvonalak legdrámaibb tájait kínálja. A Baszkföldön átívelő meredek emelkedők és ereszkedések fizikailag megerőltető sétát tesznek, de a jutalom egy csendesebb, távolabbi élmény, távol a délebbre fekvő forgalmasabb ösvényektől.</p>
 <p>A tapasztalt túrázók számára, akik nagyobb kihívásra és mélyebb magányérzésre vágynak, a Camino del Norte látványos tengerparti tájakat, friss tengeri levegőt és olyan nyers, érintetlen karaktert kínál, amelyet máshol nehéz megtalálni.</p>',
       ),
       6 =>
       array (
         'header' => 'Camino Portugués – A portugál út',
-        'bodytext' => '<ul><li data-list-item-id="e3bd290e14521a07a8186e4d38d5ff2cf">Távolság: 240 km Portótól vagy 620 km Lisszabontól (kb. 14–42 nap) </li><li data-list-item-id="ee8b2be420786bfb38b1192315a1ecd4e">Nehézségi fok: Közepes </li><li data-list-item-id="e53b26d6545840d67b839676e852b2560">B legrövidebb tengerparti útvonal utazás</li></ul>
+        'bodytext' => '<ul><li data-list-item-id="e3bd290e14521a07a8186e4d38d5ff2cf">Távolság: 240 km Portótól vagy 620 km Lisszabontól (kb. 14–42 nap) </li><li data-list-item-id="ee8b2be420786bfb38b1192315a1ecd4e">Nehézség: közepes </li><li data-list-item-id="e53b26d6545840d67b839676e852b2560">A legjobb: csendesebb útvonalat, tengerparti tájat vagy rövidebb utazást keresőknek</li></ul>
 <p>A Camino Português bájos városokon és falvakon kanyarog, békés vidék és lenyűgöző tengerparti táj keverékét kínálva. Jelentősen kevésbé zsúfolt, mint a Camino Francés, így a sétálók több teret adnak a saját tempójuk beállítására és a környék felfedezésére.</p>
 <p>Portóból indulva elérhető lehetőség a kevesebb idővel rendelkezők számára, míg Lisszabonból indulva hetekig gazdag portugál tájjal és kultúrával gazdagodik az utazás. Akárhogy is, ez egy gyönyörű és hasznos útvonal szelídebb, lazább légkörrel egészen Santiago-ig.</p>',
       ),
       7 =>
       array (
         'header' => 'Camino Francés – A francia út',
-        'bodytext' => '<ul><li data-list-item-id="e4427baccbfa326757c83a5dd887cb2ed">Távolság: 240 km Portótól vagy 620 km Lisszabontól (kb. 14–42 nap) </li><li data-list-item-id="e808930077fe600a2c17c905a302e26ee">Nehézségi fok: Mérsékelt </li><li data-list-item-id="e7cb7a708fe43a9546e95a7280f3) A legrövidebb part menti útvonal: a vagy a tájkép">B utazás</li></ul>
+        'bodytext' => '<ul><li data-list-item-id="e4427baccbfa326757c83a5dd887cb2ed">Távolság: körülbelül 780 km (30–35 nap)</li><li data-list-item-id="e808930077fe600a2c17c905a302e26ee">Nehézség: közepes</li><li data-list-item-id="e7cb7a708fe43a9546e95a7280f3fd2c2">A legjobb: első Camino-jukat járó zarándokoknak, társaságkedvelő gyaloglóknak és azoknak, akik a legjobban kiépített útvonalat keresik</li></ul>
 <p>A Camino Francés a Camino útvonalak legismertebb városain halad át, beleértve Pamplonát, Burgost és Leónt. A táj a Pireneusok buja zöld dombjaitól szőlőültetvényeken és hullámzó vidékeken át egészen Galíciáig tolódik. Élénk légkörével és a zarándoktársak folyamatos áramlásával ez egy olyan útvonal, ahol a közösség és a kapcsolat magától jön.</p>
 <p>A Camino Francés, mint a legnépszerűbb és legjobban támogatott útvonal, ideális választás az első zarándokok számára. Jól ki vannak jelölve az utak, bőséges a szállás, és mindig akad valaki, aki mellett sétálhat.</p>',
       ),
@@ -1508,13 +1508,13 @@ return array (
       array (
         'header' => 'Piperecikkek',
         'bodytext' => '<p>Legyen minimális és utazási méretű – a legtöbb alberga rendelkezik alapvető szolgáltatásokkal, és az utánpótlás menet közben is egyszerű:</p>
-<ul><li data-list-item-id="e546ea834a98ec12e20c994e5e6448687"><strong>Fogkefe és fogkrém</strong>: utazási méretű</li><li data-list-item-id="e50afffb16a817156e2e187604331dc48"><strong>Szappan és sampon</strong>: utazási méretű és lehetőség szerint környezetbarát</li><li data-list-item-id="e7f3eec303d72c3cc43921cb4a8dff697"><strong>WC-papír</strong>: kis tekercs vagy zsebkendő vészhelyzetekre</li><li data-list-item-id="e444b626ad96e7bcfb626ad96e7bcfb626ad96e7bcfb4dc8192e> fertőtlenítő</strong>: nélkülözhetetlen azokon a napokon, amikor a létesítmények korlátozottak</li><li data-list-item-id="e694760d1f86e9d075a60277788fbb8db"><strong>Nedves törlőkendők</strong>: praktikus a felfrissüléshez, ha a zuhanyozás nem lehetséges</li><li data-list-item-id="e3b197e27a695e56b7b6f56f0eaa625eb"><strong>Törölköző</strong>: gyorsan szárad és kompakt</li></ul>',
+<ul><li data-list-item-id="e546ea834a98ec12e20c994e5e6448687"><strong>Fogkefe és fogkrém</strong>: utazási méretű</li><li data-list-item-id="e50afffb16a817156e2e187604331dc48"><strong>Szappan és sampon</strong>: utazási méretű és lehetőség szerint környezetbarát</li><li data-list-item-id="e7f3eec303d72c3cc43921cb4a8dff697"><strong>WC-papír</strong>: kis tekercs vagy zsebkendő vészhelyzetekre</li><li data-list-item-id="e444b626ad96e7bcfb4d82e69dc1920bd"><strong>Kézfertőtlenítő</strong>: nélkülözhetetlen azokon a napokon, amikor a létesítmények korlátozottak</li><li data-list-item-id="e694760d1f86e9d075a60277788fbb8db"><strong>Nedves törlőkendők</strong>: praktikus a felfrissüléshez, ha a zuhanyozás nem lehetséges</li><li data-list-item-id="e3b197e27a695e56b7b6f56f0eaa625eb"><strong>Törölköző</strong>: gyorsan szárad és kompakt</li></ul>',
       ),
       18 =>
       array (
         'header' => 'Ruházat',
         'bodytext' => '<p>Csomagoljon könnyű, és ragaszkodjon a gyorsan száradó anyagokhoz – a pamut felfogja a nedvességet, és a legjobb elkerülni az ösvényen:</p>
-<ul><li data-list-item-id="e3495eeaae4997ffdd6aff9b10184b4e8"><strong>Pólók vagy ingek</strong>: 2–3, gyorsan száradó anyag</li><li data-list-item-id="e2e4c302516a61547b324e23c0f1024b6"><strong>Könnyű nadrág vagy rövidnadrág</strong>: 2 pár</li><li data-list-item-id="e6045c5b158fa479cca22d8strong> ing</strong>: 1, napvédelemre vagy hűvös estékre</li><li data-list-item-id="e9418477ccb4d8e368d4aae08d0f0c1a1"><strong>Könnyű polár vagy kabát</strong>: 1</li><li adatok 1, fényvédelemhez</li><li data-list-item-id="ebadc68e7d0ad77537ba7474b65b3b417"><strong>Vízálló kabát vagy poncsó</strong>: elengedhetetlen – az eső gyakori, különösen Galíciában</li><li data-list-item-id="e5eef70e8621b31b9989e7008c0bf3f5d"><strong>Buff vagy kendő</strong>: hasznos izzadság, por vagy extra napvédelem ellen</li></ul>',
+<ul><li data-list-item-id="e3495eeaae4997ffdd6aff9b10184b4e8"><strong>Pólók vagy ingek</strong>: 2–3, gyorsan száradó anyag</li><li data-list-item-id="e2e4c302516a61547b324e23c0f1024b6"><strong>Könnyű nadrág vagy rövidnadrág</strong>: 2 pár</li><li data-list-item-id="e6045c5b158fa479cca22d5949c489d87"><strong>Hosszú ujjú ing</strong>: 1, napvédelemre vagy hűvös estékre</li><li data-list-item-id="e9418477ccb4d8e368d4aae08d0f0c1a1"><strong>Könnyű polár vagy kabát</strong>: 1</li><li data-list-item-id="e1dc2be38200268e61a3e2bffad13ee27"><strong>Fehérnemű</strong>: 1–2 gyorsan száradó készlet</li><li data-list-item-id="e01c8896728c1287c584822be0bb2e0c2"><strong>Kalap vagy sapka</strong>: 1, fényvédelemhez</li><li data-list-item-id="ebadc68e7d0ad77537ba7474b65b3b417"><strong>Vízálló kabát vagy poncsó</strong>: elengedhetetlen – az eső gyakori, különösen Galíciában</li><li data-list-item-id="e5eef70e8621b31b9989e7008c0bf3f5d"><strong>Buff vagy kendő</strong>: hasznos izzadság, por vagy extra napvédelem ellen</li></ul>',
       ),
       19 =>
       array (
@@ -1615,27 +1615,27 @@ return array (
       37 =>
       array (
         'bodytext' => '<p><strong>Adatvédelmi irányelvek</strong></p>
-<p><i>Ez egy áltartalom, csak demonstrációs céllal. Kérjük, cserélje ki a [zárójelben] jelölt helyőrző mezőket a tényleges adatokra, és a közzététel előtt tekintse át ezt az irányelvet egy jogi szakemberrel.</i></p>
-<p><strong>1. Adatkezelő</strong></p>re
-<p>[Cégnév] [Cím] [Irányítószám, Város] [Ország]<br />E-mail: [email@example.com] Telefon: [+00 000 000000]</p>
+<p><i>Ez egy minta tartalom, kizárólag demonstrációs célra. Kérjük, cserélje ki a [szögletes zárójelben] jelölt helyőrzőket a tényleges adatokra, és közzététel előtt ellenőriztesse ezt a szabályzatot jogi szakemberrel.</i></p>
+<p><strong>1. Adatkezelő</strong></p>
+<p>[Cégnév] [Cím] [Irányítószám, város] [Ország]<br />E-mail: [email@example.com] Telefon: [+00 000 000000]</p>
 <p><strong>2. Milyen adatokat gyűjtünk</strong></p>
 <p>A következő típusú személyes adatokat gyűjthetjük:</p>
-<ul><li data-list-item-id="e73f7ed080829a7ac2cac007851b4ae14">Név és elérhetőségi adatok (pl. e-mail cím, telefonszám)</li><li data-list-item-id="eb0a6937c4dcdde11e1e7s IPage.5,16e1e7b930 data.5. böngésző típusa, meglátogatott oldalak)</li><li data-list-item-id="ecaca2c0bde0d835147d1d1224e40eeb7">Az Ön által önkéntesen megadott adatok kapcsolatfelvételi űrlapokon vagy hírlevélre való feliratkozáson keresztül</li></ul>
+<ul><li data-list-item-id="e73f7ed080829a7ac2cac007851b4ae14">Név és elérhetőségi adatok (például e-mail-cím és telefonszám)</li><li data-list-item-id="eb0a6937c4dcdde11e1e7b931d167e055">Használati adatok (például IP-cím, böngészőtípus és meglátogatott oldalak)</li><li data-list-item-id="ecaca2c0bde0d835147d1d1224e40eeb7">A kapcsolatfelvételi űrlapokon vagy hírlevél-feliratkozás során önkéntesen megadott adatok</li></ul>
 <p><strong>3. Hogyan használjuk fel az Ön adatait</strong></p>
-<p>Az Ön adatait a következőkre használjuk:</p>
-<ul><li data-list-item-id="e0968fad6a96fb360521235e775efe232">Szolgáltatásaink nyújtása és fejlesztése</li><li data-list-item-id="ea6e7a178a7483e7bd304fa48e40bc95d"> yourenspond toliReenspond to data-list-item-id="ea10996ff2384057302f3e1c1335c9039">Hírlevelek vagy frissítések küldése (csak az Ön hozzájárulásával)</li><li data-list-item-id="eae60168359bdcdb66d48e71ee">legális kötelezettségekkel</li>
-<p><strong>4. Az adatfeldolgozás jogalapja</strong></p>
-<p>Az Ön adatait a következő jogalapokon dolgozzuk fel a GDPR cikkében foglaltak szerint. 6:</p>
+<p>Az Ön adatait a következő célokra használjuk:</p>
+<ul><li data-list-item-id="e0968fad6a96fb360521235e775efe232">Szolgáltatásaink nyújtása és fejlesztése</li><li data-list-item-id="ea6e7a178a7483e7bd304fa48e40bc95d">Az Ön kérdéseinek megválaszolása</li><li data-list-item-id="ea10996ff2384057302f3e1c1335c9039">Hírlevelek vagy frissítések küldése (kizárólag az Ön hozzájárulásával)</li><li data-list-item-id="eae60168359bdcdb66d48e71ee7ec76ba">Jogi kötelezettségek teljesítése</li></ul>
+<p><strong>4. Az adatkezelés jogalapja</strong></p>
+<p>Az Ön adatait a GDPR 6. cikke szerinti alábbi jogalapokon kezeljük:</p>
 <ul><li data-list-item-id="ec27dc6763480f01e298ddf7cdfdebef5">[Hozzájárulás / Szerződés / Jogi kötelezettség / Jogos érdek – válassza ki a megfelelőt]</li></ul>
 <p><strong>5. Adatmegosztás</strong></p>
-<p>Nem adjuk el személyes adatait. Adatokat megoszthatunk [harmadik fél szolgáltatókkal, pl. tárhely, elemzés] csak a szolgáltatásaink működtetéséhez szükséges.</p>
+<p>Nem értékesítjük személyes adatait. Adatokat kizárólag szolgáltatásaink működtetéséhez szükséges mértékben oszthatunk meg [külső szolgáltatókkal, például tárhely- vagy elemzési szolgáltatókkal].</p>
 <p><strong>6. Cookie-k</strong></p>
-<p>Ez a webhely cookie-kat használ. [Itt írja le a cookie-használatot, vagy tekintse meg a külön cookie-szabályzatot.]</p>
+<p>Ez a webhely cookie-kat használ. [Itt ismertesse a cookie-k használatát, vagy hivatkozzon külön cookie-szabályzatra.]</p>
 <p><strong>7. Adatmegőrzés</strong></p>
-<p>A személyes adatokat csak addig őrizzük meg, ameddig az a fent meghatározott célokhoz szükséges, vagy a törvény által megkövetelt. [Adja meg a megőrzési időszakokat, ahol alkalmazható.]</p>
+<p>A személyes adatokat csak addig őrizzük meg, ameddig az a fent meghatározott célokhoz szükséges, vagy ameddig azt jogszabály előírja. [Adja meg az alkalmazandó megőrzési időszakokat.]</p>
 <p><strong>8. Az Ön jogai</strong></p>
-<p>A vonatkozó adatvédelmi jogszabályok értelmében Önnek joga van a következőkre:</p>
-<ul><li data-list-item-id="efb0e8b720a64d18529aaa52d599138ac">Hozzáférés személyes adataihoz</li><li data-list-item-id="e649073f2c3af6b9b76d808c2f4f4fquestdae korrektor7li> data-list-item-id="e50465a90f09b896b022b6dc6f2069c5d">A feldolgozás tiltása vagy korlátozása</li><li data-list-item-id="e8caaadbefc61a346dc99a4e58fca72ef</li">Adathordozhatóság data-list-item-id="e346f5fc748730cb30e43802b58ffdd5d">Panasztétel a felügyeleti hatóságnál</li></ul>
+<p>A vonatkozó adatvédelmi jogszabályok értelmében Ön jogosult:</p>
+<ul><li data-list-item-id="efb0e8b720a64d18529aaa52d599138ac">Hozzáférni személyes adataihoz</li><li data-list-item-id="e649073f2c3af6b9b76d808c2f4fdae7d">Helyesbítést vagy törlést kérni</li><li data-list-item-id="e50465a90f09b896b022b6dc6f2069c5d">Tiltakozni az adatkezelés ellen, vagy kérni annak korlátozását</li><li data-list-item-id="e8caaadbefc61a346dc99a4e58fca72ef">Adathordozhatóságot kérni</li><li data-list-item-id="e346f5fc748730cb30e43802b58ffdd5d">Panaszt benyújtani a felügyeleti hatósághoz</li></ul>
 <p>Jogainak gyakorlásához vegye fel velünk a kapcsolatot a következő címen: [email@example.com]</p>
 <p><strong>9. A jelen szabályzat változásai</strong></p>
 <p>Ezt az adatvédelmi szabályzatot időről időre frissíthetjük. Az aktuális verzió mindig elérhető ezen az oldalon.</p>
@@ -1679,7 +1679,7 @@ return array (
       ),
       44 =>
       array (
-        'header' => 'Miért Walk the Camino?',
+        'header' => 'Miért járjuk végig a Caminót?',
         'bodytext' => '<p><strong>Egy személyes utazás </strong><br />Sok zarándok úgy írja le a Caminot, mint egy életet megváltoztató élményt. A nap mint nap séta teret ad az elmélkedésnek, a tisztánlátásnak és a személyes fejlődésnek – ritka lehetőség arra, hogy eltávolodjunk a mindennapi élet zajától.</p>
 <p><strong>Történelem és kultúra </strong><br />Az útvonalakat római utak, középkori hidak, ókori templomok és az UNESCO világörökség részét képező helyszínek szegélyezik, így gazdag utazást tesznek lehetővé az európai történelem és hagyományok évszázados történelmében.</p>
 <p><strong>Közösség és kapcsolat </strong><br />A Caminon soha nem vagy igazán egyedül. A barátságok természetes módon alakulnak ki, a nyelvek szabadon keverednek, és az asztal körüli közös étkezések olyan emlékekké válnak, amelyek az utazás befejezése után is sokáig megmaradnak.</p>
@@ -1696,7 +1696,7 @@ return array (
         'header' => 'Mi az a Camino de Compostela?',
         'bodytext' => '<p>A <strong>Camino de Compostela</strong>, más néven <strong>Szent Jakab út</strong>, a világ egyik leghíresebb zarándokútja. Az északnyugat-spanyolországi Santiago de Compostela katedrálishoz vezet, ahol állítólag Szent Jakab apostol maradványai nyugszanak.</p>
 <p>Az élet minden területéről érkezők utaznak a Caminon:</p>
-<ul><li data-list-item-id="e7cee5c5bef25604019f517e8b2c2543e">Zarándokok és spirituális keresők</li><li data-list-item-id="ec742dc56cc6562510e5fb39fdccsiaikerssli></enthulikersstli</li><li> data-list-item-id="e84898458aaab86be9e7c85024d176b48">Kulturális utazók és történelem szerelmesei</li></ul>
+<ul><li data-list-item-id="e7cee5c5bef25604019f517e8b2c2543e">Zarándokok és spirituális keresők</li><li data-list-item-id="ec742dc56cc6562510e5fb39fdcc61014">Túrázók és a szabadtéri programok kedvelői</li><li data-list-item-id="e84898458aaab86be9e7c85024d176b48">Kulturális utazók és történelem szerelmesei</li></ul>
 <p>Sokak számára ez több, mint egy utazás – ez egy olyan élmény, amely még a hazatérésük után is velük marad.</p>',
       ),
       47 =>

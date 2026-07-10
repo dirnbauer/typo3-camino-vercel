@@ -48,6 +48,59 @@ so this is mitigation rather than an absolute zero-cold-start guarantee.
 This is not an official TYPO3 package. It is community integration code using
 the official TYPO3 Camino distribution.
 
+## Two Shippable Solutions
+
+The final repository no longer asks one configuration to serve incompatible
+goals.
+
+| Product | What ships | Intended user | Performance approach |
+|---|---|---|---|
+| One-click test | TYPO3 app only, seeded temporary SQLite, optional Blob, no Solr service, no cron | A non-technical evaluator on Hobby | Eligible anonymous demo pages receive a five-minute CDN policy automatically; the first uncached/backend hit can still be cold |
+| Professional hosting | Pro/Enterprise app, external SQL, Blob/S3, optional Redis, managed external Solr, protected Scheduler and warmer | An operated editorial site, including larger read-heavy sites after load testing | Three-minute warmer, regional stateful services, optional explicit CDN policy, monitoring and backups |
+
+This split removes two avoidable problems from the one-click path: it no longer
+builds a JVM search service that a disposable evaluator does not need, and it no
+longer registers protected jobs without a `CRON_SECRET`. It also avoids claiming
+that temporary SQLite is a small production database.
+
+The professional path can serve large public traffic when anonymous delivery is
+edge-cached and all state is external. It is not a universal replacement for an
+always-on origin: a hard backend/first-hit latency SLA still calls for always-on
+TYPO3 compute with Vercel used for CDN, assets, previews, and public delivery.
+
+## Final Acceptance Audit (2026-07-10)
+
+This final pass checked the deployed product, not only the repository. Results
+below are direct observations from the production alias and Vercel CLI.
+
+| Check | Observed result |
+|---|---|
+| One-click profile | Fresh preview was Ready with only the 172.56 MB application artifact in `fra1`; no Solr service or cron configuration was built |
+| One-click edge cache | Anonymous `/` changed from `MISS` to `HIT`; the same URL with a cookie was a separate `MISS`, Authorization was `BYPASS`, and the anonymous variant remained a `HIT` |
+| Deployment | Ready in `fra1`; application artifact 171.78 MB and Solr service artifact 277.65 MB in `vercel inspect` |
+| Runtime health | HTTP 200; PHP 8.4.23; expected Git revision and `fra1` reported by `/api/health.php` |
+| Public routes | `/`, `/visual-editor`, `/search`, `/de/`, `/es/`, `/zh/`, and `/hu/` all returned HTTP 200 |
+| Backend | `/typo3/` returned HTTP 200; one real cold check took 10.42s and the warm repeat took 0.47s |
+| Images | Browser crawl found no broken image requests; all five route-comparison images loaded |
+| Video | The 19.72s H.264 Visual Editor video played to `ended` in Chromium through valid `206` byte-range responses |
+| Search | The first cold request took 9.72s; a retry returned all six indexed pages and Solr reported 10-36ms query time |
+| Languages | All four strict language roots rendered with the expected `lang` value and no English fallback records |
+| Access control | Unauthenticated warm-up, Scheduler, deep-health, and large-upload administration requests were rejected or redirected to login |
+| Pro cron | Release target: warm-up every three minutes and Scheduler every 15 minutes after deployment with `scripts/deploy-pro.sh`; final CLI verification is required after the release deploy |
+
+The audit caught one release-process defect before sign-off: a normal direct
+deployment had silently restored an old mixed-purpose cron file, leaving a
+five-minute warm-up and a daily Scheduler run. The final one-click profile now
+contains no cron jobs at all, while `scripts/deploy-pro.sh` stages the intended
+Pro schedules. This is why `vercel crons ls` is an acceptance check, not
+optional documentation.
+
+The authenticated deep write probe was not repeated during this pass because
+Vercel correctly does not reveal an existing `CRON_SECRET` value through the
+CLI. The latest authenticated production probe remains the 2.06s DB, Redis,
+Blob, Solr, and filesystem result recorded below. Public authorization checks
+were repeated without rotating the production secret.
+
 ## Numbers
 
 ### Before The Overhaul
@@ -69,11 +122,11 @@ is unambiguous: the warm application was already fast; activation was not.
 
 | Component | Before | Current candidate | Change |
 |---|---:|---:|---:|
-| TYPO3 local image size | about 950 MB | about 446 MB | about 53% smaller |
+| TYPO3 local image size | about 950 MB | about 465 MB | about 51% smaller, including targeted warm cache |
 | Solr local image size | about 843 MB | about 589 MB | about 30% smaller |
 | Solr local readiness | 4.13-4.62s | 1.94-3.21s; 2.48s median | roughly 40%+ faster at the median |
-| Final local first TYPO3 page | n/a | 4.27s | activation/bootstrap check |
-| Final local warm TYPO3 page | n/a | 0.10s | healthy warm path |
+| First backend after container ready | 1.871s median unwarmed | 0.383s median warmed | about 80% faster in three-run local A/B |
+| First frontend after container ready | 9.665s median unwarmed | 7.274s median warmed | about 25% faster in three-run local A/B |
 
 Docker reports uncompressed local image sizes. Vercel transfers compressed
 layers, so these figures are directional rather than a prediction of the exact
@@ -90,7 +143,7 @@ The production deployment provided the most important counter-result:
 | First full warmer with TYPO3 and Solr cold | 14.91s external; 9.84s internal |
 | Immediate second full warmer | 0.93s external; 0.51s internal |
 
-The 53% application image reduction did **not** materially change the roughly
+The earlier 53% application image reduction did **not** materially change the roughly
 12-second Vercel activation floor. This was the clearest experimental result:
 container slimming is useful hygiene, but periodic warming is the effective
 user-facing mitigation. The first full warmer also exposed a temporary Solr
@@ -164,7 +217,22 @@ WebP, Ghostscript, Blob, S3, and all installed TYPO3 system packages.
 The Solr image now uses the slim base and copies only modules required by the
 official EXT:solr configset. It still runs actual Apache Solr 10, not a mock.
 
-### 5. The Pro Warm-Up Cron
+### 5. Targeted TYPO3 Release Cache
+
+TYPO3's official release warm-up now compiles only the DI container and Fluid
+templates during the image build. Startup copies 12.6 MB of safe compiled files
+into `/tmp`; it does not run Composer or TYPO3 CLI before opening the port. In
+the local three-run A/B this reduced first backend framework work by about 80%
+and first frontend work by about 25%, while adding 2.9% to the image. The build
+also verifies that the preserved cache contains neither the build encryption
+key nor the seed database path.
+
+Full system/page warm-up was deliberately rejected because those caches can
+depend on the selected database, Redis, site configuration, Solr endpoint, and
+editor state. This is a targeted release artifact, not a snapshot of runtime
+content.
+
+### 6. The Pro Warm-Up Cron
 
 Vercel documents that production Functions can scale down after five idle
 minutes. The Pro config calls a protected endpoint every three minutes, leaving
@@ -182,12 +250,22 @@ are short, so the expected incremental usage is usually cents to low single
 digits, but the actual invoice depends on duration, CPU class, concurrency, and
 plan credits. The Pro subscription is the larger fixed cost.
 
-### 6. Edge Caching For Eligible Frontend Pages
+### 7. Edge Caching For Eligible Frontend Pages
 
-Opt-in CDN headers let Vercel answer anonymous, cookie-free HTML without
-invoking TYPO3. Backend, API, query-string, cookie, personalized, and
-`Set-Cookie` responses are excluded. This can remove origin cold starts from a
-brochure frontend, but it introduces a publication delay equal to the cache TTL.
+CDN headers let Vercel answer anonymous, cookie-free HTML without invoking
+TYPO3. The temporary SQLite one-click profile now defaults to five minutes;
+durable sites remain opt-in. Backend, API, query-string, cookie, personalized,
+private/no-store, `Vary: *`, and `Set-Cookie` responses are excluded. Cacheable
+responses vary on `Cookie` and `Authorization`; requests carrying either value
+are forced to `private, no-store` if they reach TYPO3. A live preview test found
+this necessary because Vercel can serve a cached response before PHP inspects a
+new request's cookies. A conditional TYPO3 site set enables native shared-cache
+classification only while the Vercel policy has a positive TTL; the middleware
+then applies the shorter Vercel TTL. This also fixed a final review finding
+where TYPO3's safe default `private, no-store` header would otherwise have
+prevented the feature from working at all. The cache can remove origin cold
+starts from a brochure frontend, but it introduces a publication delay equal
+to the TTL.
 
 ## What Helped Less Than Expected
 
@@ -298,11 +376,17 @@ images, not live index data.
   least useful after its image-size cost was measured.
 - A simple periodic request is currently more effective for CMS latency than
   Redis, more CPU, or JIT because it addresses scale-to-zero directly.
+- An origin middleware cannot use the current request's cookies to protect a
+  response that the CDN already cached. The live preview initially returned an
+  anonymous `HIT` to a cookie-bearing request; adding `Vary: Cookie,
+  Authorization` plus origin-side `private, no-store` handling changed that
+  cookie request to `MISS` and an authorized request to `BYPASS` without
+  sacrificing the anonymous `HIT`.
 - The warmer can succeed and a later backend request can still land on a fresh
   instance; minimum-instance control would be materially stronger than cron.
-- Supporting Hobby one-click clones and a Pro production warmer currently
-  requires two configuration files. A normal Git deployment silently restores
-  the Hobby cron schedule, and the tested CLI custom-config override was also
+- Supporting Hobby one-click clones and a Pro production warmer requires two
+  configuration files. A normal Git deployment restores the no-cron one-click
+  profile, and the tested CLI custom-config override was also
   replaced during the remote Container build. The repository now stages the Pro
   file under the canonical name before deploying, but a project-level production
   config selection would remove this operational trap.
@@ -332,6 +416,13 @@ images, not live index data.
 - Opening the large-upload route with the bundled Camino storage identifier made
   a valid Blob connection look broken. The module now resolves that request to
   the writable Blob storage and displays the changed destination.
+- Translation record counts alone did not prove translation integrity. The final
+  audit found translated HTML tag names and damaged rich-text list identifiers;
+  the catalog was repaired and now has more than 2,000 structural assertions
+  covering supported tags, balanced lists, and exactly one valid ID per item.
+- The official Camino seed attached Portuguese distance facts to the French Way
+  card. The integration now applies a tested source correction before creating
+  translations instead of faithfully localizing contradictory content.
 
 ### Large Upload Solution
 
@@ -385,6 +476,7 @@ limit. Executable web formats are blocked by default.
 
 ## Operator Checklist
 
+- [ ] Choose the one-click test or professional profile explicitly.
 - [ ] Use a durable database near the Vercel region.
 - [ ] Keep SQLite restricted to disposable smoke tests.
 - [ ] Connect Vercel Blob or S3/R2 before editors upload files.
@@ -410,12 +502,14 @@ The integration is now technically coherent: durable SQL, durable FAL files,
 shared cache, bounded jobs, protected health checks, a demonstrable Solr path,
 and a concrete cold-start mitigation all exist.
 
-The current warm application is fast enough for ordinary CMS use. The deciding
-production question is whether a site can accept Vercel's scale-to-zero model
-and externalize its durable services. With Pro warming and optional edge cache,
-the demo should normally feel immediate. Without a platform minimum-instance
-feature, occasional activation during deploys, scaling, failures, or missed cron
-runs remains an architectural limitation rather than a TYPO3 tuning problem.
+The one-click product is now intentionally small, edge-cached, and disposable.
+The professional product externalizes durable state and is fast enough when
+warm for ordinary CMS use and larger read-heavy delivery after project-specific
+load testing. With Pro warming and optional edge cache, normal requests should
+feel immediate. Without a platform minimum-instance feature, occasional
+activation during deploys, scaling, failures, or missed cron runs remains an
+architectural limitation rather than a TYPO3 tuning problem; strict latency
+sites should keep an always-on origin.
 
 See [Performance](performance.md), [Solr](solr.md),
 [Object storage](object-storage.md), and [Limitations](limitations.md) for the

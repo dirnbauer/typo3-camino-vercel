@@ -47,12 +47,13 @@ The second warm-up reported a 45 ms database check, 178 ms frontend loopback,
 a temporary Solr gateway `502`; the health implementation now retries temporary
 `500/502/503/504` startup responses for up to the existing 25-second budget.
 
-**Verdict:** reducing the application image from roughly 950 MB to 446 MB did
-not materially move the observed Vercel end-to-end cold floor: it remained near
-12 seconds. The image change still reduces artifact weight and removes Apache,
-but it is not the user-visible cold-start solution. The three-minute Pro warmer
-is the effective mitigation. A platform minimum-instance feature, or an
-always-on host, is required for a hard guarantee.
+**Verdict:** reducing the application image from roughly 950 MB to the 446 MB
+pre-warmup candidate did not materially move the observed Vercel end-to-end
+cold floor: it remained near 12 seconds. The image change still reduces artifact
+weight and removes Apache, but it is not the user-visible cold-start solution.
+The three-minute Pro warmer is the effective mitigation. A platform
+minimum-instance feature, or an always-on host, is required for a hard
+guarantee.
 
 ### Final Production Pass
 
@@ -110,8 +111,9 @@ The old runtime used Debian, Apache, and mod_php. The current runtime uses:
 - a multi-stage extension build so compilers do not enter the runtime image
 - Composer authoritative classmaps
 
-Local Docker image size changed from about 950 MB to 446 MB, a reduction of
-about 53%. Required runtime support remains present:
+The final release image is about 465 MB, still about 51% smaller than the
+original 950 MB image after adding the targeted TYPO3 release cache described
+below. Required runtime support remains present:
 
 - MySQL and PostgreSQL drivers
 - Redis extension
@@ -120,11 +122,40 @@ about 53%. Required runtime support remains present:
 - Vercel Blob and S3-compatible FAL packages
 - all installed TYPO3 CMS system packages
 
-The final local image returned its first TYPO3 page in 4.27s and the next page
-in 0.10s. Local Docker has cached image layers, so this measures process and
-framework bootstrap rather than remote image transfer.
+Before release-cache seeding, one clean local image returned its first TYPO3
+page in 4.27s and the next page in 0.10s. Local Docker has cached image layers,
+so this measures process and framework bootstrap rather than remote image
+transfer.
 
-### 2. Smaller Solr Runtime
+### 2. Targeted TYPO3 Release Cache
+
+TYPO3 14 provides `cache:warmup` for release preparation. The image build now
+warms only the dependency-injection container and Fluid templates, then copies
+those compiled files into `/tmp` when a container starts. It does not run a
+TYPO3 command on the startup critical path and it does not preserve database-,
+Redis-, site-, Solr-, or page-specific caches.
+
+Composer is deliberately not used for this. Composer installation can run
+without the final PHP/runtime/database context, while TYPO3 explicitly requires
+the warm-up PHP version to match the web runtime. The container build provides
+that stable PHP 8.4 context.
+
+Three alternating fresh-container A/B runs on local OrbStack produced:
+
+| Metric | Unwarmed image | Targeted warm-up | Change |
+|---|---:|---:|---:|
+| Image size | 451.5 MB | 464.5 MB | +13.0 MB / +2.9% |
+| TCP-ready median | 20.754s | 20.561s | no material change |
+| First frontend after ready | 9.665s median | 7.274s median | about 25% faster |
+| First backend after ready | 1.871s median | 0.383s median | about 80% faster |
+
+The release cache contains one DI artifact and 597 compiled Fluid templates,
+12,566,528 bytes total. A build check confirmed it contains neither the build
+encryption key nor the seed database path. Absolute local launch values were
+noisy; the paired median direction is useful, not a Vercel latency prediction.
+Vercel image activation remains a separate cost.
+
+### 3. Smaller Solr Runtime
 
 The Solr service now uses `solr:10.0-slim` and copies only modules required by
 the official EXT:solr 14 configset. It enables one English demo core.
@@ -138,7 +169,7 @@ The entrypoint has separate liveness and readiness endpoints and emits
 structured startup logs. The service can still cold-start independently from
 TYPO3.
 
-### 3. Pro Warm-Up Cron
+### 4. Pro Warm-Up Cron
 
 Vercel documents that production Functions can scale down after five minutes
 without requests. `vercel.pro.json` schedules `/api/cron/typo3-warmup.php`
@@ -177,7 +208,8 @@ VERCEL_SCOPE=webconsulting scripts/deploy-pro.sh
 
 Git-based deployments always read the default `vercel.json` in this repository.
 That file must remain Hobby-compatible for one-click clones, so a Git deployment
-of the public Pro demo replaces the frequent jobs with the daily Hobby schedule.
+of the public Pro demo removes the frequent jobs and restores the no-cron test
+profile.
 In the tested Container Services deployment, the CLI `-A vercel.pro.json`
 override was also replaced by the root config during the remote build. The
 deployment script avoids that ambiguity by staging the committed tree with the
@@ -197,7 +229,7 @@ correct token receive an error and cannot trigger expensive internal checks.
 Hobby cron is limited to once per day, so this mitigation cannot be enabled in
 the free one-click config. `vercel.json` intentionally remains Hobby-safe.
 
-### 4. Optional Edge HTML Cache
+### 5. Edge HTML Cache
 
 For public brochure pages:
 
@@ -214,10 +246,31 @@ The TYPO3 middleware sets Vercel CDN headers only when all of these are true:
 - path is outside `/typo3` and `/api`
 - response is HTTP 200 HTML
 - response has no `Set-Cookie`
+- TYPO3 has classified the page as shared-cacheable
+- response does not contain `private`, `no-store`, `no-cache`, `Pragma:
+  no-cache`, or `Vary: *`
+
+A small site set enables TYPO3's
+`config.sendCacheHeadersForSharedCaches = force` only when the same edge-cache
+policy resolves to a positive TTL. TYPO3 therefore performs its native checks
+for uncached plugins, frontend/backend users, and workspaces before the custom
+middleware applies Vercel's shorter TTL. This is required because TYPO3 14
+otherwise emits `private, no-store` even for normal cacheable frontend pages.
+The entrypoint calculates the flag through the same PHP policy class used by
+the request middleware, avoiding separate startup and request-time rules.
+Cacheable responses add `Vary: Cookie, Authorization`, which makes those
+request headers part of Vercel's cache key; Vercel documents
+[full `Vary` support](https://vercel.com/changelog/serve-personalized-content-faster-with-vary-support).
+If a cookie, authorization header, or query string reaches TYPO3, the middleware
+removes TYPO3's temporary shared headers and returns `private, no-store`. This
+second step is essential because the CDN can otherwise answer from its cache
+before PHP sees the request.
 
 This path can completely avoid PHP and its cold start for eligible cached
-requests. It is off by default because TYPO3 editors may expect a publication
-to appear immediately and many sites contain forms or personalization.
+requests. The temporary SQLite one-click profile defaults to a 300-second TTL.
+Durable database-backed sites remain opt-in because TYPO3 editors may expect a
+publication to appear immediately and many sites contain forms or
+personalization. Set the TTL explicitly to `0` to disable demo caching.
 
 ## What Not To Expect
 

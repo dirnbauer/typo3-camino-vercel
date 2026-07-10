@@ -43,7 +43,7 @@ switch to a stable constraint when a compatible stable release is published.
 
 ## Internal Vercel Service
 
-`vercel.json` and `vercel.pro.json` define two services:
+`vercel.pro.json` defines two services; the one-click `vercel.json` omits Solr:
 
 ```text
 app  --private TYPO3_SOLR_SERVICE_URL binding-->  solr

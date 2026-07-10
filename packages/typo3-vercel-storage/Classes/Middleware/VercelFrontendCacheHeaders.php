@@ -8,15 +8,27 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Webconsulting\Typo3VercelStorage\Cache\FrontendEdgeCachePolicy;
 
 final class VercelFrontendCacheHeaders implements MiddlewareInterface
 {
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $response = $handler->handle($request);
-        $ttl = $this->positiveIntEnv('TYPO3_VERCEL_EDGE_CACHE_TTL', 0);
+        $ttl = (new FrontendEdgeCachePolicy())->ttl();
 
-        if ($ttl <= 0 || !$this->requestCanUseSharedCache($request) || !$this->responseCanUseSharedCache($response)) {
+        if ($ttl <= 0) {
+            return $response;
+        }
+
+        // The conditional site set asks TYPO3 to emit shared-cache headers so
+        // TYPO3 can classify cacheable pages. Remove those headers again when
+        // request state makes the response unsafe to share.
+        if (!$this->requestCanUseSharedCache($request)) {
+            return $this->preventSharedCache($response);
+        }
+
+        if (!$this->responseCanUseSharedCache($response)) {
             return $response;
         }
 
@@ -31,7 +43,8 @@ final class VercelFrontendCacheHeaders implements MiddlewareInterface
             ->withHeader('Cache-Control', 'public, max-age=0')
             ->withHeader('CDN-Cache-Control', $cdnCacheControl)
             ->withHeader('Vercel-CDN-Cache-Control', $cdnCacheControl)
-            ->withHeader('Pragma', 'public');
+            ->withHeader('Pragma', 'public')
+            ->withHeader('Vary', $this->sharedCacheVary($response));
     }
 
     private function requestCanUseSharedCache(ServerRequestInterface $request): bool
@@ -50,7 +63,9 @@ final class VercelFrontendCacheHeaders implements MiddlewareInterface
             return false;
         }
 
-        return $request->getHeaderLine('Cookie') === '' && $request->getCookieParams() === [];
+        return $request->getHeaderLine('Cookie') === ''
+            && $request->getCookieParams() === []
+            && $request->getHeaderLine('Authorization') === '';
     }
 
     private function responseCanUseSharedCache(ResponseInterface $response): bool
@@ -59,8 +74,49 @@ final class VercelFrontendCacheHeaders implements MiddlewareInterface
             return false;
         }
 
+        $cacheControl = strtolower(implode(',', $response->getHeader('Cache-Control')));
+        foreach (['no-store', 'no-cache', 'private'] as $directive) {
+            if (preg_match(sprintf('~(?:^|,)\s*%s(?:\s*(?:=|,|$))~', $directive), $cacheControl) === 1) {
+                return false;
+            }
+        }
+
+        if (str_contains(strtolower($response->getHeaderLine('Pragma')), 'no-cache')) {
+            return false;
+        }
+
+        $vary = array_map('trim', explode(',', strtolower($response->getHeaderLine('Vary'))));
+        if (in_array('*', $vary, true)) {
+            return false;
+        }
+
         $contentType = strtolower($response->getHeaderLine('Content-Type'));
         return str_starts_with($contentType, 'text/html') || $contentType === '';
+    }
+
+    private function preventSharedCache(ResponseInterface $response): ResponseInterface
+    {
+        return $response
+            ->withoutHeader('CDN-Cache-Control')
+            ->withoutHeader('Vercel-CDN-Cache-Control')
+            ->withoutHeader('Expires')
+            ->withoutHeader('ETag')
+            ->withHeader('Cache-Control', 'private, no-store')
+            ->withHeader('Pragma', 'no-cache');
+    }
+
+    private function sharedCacheVary(ResponseInterface $response): string
+    {
+        $vary = array_values(array_filter(array_map('trim', explode(',', $response->getHeaderLine('Vary')))));
+        $normalized = array_map('strtolower', $vary);
+
+        foreach (['Cookie', 'Authorization'] as $header) {
+            if (!in_array(strtolower($header), $normalized, true)) {
+                $vary[] = $header;
+            }
+        }
+
+        return implode(', ', $vary);
     }
 
     private function positiveIntEnv(string $name, int $default): int

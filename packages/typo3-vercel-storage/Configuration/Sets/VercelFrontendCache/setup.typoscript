@@ -1,0 +1,3 @@
+[getenv("TYPO3_VERCEL_SHARED_CACHE_HEADERS") == "1"]
+config.sendCacheHeadersForSharedCaches = force
+[END]

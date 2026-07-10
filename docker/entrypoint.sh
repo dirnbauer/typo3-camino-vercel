@@ -34,6 +34,19 @@ prepare_runtime_directory() {
   fi
 }
 
+restore_release_cache() {
+  local source_root="/usr/local/share/typo3-cache/code"
+  local target_root="/tmp/typo3/var/cache/code"
+  local cache_name
+
+  mkdir -p "$target_root"
+  for cache_name in di fluid_template; do
+    if [ -d "${source_root}/${cache_name}" ] && [ ! -e "${target_root}/${cache_name}" ]; then
+      cp -a "${source_root}/${cache_name}" "${target_root}/${cache_name}"
+    fi
+  done
+}
+
 should_bootstrap_typo3() {
   case "${TYPO3_AUTO_SETUP:-0}" in
     1|true|TRUE|yes|YES|on|ON)
@@ -147,6 +160,21 @@ apply_database_defaults() {
   esac
 }
 
+configure_frontend_shared_cache_headers() {
+  local enabled
+
+  enabled="$(php scripts/frontend-edge-cache-policy.php)"
+  case "$enabled" in
+    0|1) ;;
+    *)
+      echo "Invalid frontend edge-cache policy result: ${enabled}" >&2
+      exit 1
+      ;;
+  esac
+
+  export TYPO3_VERCEL_SHARED_CACHE_HEADERS="$enabled"
+}
+
 run_extension_setup() {
   vendor/bin/typo3 extension:setup --no-interaction
 }
@@ -202,9 +230,11 @@ if [ -z "${TYPO3_ENCRYPTION_KEY:-}" ]; then
 fi
 
 apply_database_defaults
+configure_frontend_shared_cache_headers
 
 prepare_runtime_directory var /tmp/typo3/var
 mkdir -p /tmp/typo3/var/cache /tmp/typo3/var/lock /tmp/typo3/var/log
+restore_release_cache
 chmod -R a+rwX /tmp/typo3 2>/dev/null || true
 
 if [ "$TYPO3_SERVERLESS_FILESYSTEM" != "0" ]; then

@@ -38,6 +38,11 @@ backend login, and no durable database edits. Uploaded files are durable only
 when the Deploy Button-created Blob store is enabled. See
 [Free demo mode](free-demo.md).
 
+The one-click profile does not deploy Solr or register cron jobs. Eligible
+anonymous pages are cached at the Vercel edge for five minutes automatically,
+so repeat frontend views do not need a warm PHP container. The first uncached
+page and the backend can still be cold.
+
 ## Secure Enough For A Real Trial
 
 Add a real database before first deploy:

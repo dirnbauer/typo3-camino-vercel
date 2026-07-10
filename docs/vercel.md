@@ -5,10 +5,10 @@
 Vercel builds `Dockerfile.vercel` as a Container Image service and routes all
 traffic to that service through `vercel.json`.
 
-The project also defines an internal demo-only Solr service in
-`services/solr/`. Vercel injects the service binding URL into the TYPO3 app as
-`TYPO3_SOLR_SERVICE_URL`. The Solr service receives no public rewrite, so public
-traffic still only enters the TYPO3 app service.
+The one-click `vercel.json` deploys only TYPO3. The Pro profile also defines an
+internal demo-only Solr service in `services/solr/`. Vercel injects its binding
+URL into TYPO3 as `TYPO3_SOLR_SERVICE_URL`. The Solr service receives no public
+rewrite, so public traffic still only enters the TYPO3 app service.
 
 The template pins Functions/Container Images to `fra1` in `vercel.json`. That
 is a good default for this European demo and for a Neon database created in
@@ -51,6 +51,13 @@ not durable and should not be used for content you care about.
 The image build runs TYPO3 extension setup before storing that seed database, so
 demo-mode SQLite already contains schema for installed packages such as EXT:solr.
 Keep `TYPO3_EXTENSION_SETUP_ON_BOOT=0` for normal demo deployments.
+
+The SQLite profile automatically gives eligible anonymous HTML a five-minute
+Vercel CDN policy. This improves repeat public views without a paid warm-up;
+backend, API, query-string, cookie, form, and personalized responses are not
+shared. TYPO3's own shared-cache decision runs first, and the middleware refuses
+responses marked private or non-cacheable. Set
+`TYPO3_VERCEL_EDGE_CACHE_TTL=0` to disable it explicitly.
 
 If `TYPO3_ADMIN_PASSWORD_APPLY_ON_BOOT=1` and
 `TYPO3_SETUP_ADMIN_PASSWORD` is set, the entrypoint updates the `admin` backend
@@ -124,7 +131,7 @@ CRON_SECRET=<long-random-token-for-protected-setup-endpoints>
 ```
 
 This uses the Vercel service binding `TYPO3_SOLR_SERVICE_URL` and the internal
-`solr` service from `vercel.json`. Do not use it as production Solr because the
+`solr` service from `vercel.pro.json`. Do not use it as production Solr because the
 Solr index is runtime state, not durable managed storage. To make the demo
 predictable, the Solr service self-seeds the static Camino demo documents on
 each service instance startup. The service binds the Vercel port immediately
@@ -159,12 +166,10 @@ startup seed. Set `TYPO3_SOLR_INDEX_ON_SETUP=1` only for deliberate bounded
 indexing tests or external managed Solr. Use an external worker and managed
 Solr for large or production reindexes.
 
-`vercel.json` includes a daily Vercel Cron entry for
-`/api/cron/typo3-scheduler.php`. Vercel sends `Authorization: Bearer
-<CRON_SECRET>` automatically when `CRON_SECRET` exists, and the endpoint rejects
-requests without it. The daily schedule keeps free/Hobby clones deployable. For
-managed Solr on Pro/Enterprise, first create the EXT:solr Index Queue Worker
-task:
+The one-click `vercel.json` registers no cron jobs. This avoids deploying a
+protected Scheduler endpoint without a secret and keeps the evaluation profile
+focused on rendering. For managed Solr on Pro/Enterprise, first create the
+EXT:solr Index Queue Worker task:
 
 ```bash
 curl -fsS \
@@ -184,7 +189,8 @@ warm-up pings Solr every three minutes; none of this makes its index durable.
 
 ## Pro Cold-Start Profile
 
-The default `vercel.json` is Hobby-safe. `vercel.pro.json` adds:
+The default `vercel.json` is a Hobby-safe TYPO3-only test. `vercel.pro.json`
+adds the internal Solr demonstration service and:
 
 - `/api/cron/typo3-warmup.php` every three minutes
 - `/api/cron/typo3-scheduler.php` every 15 minutes

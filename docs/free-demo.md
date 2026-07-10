@@ -14,6 +14,8 @@ The free demo path uses:
 - A Vercel Blob store if you keep the storage step enabled in the Deploy
   Button flow.
 - No external database.
+- No Solr service and no scheduled jobs.
+- Automatic five-minute Vercel CDN caching for eligible anonymous demo pages.
 
 The Deploy Button asks you to enter only the secret/sensitive setup values:
 
@@ -65,6 +67,10 @@ editor uploads under `fileadmin` are runtime files too.
 This is fine for checking whether TYPO3 boots and Camino renders. It is not fine
 for backend editing, client work, production, or content you need to keep. If
 the backend logs out after a few seconds, add a durable database.
+
+The edge cache keeps repeat public page views responsive, but it does not cache
+the backend, query-string requests, forms, cookies, or personalized responses.
+The first uncached request can still experience a Vercel container cold start.
 
 ## Free Durable Upgrade Path
 

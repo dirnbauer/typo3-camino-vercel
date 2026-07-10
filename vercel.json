@@ -6,32 +6,9 @@
     "app": {
       "runtime": "container",
       "root": ".",
-      "entrypoint": "Dockerfile.vercel",
-      "bindings": [
-        {
-          "type": "service",
-          "service": "solr",
-          "format": "url",
-          "env": "TYPO3_SOLR_SERVICE_URL"
-        }
-      ]
-    },
-    "solr": {
-      "runtime": "container",
-      "root": "services/solr",
       "entrypoint": "Dockerfile.vercel"
     }
   },
-  "crons": [
-    {
-      "path": "/api/cron/typo3-warmup.php",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/typo3-scheduler.php",
-      "schedule": "0 3 * * *"
-    }
-  ],
   "rewrites": [
     {
       "source": "/(.*)",

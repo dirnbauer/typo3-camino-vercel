@@ -8,6 +8,7 @@ when the deployment becomes more than a disposable demo.
 
 | Guide | Purpose |
 |---|---|
+| [Choose one of two setups](deployment-profiles.md) | One-click evaluation versus professional hosting |
 | [Quickstart](quickstart.md) | One-click and first durable deployment |
 | [Vercel deployment](vercel.md) | CLI, environment, regions, and deployment lifecycle |
 | [Costs](costs.md) | Hobby, Pro, databases, Blob, Redis, and Solr cost shape |
@@ -54,8 +55,8 @@ when the deployment becomes more than a disposable demo.
 
 ## Configuration Profiles
 
-- `vercel.json` is the default Hobby-compatible profile. It runs Scheduler once
-  daily because Hobby does not permit frequent cron schedules.
+- `vercel.json` is the one-click profile. It deploys only TYPO3, with no Solr
+  service and no cron jobs; eligible SQLite demo pages use automatic edge cache.
 - `vercel.pro.json` is the production-latency profile. It warms frontend,
   backend, DB, Redis, and Solr every three minutes and runs Scheduler every 15
   minutes.

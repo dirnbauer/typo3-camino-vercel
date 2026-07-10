@@ -32,10 +32,20 @@ The container still uses a pre-seeded Camino SQLite database when no durable
 database is configured. Backend login is not stable in this SQLite mode because
 TYPO3 sessions are stored in the database.
 
+The one-click profile deploys only TYPO3: no Solr service and no cron jobs. It
+automatically applies a five-minute Vercel CDN policy to eligible anonymous
+SQLite demo pages, while backend, API, cookie, query-string, and personalized
+requests remain uncached. The first uncached request can still be cold.
+
 For production TYPO3 usage, users should set a stable `TYPO3_ENCRYPTION_KEY`,
 connect a durable SQL database via `DATABASE_URL`, and keep persistent object
 storage for editor uploads. Durable uploads are supported through the included
 Vercel Blob FAL driver and the S3-compatible FAL driver.
+
+The separate professional profile requires Pro/Enterprise, deploys through
+`scripts/deploy-pro.sh`, and expects external durable SQL, object storage, and
+managed Solr for production search. It is documented separately so template
+reviewers are not asked to infer production safety from the one-click demo.
 
 ## Publish Checklist
 

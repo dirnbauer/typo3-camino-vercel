@@ -4,11 +4,26 @@
 
 This is **not an official TYPO3 package**. It is a community starter that uses
 the official TYPO3 Camino distribution and packages TYPO3 14.3 as a PHP 8.4
-FPM, nginx, Alpine Linux Vercel Container Image.
+FPM/nginx container on Alpine Linux for Vercel Container Images.
 
 Live demo: [typo3-camino-vercel.vercel.app](https://typo3-camino-vercel.vercel.app)
 
-## Install In One Click
+## Choose One Of Two Setups
+
+| | One-click test | Professional hosting |
+|---|---|---|
+| Best for | Fast evaluation with fewer features | Durable editorial and larger read-heavy sites |
+| Setup | Deploy Button, no database | Pro/Enterprise plus SQL, object storage, and operations |
+| State | Temporary SQLite; edits can disappear | Durable PostgreSQL/MySQL and Blob/S3 |
+| Speed strategy | Automatic CDN cache for public demo pages | Three-minute warmer, optional CDN, regional services |
+| Search/jobs | No Solr and no cron | Managed Solr and bounded Scheduler/worker jobs |
+
+Start with the one-click test when you only want to see TYPO3. Choose the
+professional setup before any editor creates content that matters. See
+[Choose one of two setups](docs/deployment-profiles.md) for the complete
+decision guide and the honest large-site boundary.
+
+## Solution 1: Install In One Click
 
 This path is suitable for a disposable test and does not require a database.
 
@@ -54,9 +69,9 @@ what the deployment can safely do:
 | Pages and records | Temporary SQLite | Durable SQL database |
 | Uploaded files | Durable when Blob was accepted | Vercel Blob or S3/R2 |
 | Generated image derivatives | Durable through the FAL storage | Vercel Blob or S3/R2 |
-| Scheduler | Once daily on Hobby | Frequent Vercel Cron on Pro |
-| Solr | Self-seeded, temporary demo index | External managed Solr 10 |
-| Cold-start prevention | No frequent Hobby cron | Three-minute Pro warm-up |
+| Scheduler | None in the one-click profile | Frequent Vercel Cron on Pro |
+| Solr | Not deployed | External managed Solr 10 |
+| Cold-start mitigation | Automatic CDN cache for eligible public pages | Three-minute Pro warm-up plus optional CDN cache |
 
 A practical durable free demo can still cost zero while every provider remains
 inside its free allowance:
@@ -69,6 +84,29 @@ inside its free allowance:
 It is free only while every service remains inside its current free-tier limits.
 The database is an additional setup step, so a fully durable demo is not yet a
 literal one-click deployment.
+
+The one-click profile deploys only the TYPO3 container and automatically gives
+eligible anonymous SQLite demo pages a five-minute Vercel CDN cache policy.
+TYPO3 itself first confirms that the page is cacheable; responses marked
+private, personalized, or non-cacheable are rejected by the Vercel middleware.
+This keeps repeat frontend views away from the cold PHP origin without sharing
+editor or visitor state. The first uncached page and `/typo3/` can still
+experience a container cold start.
+
+## Solution 2: Professional Hosting
+
+Use Vercel Pro or Enterprise, a durable database near the compute region,
+Vercel Blob or S3/R2, and managed external Solr when search is required. Add
+Redis only when shared cache behavior is useful. Deploy the Pro schedule with
+`scripts/deploy-pro.sh`; it warms frontend/backend every three minutes and runs
+TYPO3 Scheduler every 15 minutes.
+
+This can serve larger read-heavy sites when anonymous pages are cached at the
+edge and stateful services are external, but capacity must be load-tested with
+the real site. Vercel still cannot guarantee a permanently warm TYPO3 instance.
+Use an always-on TYPO3 origin with Vercel as CDN/delivery when predictable
+first-hit latency is mandatory. Follow [Professional hosting](docs/deployment-profiles.md)
+and [Production hardening](docs/production-hardening.md).
 
 ## Add A Real Database
 
@@ -160,15 +198,19 @@ test. Connect a real database before editors make lasting changes. See
 
 The original public demo showed roughly 10 to 12 second first responses after
 Vercel had scaled the container to zero. Warm frontend and backend requests were
-normally below half a second. The project now addresses the cold path in three
+normally below half a second. The project now addresses the cold path in four
 layers:
 
 1. The TYPO3 image moved from Debian Apache/mod_php to Alpine nginx/PHP-FPM and
-   fell from about 950 MB to about 448 MB, a 53% reduction.
-2. The Solr image fell from about 843 MB to about 589 MB. Five clean local
+   remains about 51% smaller at 465 MB after adding targeted cache artifacts.
+2. TYPO3's DI container and 597 Fluid templates are warmed during the image
+   build and restored at startup without running Composer or TYPO3 CLI there.
+   In a three-run local A/B, first backend work fell from a 1.87s median to
+   0.38s; first frontend work fell from 9.66s to 7.27s.
+3. The Solr image fell from about 843 MB to about 589 MB. Five clean local
    starts were 1.94-3.21 seconds with a 2.48-second median, versus 4.1-4.6
    seconds before.
-3. `vercel.pro.json` runs a protected warm-up every three minutes. It primes the
+4. `vercel.pro.json` runs a protected warm-up every three minutes. It primes the
    TYPO3 frontend, `/typo3/`, the database, Redis, and Solr before Vercel's
    documented five-minute production idle scale-down window.
 
@@ -179,6 +221,11 @@ took 0.70 seconds. A 30-request warm backend run had a 0.208-second median and
 0.251-second p95, but one separate fresh instance still took 8.85 seconds. The
 image work alone did not remove Vercel's activation floor; Pro warming and edge
 caching are mitigations, not a minimum-instance guarantee.
+
+The cache warm-up is intentionally part of the container image build, not a
+Composer script and not a blocking runtime-start command. See
+[Cold starts and performance](docs/performance.md) for the A/B data and safety
+boundaries.
 
 Deploy the Pro configuration with:
 
@@ -201,8 +248,9 @@ formal zero-cold-start guarantee during deployments, scaling, failures, or cron
 delays. An always-on PHP host is still the strict solution when that guarantee
 is mandatory.
 
-For an anonymous brochure frontend, optional Vercel CDN caching can serve pages
-without invoking TYPO3 at all:
+The one-click SQLite profile enables a 300-second CDN TTL automatically. For a
+durable database-backed site, edge caching remains opt-in because editors may
+expect immediate publication and pages may contain forms or personalization:
 
 ```dotenv
 TYPO3_VERCEL_EDGE_CACHE_TTL=300
@@ -211,8 +259,10 @@ TYPO3_VERCEL_EDGE_CACHE_STALE_WHILE_REVALIDATE=600
 
 Only cookie-free `GET`/`HEAD` HTML without a query string is cached. `/typo3/`,
 `/api/`, responses with `Set-Cookie`, forms, and personalized requests are never
-made public by this middleware. Content can remain cached for the selected TTL,
-so keep it disabled for workflows that require immediate publication.
+made public by this middleware. Cached responses explicitly vary on Cookie and
+Authorization so Vercel cannot reuse the anonymous representation for those
+requests. Content can remain cached for the selected TTL, so keep it disabled
+for workflows that require immediate publication.
 
 Read [Cold starts and performance](docs/performance.md) for benchmarks and cost
 estimates.
@@ -266,7 +316,7 @@ There is no persistent Linux cron daemon inside a scaled-to-zero container. The
 protected endpoint `/api/cron/typo3-scheduler.php` runs TYPO3 Scheduler from
 Vercel Cron.
 
-- `vercel.json`: Hobby-safe daily Scheduler call
+- `vercel.json`: one TYPO3 service, no Solr and no scheduled jobs
 - `vercel.pro.json`: three-minute warm-up and 15-minute Scheduler call
 - external managed Solr: process bounded index queue batches per invocation
 - multi-hour indexing: use an always-on worker, CI job, or provider job runner
@@ -282,7 +332,7 @@ deployment says **Ready** and the production alias has moved.
 Dashboard: open **Deployments**, select the desired commit, open its menu, and
 choose **Redeploy**.
 
-CLI, Hobby-safe configuration:
+CLI, one-click/test configuration:
 
 ```bash
 vercel deploy --prod --scope webconsulting --yes
@@ -306,8 +356,8 @@ vercel crons ls --scope webconsulting
 ```
 
 The Pro deployment must list both the three-minute warm-up and the 15-minute
-Scheduler job. If it lists only the daily Scheduler job, the latest deployment
-used the Hobby configuration and cold-start warming is not active.
+Scheduler job. If it lists neither job, the latest deployment used the
+one-click configuration and cold-start warming is not active.
 
 ## Local Development
 

@@ -33,8 +33,9 @@ Required pieces:
 9. **Scheduler:** TYPO3 Scheduler runs through the protected HTTP cron endpoint,
    not a Linux daemon inside the container.
 
-This is the shape used by the public demo. The default `vercel.json` remains
-Hobby-compatible, so Pro projects must deploy with `scripts/deploy-pro.sh`.
+This is the shape used by the public demo. The default `vercel.json` remains a
+Hobby-compatible no-cron test, so Pro projects must deploy with
+`scripts/deploy-pro.sh`.
 
 ## Target Architecture B: Strict Production
 
@@ -117,6 +118,12 @@ personalization, previews, carts, or uncached plugins.
 The public demo measured Redis-enabled warm backend login responses around
 0.11-0.17 seconds, but cold requests can still be around 10-13 seconds. The
 practical mitigation is to keep the relevant runtime path warm.
+
+The image build also runs TYPO3's official release warm-up for the DI container
+and Fluid templates. Those environment-independent artifacts are copied into
+`/tmp` at startup; no Composer or TYPO3 command blocks the runtime port. Do not
+expand this to system, page, database, Redis, or Solr caches, because those must
+be generated against the active production environment.
 
 For Pro projects, use the included profile:
 

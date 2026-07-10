@@ -53,6 +53,11 @@ content is added to the seed without a corresponding catalog entry, setup fails
 with the missing record IDs instead of silently publishing mixed-language or
 empty pages. It does not translate future editor content automatically.
 
+The unit suite also validates every translated rich-text field. It rejects
+unsupported or translated HTML tag names, unbalanced list markup, missing list
+identifiers, and malformed TYPO3 list-item IDs. This protects the seed catalog
+from syntactically complete but broken machine-translated markup.
+
 ## Initial Setup
 
 New empty databases are configured automatically by the container bootstrap.
@@ -83,6 +88,11 @@ all site-language page overlays, every connected content overlay, nested Camino
 items, and localized file references without duplicating records. It reapplies
 the committed demo translations, so do not run the seed command after editors
 have replaced those translations with production copy.
+
+After a translation catalog correction is deployed, an existing durable
+database still contains its previous records until this protected maintenance
+POST is run. A new container image must never overwrite edited production copy
+automatically during startup.
 
 ## Editing A Translation
 

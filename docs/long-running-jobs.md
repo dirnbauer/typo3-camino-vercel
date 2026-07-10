@@ -126,9 +126,8 @@ The included `vercel.pro.json` starts with a 15-minute cadence:
 }
 ```
 
-The default profile uses the safer daily cron so Hobby/free deployments do not
-fail. For a real managed-Solr project on Pro, change the Pro cadence only after
-measuring one Scheduler batch.
+The one-click profile registers no cron jobs. For a real managed-Solr project
+on Pro, change the Pro cadence only after measuring one Scheduler batch.
 
 Only use this when each Scheduler run is comfortably below the invocation limit.
 If one run can exceed the next cron interval, reduce the Solr batch size or move
