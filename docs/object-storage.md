@@ -194,8 +194,10 @@ The container therefore sets `post_max_size` and `upload_max_filesize` to 4 MB.
 This is independent of Blob capacity: a normal TYPO3 backend upload still
 passes through PHP before the FAL driver writes it to Blob.
 
-For larger media, use **Media > Large upload** or the **Large upload** toolbar
-button while viewing a Vercel Blob folder. The implemented flow is:
+For larger media, use **Media > Large upload** or the **Large upload to Vercel
+Blob** toolbar button. If the bundled Camino folder is currently selected, the
+module automatically switches to the editor's writable Blob folder and shows
+the real destination before it uploads. The implemented flow is:
 
 1. TYPO3 checks the backend user, file mount, folder permissions, name, type,
    and configured size limit.

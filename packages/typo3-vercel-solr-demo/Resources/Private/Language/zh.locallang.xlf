@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="2.0" xmlns="urn:oasis:names:tc:xliff:document:2.0" srcLang="en" trgLang="zh">
+  <file id="messages">
+    <unit id="search.eyebrow"><segment state="final"><source>Camino guide</source><target>圣地亚哥之路指南</target></segment></unit>
+    <unit id="search.title"><segment state="final"><source>Search</source><target>搜索</target></segment></unit>
+    <unit id="search.lead"><segment state="final"><source>Routes, planning advice, packing lists, and practical information for your Camino.</source><target>查找路线、规划建议、行李清单和圣地亚哥之路实用信息。</target></segment></unit>
+    <unit id="search.label"><segment state="final"><source>Search the Camino guide</source><target>搜索圣地亚哥之路指南</target></segment></unit>
+    <unit id="search.placeholder"><segment state="final"><source>Search the Camino guide</source><target>搜索圣地亚哥之路指南</target></segment></unit>
+    <unit id="search.submit"><segment state="final"><source>Search</source><target>搜索</target></segment></unit>
+    <unit id="results.eyebrow"><segment state="final"><source>Search results</source><target>搜索结果</target></segment></unit>
+    <unit id="results.all"><segment state="final"><source>All indexed pages</source><target>所有已索引页面</target></segment></unit>
+    <unit id="results.for"><segment state="final"><source>Results for “%s”</source><target>“%s”的搜索结果</target></segment></unit>
+    <unit id="results.singular"><segment state="final"><source>result</source><target>条结果</target></segment></unit>
+    <unit id="results.plural"><segment state="final"><source>results</source><target>条结果</target></segment></unit>
+    <unit id="results.empty.title"><segment state="final"><source>No matching pages</source><target>没有匹配的页面</target></segment></unit>
+    <unit id="results.empty.text"><segment state="final"><source>Check the spelling or try a shorter search phrase.</source><target>请检查拼写，或尝试更短的搜索词。</target></segment></unit>
+    <unit id="results.warming.title"><segment state="final"><source>Search is warming up</source><target>搜索服务正在启动</target></segment></unit>
+    <unit id="results.warming.text"><segment state="final"><source>The Solr service is starting. Please retry in a moment.</source><target>Solr 服务正在启动，请稍后重试。</target></segment></unit>
+  </file>
+</xliff>

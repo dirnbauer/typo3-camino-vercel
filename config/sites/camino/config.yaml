@@ -12,5 +12,53 @@ languages:
     navigationTitle: English
     flag: global
     languageId: '0'
+  -
+    title: Deutsch
+    enabled: true
+    locale: de_DE.UTF-8
+    hreflang: de-DE
+    base: /de/
+    websiteTitle: Camino
+    navigationTitle: Deutsch
+    flag: de
+    languageId: '1'
+    fallbackType: strict
+    fallbacks: ''
+  -
+    title: Español
+    enabled: true
+    locale: es_ES.UTF-8
+    hreflang: es-ES
+    base: /es/
+    websiteTitle: Camino
+    navigationTitle: Español
+    flag: es
+    languageId: '2'
+    fallbackType: strict
+    fallbacks: ''
+  -
+    title: 简体中文
+    enabled: true
+    locale: zh_CN.UTF-8
+    hreflang: zh-CN
+    base: /zh/
+    websiteTitle: Camino
+    navigationTitle: 中文
+    flag: cn
+    languageId: '3'
+    fallbackType: strict
+    fallbacks: ''
+  -
+    title: Magyar
+    enabled: true
+    locale: hu_HU.UTF-8
+    hreflang: hu-HU
+    base: /hu/
+    websiteTitle: Camino
+    navigationTitle: Magyar
+    flag: hu
+    languageId: '4'
+    fallbackType: strict
+    fallbacks: ''
 rootPageId: 1
 websiteTitle: TYPO3 Camino

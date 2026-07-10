@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="2.0" xmlns="urn:oasis:names:tc:xliff:document:2.0" srcLang="en" trgLang="es">
+  <file id="messages">
+    <unit id="search.eyebrow"><segment state="final"><source>Camino guide</source><target>Guía del Camino</target></segment></unit>
+    <unit id="search.title"><segment state="final"><source>Search</source><target>Buscar</target></segment></unit>
+    <unit id="search.lead"><segment state="final"><source>Routes, planning advice, packing lists, and practical information for your Camino.</source><target>Rutas, consejos de planificación, listas de equipaje e información práctica para tu Camino.</target></segment></unit>
+    <unit id="search.label"><segment state="final"><source>Search the Camino guide</source><target>Buscar en la guía del Camino</target></segment></unit>
+    <unit id="search.placeholder"><segment state="final"><source>Search the Camino guide</source><target>Buscar en la guía del Camino</target></segment></unit>
+    <unit id="search.submit"><segment state="final"><source>Search</source><target>Buscar</target></segment></unit>
+    <unit id="results.eyebrow"><segment state="final"><source>Search results</source><target>Resultados de búsqueda</target></segment></unit>
+    <unit id="results.all"><segment state="final"><source>All indexed pages</source><target>Todas las páginas indexadas</target></segment></unit>
+    <unit id="results.for"><segment state="final"><source>Results for “%s”</source><target>Resultados para «%s»</target></segment></unit>
+    <unit id="results.singular"><segment state="final"><source>result</source><target>resultado</target></segment></unit>
+    <unit id="results.plural"><segment state="final"><source>results</source><target>resultados</target></segment></unit>
+    <unit id="results.empty.title"><segment state="final"><source>No matching pages</source><target>No hay páginas coincidentes</target></segment></unit>
+    <unit id="results.empty.text"><segment state="final"><source>Check the spelling or try a shorter search phrase.</source><target>Comprueba la ortografía o prueba una frase de búsqueda más corta.</target></segment></unit>
+    <unit id="results.warming.title"><segment state="final"><source>Search is warming up</source><target>La búsqueda se está iniciando</target></segment></unit>
+    <unit id="results.warming.text"><segment state="final"><source>The Solr service is starting. Please retry in a moment.</source><target>El servicio Solr se está iniciando. Vuelve a intentarlo en un momento.</target></segment></unit>
+  </file>
+</xliff>

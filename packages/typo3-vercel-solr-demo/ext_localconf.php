@@ -34,6 +34,8 @@ tt_content.solr_pi_frequentlysearched {
   extensionName = Solr
   pluginName = pi_frequentlySearched
 }
+
+page.includeCSS.typo3VercelSolrDemoSearch = EXT:typo3_vercel_solr_demo/Resources/Public/Css/search.css
 TYPOSCRIPT,
     'defaultContentRendering',
 );

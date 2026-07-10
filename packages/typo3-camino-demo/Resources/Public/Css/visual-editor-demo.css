@@ -1,0 +1,71 @@
+.camino-visual-editor-demo {
+    padding-inline: 24px;
+}
+
+.camino-visual-editor-demo__content {
+    display: grid;
+    grid-template-columns: minmax(240px, 0.72fr) minmax(0, 1.28fr);
+    gap: 48px;
+    align-items: start;
+}
+
+.camino-visual-editor-demo__eyebrow {
+    margin: 0 0 8px;
+    color: var(--color-primary-100, #b45023);
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.camino-visual-editor-demo__title {
+    margin: 0 0 24px;
+    color: var(--color-neutral-90, #220b01);
+    font-family: var(--headline-family, "Playfair", serif);
+    font-size: 40px;
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: 0;
+}
+
+.camino-visual-editor-demo__text,
+.camino-visual-editor-demo__text p {
+    color: var(--color-neutral-70, #6c5246);
+    font-size: 18px;
+    line-height: 1.65;
+}
+
+.camino-visual-editor-demo__figure {
+    min-width: 0;
+    margin: 0;
+}
+
+.camino-visual-editor-demo__video {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 1px solid var(--color-neutral-30, #d0bfb7);
+    border-radius: 8px;
+    background: var(--color-neutral-90, #220b01);
+    box-shadow: 0 20px 48px rgb(34 11 1 / 14%);
+}
+
+.camino-visual-editor-demo figcaption {
+    margin-top: 12px;
+    color: var(--color-neutral-60, #887167);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+@media (max-width: 800px) {
+    .camino-visual-editor-demo {
+        padding-inline: 16px;
+    }
+
+    .camino-visual-editor-demo__content {
+        grid-template-columns: 1fr;
+        gap: 32px;
+    }
+
+    .camino-visual-editor-demo__title {
+        font-size: 32px;
+    }
+}

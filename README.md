@@ -112,13 +112,39 @@ derivatives use Blob/S3; they are not written to the image filesystem.
 
 Vercel Functions currently impose a 4.5 MB request-body limit, so the normal
 TYPO3 uploader is configured to 4 MB. For larger files, use **Media > Large
-upload** or the **Large upload** button in a Vercel Blob folder. The included
-flow checks TYPO3 permissions, then uploads directly from the browser to Blob
-with a short-lived path/size/type-scoped token. The default limit is 5 GiB and
-can be configured up to Vercel Blob's 5 TB limit.
+upload** or **Large upload to Vercel Blob** in the Files module. It
+automatically switches from the bundled Camino files to a writable Blob folder
+and shows the destination. The included flow checks TYPO3 permissions, then
+uploads directly from the browser to Blob with a short-lived
+path/size/type-scoped token. The default limit is 5 GiB and can be configured
+up to Vercel Blob's 5 TB limit.
 
 See [Object storage](docs/object-storage.md) and the
 [Vercel Blob FAL manual](docs/vercel-blob-fal-driver.md).
+
+## Visual Editing And Languages
+
+The community `friendsoftypo3/visual-editor` extension is installed and Camino
+is configured for inline editing. Sign in to the TYPO3 backend and open
+**Content > Editor**. A short, captioned demonstration is embedded on the
+frontend at `/visual-editor` and stored in this repository.
+
+The demo contains strict, connected translations in German, Spanish,
+Simplified Chinese, and Hungarian. Use the language selector in the Visual
+Editor to edit one language or compare it with English. Strict mode never shows
+English content as an accidental fallback when a translated record is missing.
+
+New empty databases receive the Visual Editor page and translations during
+automatic setup. For an existing database, run this once and deploy the changed
+database state:
+
+```bash
+vendor/bin/typo3 webconsulting:camino-demo:setup --flush-caches
+```
+
+Database-backed pages and translations are temporary in the one-click SQLite
+test. Connect a real database before editors make lasting changes. See
+[Visual Editor and translations](docs/visual-editor-and-translations.md).
 
 ## Cold Starts
 
@@ -311,6 +337,8 @@ docker compose up --build
 - stable backend sessions with a durable database
 - Vercel Blob and S3-compatible TYPO3 FAL storage
 - secure direct-to-Blob uploads above the normal 4 MB request limit
+- inline Camino editing with `friendsoftypo3/visual-editor`
+- strict German, Spanish, Simplified Chinese, and Hungarian page translations
 - ImageMagick, AVIF, WebP, Ghostscript, and writable `/tmp` processing paths
 - Vercel Marketplace Redis through a TCP/TLS connection
 - protected Vercel Cron endpoints
@@ -340,6 +368,7 @@ Start with the [documentation index](docs/README.md). Important guides:
 - [Database](docs/database.md)
 - [Object storage](docs/object-storage.md)
 - [Vercel Blob FAL driver](docs/vercel-blob-fal-driver.md)
+- [Visual Editor and translations](docs/visual-editor-and-translations.md)
 - [Redis](docs/redis-cache.md)
 - [Solr](docs/solr.md)
 - [Scheduler](docs/scheduler.md)

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="2.0" xmlns="urn:oasis:names:tc:xliff:document:2.0" srcLang="en">
+  <file id="messages">
+    <unit id="search.eyebrow"><segment><source>Camino guide</source></segment></unit>
+    <unit id="search.title"><segment><source>Search</source></segment></unit>
+    <unit id="search.lead"><segment><source>Routes, planning advice, packing lists, and practical information for your Camino.</source></segment></unit>
+    <unit id="search.label"><segment><source>Search the Camino guide</source></segment></unit>
+    <unit id="search.placeholder"><segment><source>Search the Camino guide</source></segment></unit>
+    <unit id="search.submit"><segment><source>Search</source></segment></unit>
+    <unit id="results.eyebrow"><segment><source>Search results</source></segment></unit>
+    <unit id="results.all"><segment><source>All indexed pages</source></segment></unit>
+    <unit id="results.for"><segment><source>Results for “%s”</source></segment></unit>
+    <unit id="results.singular"><segment><source>result</source></segment></unit>
+    <unit id="results.plural"><segment><source>results</source></segment></unit>
+    <unit id="results.empty.title"><segment><source>No matching pages</source></segment></unit>
+    <unit id="results.empty.text"><segment><source>Check the spelling or try a shorter search phrase.</source></segment></unit>
+    <unit id="results.warming.title"><segment><source>Search is warming up</source></segment></unit>
+    <unit id="results.warming.text"><segment><source>The Solr service is starting. Please retry in a moment.</source></segment></unit>
+  </file>
+</xliff>

@@ -11,8 +11,10 @@ chdir($root);
 $database = typo3_vercel_database_config();
 $settingsPath = $root . '/config/system/settings.php';
 $siteConfigPath = $root . '/config/sites/camino/config.yaml';
+$publicIndexPath = $root . '/public/index.php';
 $settingsTemplate = is_file($settingsPath) ? file_get_contents($settingsPath) : null;
 $siteConfigTemplate = is_file($siteConfigPath) ? file_get_contents($siteConfigPath) : null;
+$publicIndexTemplate = is_file($publicIndexPath) ? file_get_contents($publicIndexPath) : null;
 
 // Serialize bootstrap across concurrent cold-start instances that share the same
 // external database. Without this, two instances can both observe an empty
@@ -101,14 +103,68 @@ if ($exitCode === 0 && ($database['driver'] ?? '') === 'pdo_sqlite') {
     typo3_vercel_copy_generated_sqlite_database($database);
 }
 
-if ($settingsTemplate !== null) {
-    file_put_contents($settingsPath, $settingsTemplate);
-}
-if ($siteConfigTemplate !== null) {
-    file_put_contents($siteConfigPath, $siteConfigTemplate);
+typo3_vercel_restore_project_templates(
+    $settingsPath,
+    $settingsTemplate,
+    $siteConfigPath,
+    $siteConfigTemplate,
+    $publicIndexPath,
+    $publicIndexTemplate,
+);
+
+if ($exitCode === 0) {
+    $setupCommands = [
+        [$root . '/vendor/bin/typo3', 'extension:setup', '--no-interaction'],
+        [$root . '/vendor/bin/typo3', 'cache:flush'],
+        [
+            $root . '/vendor/bin/typo3',
+            'webconsulting:solr-demo:setup',
+            '--normalize-demo-pages',
+            '--flush-caches',
+        ],
+        [
+            $root . '/vendor/bin/typo3',
+            'webconsulting:camino-demo:setup',
+            '--flush-caches',
+        ],
+    ];
+
+    foreach ($setupCommands as $setupCommand) {
+        $exitCode = typo3_vercel_run($setupCommand, $env);
+        typo3_vercel_restore_project_templates(
+            $settingsPath,
+            $settingsTemplate,
+            $siteConfigPath,
+            $siteConfigTemplate,
+            $publicIndexPath,
+            $publicIndexTemplate,
+        );
+        if ($exitCode !== 0) {
+            break;
+        }
+    }
 }
 
 exit($exitCode);
+
+function typo3_vercel_restore_project_templates(
+    string $settingsPath,
+    string|false|null $settingsTemplate,
+    string $siteConfigPath,
+    string|false|null $siteConfigTemplate,
+    string $publicIndexPath,
+    string|false|null $publicIndexTemplate,
+): void {
+    if (is_string($settingsTemplate)) {
+        file_put_contents($settingsPath, $settingsTemplate);
+    }
+    if (is_string($siteConfigTemplate)) {
+        file_put_contents($siteConfigPath, $siteConfigTemplate);
+    }
+    if (is_string($publicIndexTemplate)) {
+        file_put_contents($publicIndexPath, $publicIndexTemplate);
+    }
+}
 
 /**
  * Acquire a cross-instance bootstrap lock for external databases.

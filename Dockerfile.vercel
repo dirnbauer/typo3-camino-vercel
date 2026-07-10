@@ -97,11 +97,6 @@ RUN set -eu; \
         TYPO3_SETUP_ADMIN_EMAIL=admin@example.com \
         TYPO3_SETUP_DISTRIBUTION=theme_camino \
         php scripts/bootstrap-typo3.php; \
-    TYPO3_CONTEXT=Production/Vercel \
-        TYPO3_DB_DRIVER=pdo_sqlite \
-        TYPO3_DB_DBNAME=/var/www/html/var/seed/camino.sqlite \
-        TYPO3_ENCRYPTION_KEY=000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 \
-        vendor/bin/typo3 extension:setup --no-interaction; \
     mkdir -p /usr/local/share/typo3-seed; \
     cp /var/www/html/var/seed/camino.sqlite /usr/local/share/typo3-seed/camino.sqlite; \
     rm -rf var/* public/typo3temp/*

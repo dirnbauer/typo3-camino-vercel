@@ -39,8 +39,14 @@ final class LargeUploadController implements LoggerAwareInterface
             $error = $exception->getMessage();
         }
 
+        $destinationChanged = is_string($combinedIdentifier)
+            && $combinedIdentifier !== ''
+            && $folder !== null
+            && $folder->getCombinedIdentifier() !== $combinedIdentifier;
+
         $view->assignMultiple([
             'configured' => $folder !== null,
+            'destinationChanged' => $destinationChanged,
             'error' => $error,
             'folder' => $folder,
             'maximumSizeInBytes' => $this->directUploadService->maximumSizeInBytes(),

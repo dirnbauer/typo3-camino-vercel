@@ -1,0 +1,29 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+
+<!-- Adapted from EXT:solr Resources/Private/Partials/Result/Document.html. -->
+<article
+    class="list-group-item search-result results-entry camino-solr-result"
+    data-document-id="{document.id}"
+    data-document-url="{document.url}"
+    aria-labelledby="camino-solr-result-{position}"
+>
+    <span class="camino-solr-result__number" aria-hidden="true"><f:format.printf arguments="{0: position}">#%02d</f:format.printf></span>
+    <div class="camino-solr-result__body">
+        <h3 id="camino-solr-result-{position}" class="results-topic camino-solr-result__title">
+            <a href="{document.url}">
+                <span>{document.title}</span>
+                <f:render partial="Icons/ArrowRight" arguments="{class: 'icon icon--arrow-right'}" />
+            </a>
+        </h3>
+        <f:if condition="{document.content}">
+            <div class="results-teaser">
+                <p class="result-content camino-solr-result__content">{document.content}</p>
+            </div>
+        </f:if>
+    </div>
+</article>
+
+</html>

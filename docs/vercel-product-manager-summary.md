@@ -40,6 +40,7 @@ so this is mitigation rather than an absolute zero-cold-start guarantee.
 | Files | Custom Vercel Blob FAL driver or retained S3-compatible FAL driver |
 | File auth | Vercel OIDC first; read/write token compatibility fallback |
 | Search | EXT:solr 14 beta + Solr 10 service for demo; external Solr for production |
+| Editing | Friends of TYPO3 Visual Editor with strict five-language Camino content |
 | Jobs | Protected Vercel Cron endpoints; no daemon inside the image |
 | Security | Stable encryption key, trusted-host validation, protected deep probes |
 | Health | Shallow public health and authenticated DB/Redis/Blob/Solr write probes |
@@ -316,6 +317,13 @@ images, not live index data.
 - A 4.5 MB Function request limit is surprisingly restrictive for a CMS media
   backend. Durable Blob storage alone does not remove the request limit when PHP
   remains in the upload path.
+- An environment-variable name can appear in `vercel env ls` while its value is
+  empty. Blob then looked connected but TYPO3 could not treat it as an enabled
+  FAL destination. Explicit non-empty driver settings plus a runtime write probe
+  are more reliable than checking variable names alone.
+- Opening the large-upload route with the bundled Camino storage identifier made
+  a valid Blob connection look broken. The module now resolves that request to
+  the writable Blob storage and displays the changed destination.
 
 ### Large Upload Solution
 
@@ -326,6 +334,10 @@ The repo now bypasses that limit without weakening TYPO3 permissions:
 3. The browser uploads directly to Blob; files above 100 MB use multipart data.
 4. TYPO3 verifies the stored object and registers it in FAL without downloading it.
 5. The normal Blob FAL driver serves the durable file.
+
+The Files-module button and direct module URL now hand a selected local Camino
+folder off to the first writable Blob folder. Editors no longer need to know a
+FAL storage uid before using the durable path.
 
 The standard TYPO3 uploader remains limited to about 4 MB. **Media > Large
 upload** supports 5 GiB by default and can be configured up to Blob's platform
@@ -368,6 +380,8 @@ limit. Executable web formats are blocked by default.
 - [ ] Use a durable database near the Vercel region.
 - [ ] Keep SQLite restricted to disposable smoke tests.
 - [ ] Connect Vercel Blob or S3/R2 before editors upload files.
+- [ ] Confirm object-storage environment values are non-empty and that **Media >
+      Large upload** shows a Blob destination rather than only listing variables.
 - [ ] Verify a Blob put/read/delete health probe after every credential change.
 - [ ] Use a stable 96-character hexadecimal TYPO3 encryption key.
 - [ ] Disable auto setup, extension setup, and password apply after bootstrap.

@@ -1,0 +1,72 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+
+<!--
+    Camino presentation override based on EXT:solr's original Search/Results
+    template. The established tx-solr classes remain available for compatibility.
+-->
+<div id="tx-solr-search" class="tx_solr camino-solr-search">
+    <section class="camino-solr-search__masthead" aria-labelledby="camino-solr-search-title">
+        <div class="camino-solr-search__inner">
+            <p class="camino-solr-search__eyebrow"><f:translate key="search.eyebrow" extensionName="Typo3VercelSolrDemo">Camino guide</f:translate></p>
+            <h1 id="camino-solr-search-title" class="camino-solr-search__title"><f:translate key="search.title" extensionName="Typo3VercelSolrDemo">Search</f:translate></h1>
+            <p class="camino-solr-search__lead"><f:translate key="search.lead" extensionName="Typo3VercelSolrDemo">Routes, planning advice, packing lists, and practical information for your Camino.</f:translate></p>
+
+            <f:render partial="Search/Form" arguments="{query: query, formAction: formAction}" />
+        </div>
+    </section>
+
+    <f:if condition="{hasSearched}">
+        <section class="camino-solr-search__results" aria-labelledby="camino-solr-results-title" aria-live="polite">
+            <div class="camino-solr-search__inner">
+                <f:if condition="{available}">
+                    <f:then>
+                        <header class="camino-solr-search__results-header">
+                            <div>
+                                <p class="camino-solr-search__eyebrow"><f:translate key="results.eyebrow" extensionName="Typo3VercelSolrDemo">Search results</f:translate></p>
+                                <h2 id="camino-solr-results-title" class="camino-solr-search__results-title">
+                                    <f:if condition="{isAllResults}">
+                                        <f:then><f:translate key="results.all" extensionName="Typo3VercelSolrDemo">All indexed pages</f:translate></f:then>
+                                        <f:else><f:translate key="results.for" arguments="{0: query}" extensionName="Typo3VercelSolrDemo">Results for “%s”</f:translate></f:else>
+                                    </f:if>
+                                </h2>
+                            </div>
+                            <p class="camino-solr-search__result-meta">
+                                <strong>{total}</strong>
+                                <f:if condition="{total} == 1"><f:then><f:translate key="results.singular" extensionName="Typo3VercelSolrDemo">result</f:translate></f:then><f:else><f:translate key="results.plural" extensionName="Typo3VercelSolrDemo">results</f:translate></f:else></f:if>
+                                <span aria-hidden="true">·</span>
+                                {queryTimeMs} ms
+                            </p>
+                        </header>
+
+                        <f:if condition="{documents}">
+                            <f:then>
+                                <div class="results-list list-group" data-result-count="{total}">
+                                    <f:for each="{documents}" as="document" iteration="resultIteration">
+                                        <f:render partial="Result/Document" arguments="{document: document, position: resultIteration.cycle}" />
+                                    </f:for>
+                                </div>
+                            </f:then>
+                            <f:else>
+                                <div class="camino-solr-search__empty" role="status">
+                                    <h3><f:translate key="results.empty.title" extensionName="Typo3VercelSolrDemo">No matching pages</f:translate></h3>
+                                    <p><f:translate key="results.empty.text" extensionName="Typo3VercelSolrDemo">Check the spelling or try a shorter search phrase.</f:translate></p>
+                                </div>
+                            </f:else>
+                        </f:if>
+                    </f:then>
+                    <f:else>
+                        <div class="camino-solr-search__empty camino-solr-search__empty--warning" role="status">
+                            <h2 id="camino-solr-results-title"><f:translate key="results.warming.title" extensionName="Typo3VercelSolrDemo">Search is warming up</f:translate></h2>
+                            <p><f:translate key="results.warming.text" extensionName="Typo3VercelSolrDemo">The Solr service is starting. Please retry in a moment.</f:translate></p>
+                        </div>
+                    </f:else>
+                </f:if>
+            </div>
+        </section>
+    </f:if>
+</div>
+
+</html>

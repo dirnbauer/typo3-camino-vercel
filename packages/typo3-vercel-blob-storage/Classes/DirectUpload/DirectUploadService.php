@@ -44,10 +44,15 @@ final readonly class DirectUploadService
             } catch (\Throwable $exception) {
                 throw new DirectUploadException('The selected upload folder is unavailable.', 404, $exception);
             }
-            $this->assertTargetFolder($folder);
-            return $folder;
+            if ($folder->getStorage()->getDriverType() === 'vercel_blob') {
+                $this->assertTargetFolder($folder);
+                return $folder;
+            }
         }
 
+        // Filelist can open this module while the bundled, read-only Camino
+        // storage is selected. In that case, use the editor's durable Blob
+        // storage instead of presenting a misleading configuration error.
         foreach ($this->backendUser()->getFileStorages() as $storage) {
             if ($storage->getDriverType() !== 'vercel_blob' || !$storage->isOnline() || !$storage->isWritable()) {
                 continue;

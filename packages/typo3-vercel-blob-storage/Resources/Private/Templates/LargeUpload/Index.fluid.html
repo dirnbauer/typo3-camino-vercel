@@ -10,6 +10,11 @@
     <h1>Large upload</h1>
     <f:if condition="{configured}">
         <f:then>
+            <f:if condition="{destinationChanged}">
+                <f:be.infobox state="0" title="Using durable Vercel Blob storage">
+                    The selected Camino folder belongs to the bundled demo files. New files will be uploaded to the durable destination shown below.
+                </f:be.infobox>
+            </f:if>
             <div
                 data-vercel-blob-large-upload
                 data-folder="{folder.combinedIdentifier}"

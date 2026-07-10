@@ -21,6 +21,7 @@ when the deployment becomes more than a disposable demo.
 | [Backend login](backend-login.md) | Credentials, sessions, and login troubleshooting |
 | [Object storage](object-storage.md) | Blob and S3/R2 durability model |
 | [Vercel Blob FAL](vercel-blob-fal-driver.md) | Custom driver, large uploads, OIDC, fallback, and operations |
+| [Visual Editor and translations](visual-editor-and-translations.md) | Inline editing, language setup, strict translations, and demo video |
 | [Redis](redis-cache.md) | Shared TYPO3 cache, setup, value, and limits |
 
 ## Runtime And Performance

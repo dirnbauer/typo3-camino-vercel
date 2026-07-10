@@ -11,6 +11,7 @@ use TYPO3\CMS\Backend\Template\Components\ModifyButtonBarEvent;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
+use TYPO3\CMS\Core\Resource\ResourceStorage;
 use TYPO3\CMS\Core\Resource\StorageRepository;
 
 #[AsEventListener]
@@ -35,27 +36,42 @@ final readonly class AddLargeUploadButton
         if (!is_string($combinedIdentifier) || $combinedIdentifier === '') {
             return;
         }
-        $storage = $this->storageRepository->findByCombinedIdentifier($combinedIdentifier);
-        if ($storage === null
-            || $storage->getDriverType() !== 'vercel_blob'
-            || !$storage->isOnline()
-            || !$storage->isWritable()
-            || !$storage->checkUserActionPermission('add', 'File')
-        ) {
+        $selectedStorage = $this->storageRepository->findByCombinedIdentifier($combinedIdentifier);
+        $blobStorage = $selectedStorage?->getDriverType() === 'vercel_blob'
+            ? $selectedStorage
+            : $this->findWritableBlobStorage();
+        if ($blobStorage === null) {
             return;
         }
+
+        $targetIdentifier = $selectedStorage === $blobStorage ? $combinedIdentifier : null;
 
         $button = $this->componentFactory->createLinkButton()
             ->setHref((string)$this->uriBuilder->buildUriFromRoute(
                 'media_vercel_blob_large_upload',
-                ['id' => $combinedIdentifier],
+                $targetIdentifier === null ? [] : ['id' => $targetIdentifier],
             ))
-            ->setTitle('Large upload')
+            ->setTitle('Large upload to Vercel Blob')
             ->setShowLabelText(true)
             ->setIcon($this->iconFactory->getIcon('actions-upload', IconSize::SMALL));
 
         $buttons = $event->getButtons();
         $buttons[ButtonBar::BUTTON_POSITION_LEFT][4][] = clone $button;
         $event->setButtons($buttons);
+    }
+
+    private function findWritableBlobStorage(): ?ResourceStorage
+    {
+        foreach ($this->storageRepository->findAll() as $storage) {
+            if ($storage->getDriverType() === 'vercel_blob'
+                && $storage->isOnline()
+                && $storage->isWritable()
+                && $storage->checkUserActionPermission('add', 'File')
+            ) {
+                return $storage;
+            }
+        }
+
+        return null;
     }
 }

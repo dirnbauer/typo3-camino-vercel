@@ -6,6 +6,9 @@ namespace Webconsulting\Typo3VercelSolrDemo\Content;
 
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Attribute\AsAllowedCallable;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\View\ViewFactoryData;
+use TYPO3\CMS\Core\View\ViewFactoryInterface;
 
 final class SolrSearchContent
 {
@@ -15,10 +18,10 @@ final class SolrSearchContent
     #[AsAllowedCallable]
     public function render(mixed $content = '', array $configuration = [], ?ServerRequestInterface $request = null): string
     {
-        unset($content, $configuration, $request);
+        unset($content, $configuration);
 
         try {
-            return $this->renderSearch();
+            return $this->renderSearch($request);
         } catch (\Throwable $exception) {
             error_log(sprintf(
                 'TYPO3 Vercel Solr demo renderer failed: %s: %s',
@@ -29,56 +32,40 @@ final class SolrSearchContent
         }
     }
 
-    private function renderSearch(): string
+    private function renderSearch(?ServerRequestInterface $request): string
     {
-        $query = $this->searchQuery();
-        $html = [];
-        $html[] = '<div class="tx_solr container">';
-        $html[] = '<form action="/search" method="get" class="tx-solr-search-form">';
-        $html[] = '<div class="input-group">';
-        $html[] = '<input type="text" class="tx-solr-q form-control" name="tx_solr[q]" value="' . $this->escape($query) . '" maxlength="50" autocomplete="off" />';
-        $html[] = '<button class="btn btn-primary tx-solr-submit" type="submit">Search</button>';
-        $html[] = '</div>';
-        $html[] = '</form>';
+        $request ??= $GLOBALS['TYPO3_REQUEST'] ?? null;
+        $query = $this->searchQuery($request);
+        $result = $query === ''
+            ? ['ok' => true, 'documents' => [], 'total' => 0, 'queryTimeMs' => 0]
+            : $this->querySolr($query);
 
-        if ($query === '') {
-            $html[] = '</div>';
-            return implode("\n", $html);
-        }
+        $documents = array_map(
+            fn(array $document): array => $this->normalizeDocument($document),
+            $result['documents'],
+        );
 
-        $result = $this->querySolr($query);
-        if ($result['ok'] !== true) {
-            $html[] = $this->warmingMarkup();
-            $html[] = '</div>';
-            return implode("\n", $html);
-        }
+        $viewFactory = GeneralUtility::makeInstance(ViewFactoryInterface::class);
+        $view = $viewFactory->create(new ViewFactoryData(
+            templateRootPaths: ['EXT:typo3_vercel_solr_demo/Resources/Private/Templates'],
+            partialRootPaths: [
+                'EXT:typo3_vercel_solr_demo/Resources/Private/Partials',
+                'EXT:theme_camino/Resources/Private/Templates/Partials',
+            ],
+            request: $request,
+        ));
+        $view->assignMultiple([
+            'available' => $result['ok'],
+            'documents' => $documents,
+            'formAction' => $this->formAction($request),
+            'hasSearched' => $query !== '',
+            'isAllResults' => $query === '*',
+            'query' => $query,
+            'queryTimeMs' => $result['queryTimeMs'],
+            'total' => $result['total'],
+        ]);
 
-        $documents = $result['documents'];
-        $html[] = '<p class="mt-3">Searched for &quot;' . $this->escape($query) . '&quot;.</p>';
-
-        if ($documents === []) {
-            $html[] = '<p>No results found.</p>';
-            $html[] = '</div>';
-            return implode("\n", $html);
-        }
-
-        $html[] = '<div class="results-list list-group mt-3">';
-        foreach ($documents as $document) {
-            $title = $this->stringField($document, 'title', 'Untitled');
-            $url = $this->stringField($document, 'url', '#');
-            $body = $this->truncate($this->stringField($document, 'content', ''), 320);
-
-            $html[] = '<div class="results-entry list-group-item">';
-            $html[] = '<h3 class="results-topic"><a href="' . $this->escape($url) . '">' . $this->escape($title) . '</a></h3>';
-            if ($body !== '') {
-                $html[] = '<p class="result-content">' . $this->escape($body) . '</p>';
-            }
-            $html[] = '</div>';
-        }
-        $html[] = '</div>';
-        $html[] = '</div>';
-
-        return implode("\n", $html);
+        return $view->render('Search/Results');
     }
 
     private function renderUnavailable(): string
@@ -87,7 +74,8 @@ final class SolrSearchContent
             '<div class="tx_solr container">',
             '<form action="/search" method="get" class="tx-solr-search-form">',
             '<div class="input-group">',
-            '<input type="text" class="tx-solr-q form-control" name="tx_solr[q]" value="' . $this->escape($this->searchQuery()) . '" maxlength="50" autocomplete="off" />',
+            '<label class="sr-only" for="tx-solr-search-field-fallback">Search the Camino guide</label>',
+            '<input id="tx-solr-search-field-fallback" type="search" class="tx-solr-q form-control" name="tx_solr[q]" value="' . $this->escape($this->searchQuery()) . '" maxlength="50" autocomplete="off" />',
             '<button class="btn btn-primary tx-solr-submit" type="submit">Search</button>',
             '</div>',
             '</form>',
@@ -101,9 +89,10 @@ final class SolrSearchContent
         return '<div class="alert alert-warning mt-3" role="status">Search is warming up. Please retry in a moment.</div>';
     }
 
-    private function searchQuery(): string
+    private function searchQuery(?ServerRequestInterface $request = null): string
     {
-        $query = $_GET['tx_solr']['q'] ?? '';
+        $queryParameters = $request?->getQueryParams() ?? $_GET;
+        $query = $queryParameters['tx_solr']['q'] ?? '';
         if (is_array($query)) {
             $query = reset($query) ?: '';
         }
@@ -111,13 +100,13 @@ final class SolrSearchContent
     }
 
     /**
-     * @return array{ok:bool,documents:array<int,array<string,mixed>>}
+     * @return array{ok:bool,documents:array<int,array<string,mixed>>,total:int,queryTimeMs:int}
      */
     private function querySolr(string $query): array
     {
         $coreUrl = $this->solrCoreUrl();
         if ($coreUrl === null) {
-            return ['ok' => false, 'documents' => []];
+            return ['ok' => false, 'documents' => [], 'total' => 0, 'queryTimeMs' => 0];
         }
 
         $params = [
@@ -144,20 +133,25 @@ final class SolrSearchContent
                 continue;
             }
 
-            return ['ok' => false, 'documents' => []];
+            return ['ok' => false, 'documents' => [], 'total' => 0, 'queryTimeMs' => 0];
         }
 
         $decoded = json_decode($lastBody, true);
         if (!is_array($decoded)) {
-            return ['ok' => false, 'documents' => []];
+            return ['ok' => false, 'documents' => [], 'total' => 0, 'queryTimeMs' => 0];
         }
 
         $documents = $decoded['response']['docs'] ?? [];
         if (!is_array($documents)) {
-            return ['ok' => false, 'documents' => []];
+            return ['ok' => false, 'documents' => [], 'total' => 0, 'queryTimeMs' => 0];
         }
 
-        return ['ok' => true, 'documents' => array_values(array_filter($documents, 'is_array'))];
+        return [
+            'ok' => true,
+            'documents' => array_values(array_filter($documents, 'is_array')),
+            'total' => max(0, (int)($decoded['response']['numFound'] ?? count($documents))),
+            'queryTimeMs' => max(0, (int)($decoded['responseHeader']['QTime'] ?? 0)),
+        ];
     }
 
     private function requestTimeout(): float
@@ -295,6 +289,39 @@ final class SolrSearchContent
             $value = reset($value) ?: $default;
         }
         return trim((string)$value);
+    }
+
+    /**
+     * Keep the stock EXT:solr document fields while presenting them through a
+     * small Fluid view model that cannot expose arbitrary indexed protocols.
+     *
+     * @param array<string, mixed> $document
+     * @return array{id:string,title:string,url:string,content:string}
+     */
+    private function normalizeDocument(array $document): array
+    {
+        return [
+            'id' => $this->stringField($document, 'id', ''),
+            'title' => $this->stringField($document, 'title', 'Untitled'),
+            'url' => $this->safeResultUrl($this->stringField($document, 'url', '#')),
+            'content' => $this->truncate($this->stringField($document, 'content', ''), 320),
+        ];
+    }
+
+    private function safeResultUrl(string $url): string
+    {
+        if ($url === '' || str_starts_with($url, '/')) {
+            return $url === '' ? '#' : $url;
+        }
+
+        $scheme = strtolower((string)parse_url($url, PHP_URL_SCHEME));
+        return in_array($scheme, ['http', 'https'], true) ? $url : '#';
+    }
+
+    private function formAction(?ServerRequestInterface $request): string
+    {
+        $path = $request?->getUri()->getPath() ?? '/search';
+        return $path !== '' && str_starts_with($path, '/') ? $path : '/search';
     }
 
     private function truncate(string $value, int $maxLength): string

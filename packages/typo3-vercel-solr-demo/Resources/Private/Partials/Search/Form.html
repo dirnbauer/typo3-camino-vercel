@@ -1,0 +1,29 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+
+<!-- Adapted from EXT:solr Resources/Private/Partials/Search/Form.html. -->
+<form action="{formAction}" method="get" class="tx-solr-search-form camino-solr-search__form" role="search">
+    <label class="sr-only" for="tx-solr-search-field"><f:translate key="search.label" extensionName="Typo3VercelSolrDemo">Search the Camino guide</f:translate></label>
+    <div class="input-group camino-solr-search__input-group">
+        <span class="camino-solr-search__input-icon" aria-hidden="true">
+            <f:render partial="Icons/Search" arguments="{class: 'icon icon--search'}" />
+        </span>
+        <input
+            id="tx-solr-search-field"
+            type="search"
+            class="tx-solr-q js-solr-q form-control camino-solr-search__input"
+            name="tx_solr[q]"
+            value="{query}"
+            maxlength="50"
+            autocomplete="off"
+            placeholder="{f:translate(key: 'search.placeholder', extensionName: 'Typo3VercelSolrDemo')}"
+        />
+        <button class="button tx-solr-submit camino-solr-search__submit" type="submit">
+            <span class="button__content"><span class="button__text"><f:translate key="search.submit" extensionName="Typo3VercelSolrDemo">Search</f:translate></span></span>
+        </button>
+    </div>
+</form>
+
+</html>

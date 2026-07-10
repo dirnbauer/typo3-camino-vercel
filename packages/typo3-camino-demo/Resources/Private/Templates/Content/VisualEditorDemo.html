@@ -1,0 +1,41 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+
+<f:variable name="header" value="{record -> f:render.text(field: 'header')}" />
+<f:variable name="subheader" value="{record -> f:render.text(field: 'subheader')}" />
+<f:variable name="bodytext" value="{record -> f:render.text(field: 'bodytext')}" />
+
+<section class="component camino-visual-editor-demo" aria-labelledby="visual-editor-demo-{record.uid}">
+    <div class="component__content camino-visual-editor-demo__content">
+        <div class="camino-visual-editor-demo__intro">
+            <p class="camino-visual-editor-demo__eyebrow">TYPO3 14</p>
+            <h1 id="visual-editor-demo-{record.uid}" class="camino-visual-editor-demo__title">{header}</h1>
+            <div class="camino-visual-editor-demo__text">{bodytext}</div>
+        </div>
+
+        <figure class="camino-visual-editor-demo__figure">
+            <video
+                class="camino-visual-editor-demo__video"
+                controls
+                playsinline
+                preload="metadata"
+                poster="/fileadmin/camino/visual-editor-demo-poster.webp"
+            >
+                <source src="/fileadmin/camino/visual-editor-demo.mp4" type="video/mp4" />
+                <track
+                    kind="captions"
+                    src="/fileadmin/camino/visual-editor-demo.en.vtt"
+                    srclang="en"
+                    label="English"
+                />
+            </video>
+            <f:if condition="{subheader}">
+                <figcaption>{subheader}</figcaption>
+            </f:if>
+        </figure>
+    </div>
+</section>
+
+</html>

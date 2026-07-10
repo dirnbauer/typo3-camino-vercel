@@ -227,7 +227,9 @@ store much larger objects, but the normal TYPO3 backend upload travels through
 PHP first. Increasing `upload_max_filesize` does not bypass Vercel's limit.
 
 The extension therefore includes a separate **Media > Large upload** module and
-a **Large upload** button in writable Blob folders. Its sequence is:
+a **Large upload to Vercel Blob** button. Opening the module from the bundled
+Camino storage automatically selects the first writable Blob folder and shows
+that destination before upload. Its sequence is:
 
 1. validate the authenticated backend user, FAL file mount and permissions,
    filename, declared MIME type, and size
