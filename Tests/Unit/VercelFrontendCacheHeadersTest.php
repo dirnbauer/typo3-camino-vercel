@@ -89,6 +89,7 @@ final class VercelFrontendCacheHeadersTest extends TestCase
     {
         $root = dirname(__DIR__, 2);
         $site = Yaml::parseFile($root . '/config/sites/camino/config.yaml');
+        $middlewares = require $root . '/packages/typo3-vercel-storage/Configuration/RequestMiddlewares.php';
         $setup = file_get_contents(
             $root . '/packages/typo3-vercel-storage/Configuration/Sets/VercelFrontendCache/setup.typoscript',
         );
@@ -97,6 +98,10 @@ final class VercelFrontendCacheHeadersTest extends TestCase
         self::assertIsString($setup);
         self::assertStringContainsString('TYPO3_VERCEL_SHARED_CACHE_HEADERS', $setup);
         self::assertStringContainsString('config.sendCacheHeadersForSharedCaches = force', $setup);
+        self::assertContains(
+            'staticfilecache/fallback',
+            $middlewares['frontend']['webconsulting/typo3-vercel-storage/frontend-cache-headers']['before'],
+        );
     }
 
     public function testDurableDatabaseKeepsEdgeCacheOptIn(): void
