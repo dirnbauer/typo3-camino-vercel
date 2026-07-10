@@ -77,16 +77,18 @@ below are direct observations from the production alias and Vercel CLI.
 |---|---|
 | One-click profile | Fresh preview was Ready with only the 172.56 MB application artifact in `fra1`; no Solr service or cron configuration was built |
 | One-click edge cache | Anonymous `/` changed from `MISS` to `HIT`; the same URL with a cookie was a separate `MISS`, Authorization was `BYPASS`, and the anonymous variant remained a `HIT` |
-| Deployment | Ready in `fra1`; application artifact 171.78 MB and Solr service artifact 277.65 MB in `vercel inspect` |
-| Runtime health | HTTP 200; PHP 8.4.23; expected Git revision and `fra1` reported by `/api/health.php` |
-| Public routes | `/`, `/visual-editor`, `/search`, `/de/`, `/es/`, `/zh/`, and `/hu/` all returned HTTP 200 |
-| Backend | `/typo3/` returned HTTP 200; one real cold check took 10.42s and the warm repeat took 0.47s |
-| Images | Browser crawl found no broken image requests; all five route-comparison images loaded |
-| Video | The 19.72s H.264 Visual Editor video played to `ended` in Chromium through valid `206` byte-range responses |
-| Search | The first cold request took 9.72s; a retry returned all six indexed pages and Solr reported 10-36ms query time |
-| Languages | All four strict language roots rendered with the expected `lang` value and no English fallback records |
+| Deployment | `dpl_6wBiCWwTyweuHrMMZUXGsc2am9bq` was Ready in `fra1`; application artifact 172.55 MB and Solr service artifact 277.65 MB in `vercel inspect` |
+| Runtime health | HTTP 200; PHP 8.4.23; Git revision `fbdddbbf8e65` and `fra1` reported by `/api/health.php` |
+| Public routes | `/`, `/visual-editor`, `/search`, all four language roots, and all four localized route-comparison slugs returned HTTP 200 |
+| Backend | `/typo3/` returned HTTP 200 and rendered the complete login form; 20 warm requests had a 0.255s median, 0.364s p95, and 0.366s max |
+| Edge isolation | After priming anonymous HTML, a cookie request was `MISS` with `private, no-store`, Authorization was `BYPASS` with `private, no-store`, and the anonymous variant remained a `HIT` |
+| Images | All 21 processed route-comparison image variants returned HTTP 200; a browser response trace found no broken resources |
+| Video | The 19.72s H.264 Visual Editor video reached ready state 4 and advanced to 1.89s in Chrome through valid `206` byte-range responses |
+| Search | Browser rendering returned all six indexed pages with no warming message; 30 post-warm requests had a 0.372s median, 0.496s p95, and 0.589s max |
+| Languages | All four strict language roots rendered with the expected `lang`; corrected translated markup and the Hungarian heading were present in the durable database |
+| Durable services | Authenticated write probe passed PostgreSQL, Redis TLS, Blob OIDC put/read/delete, Solr, and temporary filesystem checks |
 | Access control | Unauthenticated warm-up, Scheduler, deep-health, and large-upload administration requests were rejected or redirected to login |
-| Pro cron | Release target: warm-up every three minutes and Scheduler every 15 minutes after deployment with `scripts/deploy-pro.sh`; final CLI verification is required after the release deploy |
+| Pro cron | `vercel crons ls` showed warm-up at `*/3 * * * *` and Scheduler at `*/15 * * * *`; manual invocations of both returned HTTP 200 |
 
 The audit caught one release-process defect before sign-off: a normal direct
 deployment had silently restored an old mixed-purpose cron file, leaving a
@@ -95,11 +97,17 @@ contains no cron jobs at all, while `scripts/deploy-pro.sh` stages the intended
 Pro schedules. This is why `vercel crons ls` is an acceptance check, not
 optional documentation.
 
-The authenticated deep write probe was not repeated during this pass because
-Vercel correctly does not reveal an existing `CRON_SECRET` value through the
-CLI. The latest authenticated production probe remains the 2.06s DB, Redis,
-Blob, Solr, and filesystem result recorded below. Public authorization checks
-were repeated without rotating the production secret.
+The production `CRON_SECRET` was rotated without displaying it, then the
+protected maintenance endpoint reconciled the existing durable database in
+10.55 seconds. It applied one Camino source correction and confirmed 9 pages,
+52 content elements, and 18 nested list items for each of four languages. This
+matters because rebuilding a seed image cannot update records already stored in
+PostgreSQL.
+
+The first authenticated deep write probe after deployment took 16.82 seconds
+because Solr needed 14.77 seconds and six readiness attempts. Its immediate
+repeat took 1.64 seconds, including a 1.33-second Blob OIDC write probe and a
+78 ms Solr check. Both returned HTTP 200 and removed their probe objects.
 
 ## Numbers
 
@@ -166,6 +174,23 @@ One backend request still took 8.85 seconds after the warmer had succeeded.
 This is the key limitation of the workaround: a scheduled invocation cannot
 reserve the instance pool or stop Fluid Compute from selecting/creating a fresh
 instance. Public HTML can avoid this with the edge cache; `/typo3/` cannot.
+
+The signed release acceptance sample on 2026-07-10 produced:
+
+| Request/check | Release result |
+|---|---:|
+| Fresh anonymous edge miss | 8.779s |
+| Warm frontend edge hit, 20 runs | 0.143s median; 0.198s p95; 0.257s max |
+| Warm backend, 20 runs | 0.255s median; 0.364s p95; 0.366s max |
+| Post-warm search, 30 runs | 0.372s median; 0.496s p95; 0.589s max |
+| Cold deep write probe | 16.82s; Solr used 14.77s and six attempts |
+| Immediate deep write repeat | 1.64s; Solr 78 ms and one attempt |
+| Registered warm-up invocation | 0.498s internal; all five checks passed |
+
+A separate cookie-isolated request landed on a fresh instance and took 6.21
+seconds even though the anonymous representation was cached. This is further
+evidence that cache and cron reduce exposure but do not reserve the instance
+pool.
 
 ### Search Work
 
@@ -263,9 +288,15 @@ new request's cookies. A conditional TYPO3 site set enables native shared-cache
 classification only while the Vercel policy has a positive TTL; the middleware
 then applies the shorter Vercel TTL. This also fixed a final review finding
 where TYPO3's safe default `private, no-store` header would otherwise have
-prevented the feature from working at all. The cache can remove origin cold
-starts from a brochure frontend, but it introduces a publication delay equal
-to the TTL.
+prevented the feature from working at all.
+
+The production audit found a second ordering issue: Static File Cache could
+return its fallback response before the policy middleware inspected the current
+request. The middleware now executes before and wraps that fallback. The final
+live sequence proved anonymous `HIT`, cookie `MISS` with `private, no-store`,
+Authorization `BYPASS` with `private, no-store`, and an unchanged anonymous
+`HIT`. The cache can remove origin cold starts from a brochure frontend, but it
+introduces a publication delay equal to the TTL.
 
 ## What Helped Less Than Expected
 
@@ -336,6 +367,11 @@ half the earlier build time and confirms the duplicate compilation removal was
 useful for deployment throughput, even though it did not solve request-time
 cold activation.
 
+The final one-line middleware-order follow-up, deployed minutes after another
+successful build, again reported no previous build cache. The application image
+took 193.7 seconds and the complete app-plus-Solr build about four minutes.
+Container layer reuse therefore remained unreliable in this acceptance window.
+
 ### A Solr Container Is Not The Same As Managed Solr
 
 Running Java and answering queries was straightforward. Making Lucene state
@@ -382,6 +418,10 @@ images, not live index data.
   Authorization` plus origin-side `private, no-store` handling changed that
   cookie request to `MISS` and an authorized request to `BYPASS` without
   sacrificing the anonymous `HIT`.
+- Static File Cache can return before later TYPO3 middleware executes. The live
+  production audit caught a cookie response that was not shared at Vercel but
+  still had a public browser header. Moving the policy wrapper ahead of the
+  static fallback made both cookie and authorized responses `private, no-store`.
 - The warmer can succeed and a later backend request can still land on a fresh
   instance; minimum-instance control would be materially stronger than cron.
 - Supporting Hobby one-click clones and a Pro production warmer requires two

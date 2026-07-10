@@ -222,6 +222,9 @@ took 0.70 seconds. A 30-request warm backend run had a 0.208-second median and
 image work alone did not remove Vercel's activation floor; Pro warming and edge
 caching are mitigations, not a minimum-instance guarantee.
 
+The final release check measured 0.143s median for 20 warm frontend requests,
+0.255s for 20 warm backend requests, and 0.372s for 30 post-warm searches.
+
 The cache warm-up is intentionally part of the container image build, not a
 Composer script and not a blocking runtime-start command. See
 [Cold starts and performance](docs/performance.md) for the A/B data and safety
@@ -261,8 +264,9 @@ Only cookie-free `GET`/`HEAD` HTML without a query string is cached. `/typo3/`,
 `/api/`, responses with `Set-Cookie`, forms, and personalized requests are never
 made public by this middleware. Cached responses explicitly vary on Cookie and
 Authorization so Vercel cannot reuse the anonymous representation for those
-requests. Content can remain cached for the selected TTL, so keep it disabled
-for workflows that require immediate publication.
+requests. The policy also wraps Static File Cache so its fallback cannot bypass
+these private-response rules. Content can remain cached for the selected TTL,
+so keep it disabled for workflows that require immediate publication.
 
 Read [Cold starts and performance](docs/performance.md) for benchmarks and cost
 estimates.

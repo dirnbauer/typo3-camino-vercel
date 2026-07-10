@@ -98,6 +98,22 @@ Vercel edge hits were about 0.10 seconds. Public edge caching is therefore the
 strongest frontend protection, while the uncached backend remains subject to
 occasional activation.
 
+### Signed Release Acceptance
+
+The final Pro deployment on 2026-07-10 reported revision `fbdddbbf8e65` in
+`fra1`. A fresh anonymous edge miss took 8.779 seconds. After warming, 20
+frontend requests had a 0.143-second median and 0.198-second p95; 20 backend
+login requests had a 0.255-second median and 0.364-second p95. A 30-request Solr
+search sample immediately after the registered warmer had a 0.372-second
+median, 0.496-second p95, and 0.589-second maximum, with no request over one
+second.
+
+The authenticated deep write probe showed the independent service lifecycle:
+the first run took 16.82 seconds because Solr used 14.77 seconds and six
+readiness attempts. The immediate repeat took 1.64 seconds, with Solr at 78 ms.
+The registered warmer itself later completed all checks in 0.498 seconds. All
+requests returned HTTP 200.
+
 ## Implemented Cold-Start Strategy
 
 ### 1. Smaller Application Runtime
@@ -265,6 +281,14 @@ If a cookie, authorization header, or query string reaches TYPO3, the middleware
 removes TYPO3's temporary shared headers and returns `private, no-store`. This
 second step is essential because the CDN can otherwise answer from its cache
 before PHP sees the request.
+
+The policy middleware must also execute before
+`staticfilecache/fallback`. That fallback can return a generated HTML file
+without calling later middleware. The final production audit initially found a
+cookie request that was a Vercel `MISS` but still carried a public browser
+header for this reason. After moving the policy wrapper ahead of the fallback,
+the live sequence was: anonymous `HIT`, cookie `MISS` with `private, no-store`,
+Authorization `BYPASS` with `private, no-store`, then anonymous `HIT` again.
 
 This path can completely avoid PHP and its cold start for eligible cached
 requests. The temporary SQLite one-click profile defaults to a 300-second TTL.
