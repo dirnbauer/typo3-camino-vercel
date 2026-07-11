@@ -130,6 +130,14 @@ a reliability improvement: a cold search waits for results instead of giving up
 after roughly eight seconds. It is not a startup-speed improvement and it is not
 equivalent to a minimum warm instance.
 
+The first acceptance request then exposed a separate application-readiness
+race: the cold search returned HTTP 200 in 20.583 seconds but had zero results
+because the startup seed had not committed; the immediate repeat returned all
+six in 0.796 seconds. The service now gates every bound Solr path with `503
+starting` until the seed has committed and an exact six-document count succeeds.
+Readiness therefore means usable demo search, not only a running JVM and open
+core.
+
 ## Numbers
 
 ### Before The Overhaul

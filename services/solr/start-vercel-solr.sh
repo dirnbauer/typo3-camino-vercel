@@ -12,6 +12,7 @@ export TYPO3_SOLR_SEED_DEMO_DOCS="${TYPO3_SOLR_SEED_DEMO_DOCS:-1}"
 startup_started_ms="$(date +%s%3N)"
 
 mkdir -p "${SOLR_HOME}" "${SOLR_LOGS_DIR}" "${SOLR_PID_DIR}"
+rm -f /tmp/solr-ready
 
 if [ ! -f "${SOLR_HOME}/solr.xml" ]; then
   cp -a /var/solr/data/. "${SOLR_HOME}/"
@@ -58,6 +59,9 @@ http {
     }
 
     location / {
+      if (!-f /tmp/solr-ready) {
+        return 503 '{"status":"starting"}';
+      }
       proxy_pass http://127.0.0.1:${SOLR_PORT_LISTEN};
       proxy_set_header Host \$host;
       proxy_set_header X-Forwarded-Proto \$scheme;
@@ -235,29 +239,43 @@ seed_demo_documents() {
 ]
 EOF
 
-  curl -fsS \
+  if ! curl -fsS \
     -H 'Content-Type: application/json' \
     --data-binary '{"delete":{"query":"siteHash:vercel-demo AND type:pages"}}' \
-    "http://127.0.0.1:${SOLR_PORT_LISTEN}/solr/core_en/update?commit=true" >/dev/null
+    "http://127.0.0.1:${SOLR_PORT_LISTEN}/solr/core_en/update?commit=true" >/dev/null; then
+    echo "Could not clear old Camino demo documents" >&2
+    return 1
+  fi
 
-  curl -fsS \
+  if ! curl -fsS \
     -H 'Content-Type: application/json' \
     --data-binary "@${docs_file}" \
-    "http://127.0.0.1:${SOLR_PORT_LISTEN}/solr/core_en/update/json/docs?commit=true" >/dev/null
+    "http://127.0.0.1:${SOLR_PORT_LISTEN}/solr/core_en/update/json/docs?commit=true" >/dev/null; then
+    echo "Could not seed Camino demo documents" >&2
+    return 1
+  fi
 
   local count
   count="$(curl -fsS "http://127.0.0.1:${SOLR_PORT_LISTEN}/solr/core_en/select?q=*:*&fq=siteHash:vercel-demo&rows=0&wt=json" | sed -n 's/.*"numFound":\([0-9][0-9]*\).*/\1/p')"
-  echo "Seeded ${count:-0} Camino demo document(s) into TYPO3 Solr core_en"
+  if [ "${count:-0}" -ne 6 ]; then
+    echo "Expected 6 Camino demo documents after seeding, found ${count:-0}" >&2
+    return 1
+  fi
+
+  echo "Seeded 6 Camino demo documents into TYPO3 Solr core_en"
 }
 
 (
   for attempt in $(seq 1 240); do
     if curl -fsS "http://127.0.0.1:${SOLR_PORT_LISTEN}/solr/core_en/select?q=*:*&rows=0" >/dev/null 2>&1; then
-      ready_ms="$(( $(date +%s%3N) - startup_started_ms ))"
-      touch /tmp/solr-ready
-      echo "{\"level\":\"info\",\"component\":\"solr\",\"event\":\"ready\",\"duration_ms\":${ready_ms}}"
-      seed_demo_documents || echo "WARNING: TYPO3 Solr demo document seed failed" >&2
-      exit 0
+      if seed_demo_documents; then
+        touch /tmp/solr-ready
+        ready_ms="$(( $(date +%s%3N) - startup_started_ms ))"
+        echo "{\"level\":\"info\",\"component\":\"solr\",\"event\":\"ready\",\"duration_ms\":${ready_ms},\"demo_documents\":6}"
+        exit 0
+      fi
+
+      echo "TYPO3 Solr is running but demo seeding is not ready; retrying" >&2
     fi
 
     if ! kill -0 "${solr_pid}" >/dev/null 2>&1; then

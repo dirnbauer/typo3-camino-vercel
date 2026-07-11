@@ -135,6 +135,12 @@ retry window. That improves cold-request reliability and avoids deliberately
 closing a potentially sticky service connection; it does not remove JVM or
 platform activation time.
 
+The first production acceptance after adding same-connection retry confirmed
+why readiness must include data: the cold request returned HTTP 200 in 20.583
+seconds but contained zero results; its immediate repeat returned all six in
+0.796 seconds. The Solr service now returns `503 starting` on every bound query
+until its startup seed commits and an exact six-document count passes.
+
 ## Implemented Cold-Start Strategy
 
 ### 1. Smaller Application Runtime

@@ -68,8 +68,11 @@ It exposes internal health paths:
 /__health/ready
 ```
 
-Readiness returns success only after `core_en` answers a query. Startup logs
-contain structured `startup` and `ready` records with the measured duration.
+Readiness returns success only after `core_en` answers a query and all six demo
+documents have been committed and counted. Until then, every externally bound
+Solr path returns `503 starting`; seeding uses the service-local Solr port and
+does not pass through that gate. Startup logs contain structured `startup` and
+`ready` records with the measured duration and verified document count.
 
 Local image results from the overhaul:
 
@@ -376,9 +379,10 @@ page and `vercel_solr_demo_results` content element.
 
 ### Search Returns Zero During A Deploy
 
-The service may be ready before its startup seed is committed. Retry after a
-few seconds and inspect the protected select probe. Do not assume the Pro
-warm-up completed this on the same service instance a visitor receives.
+Current service images do not advertise readiness before the startup seed is
+committed. If zero results still appear, inspect the structured `ready` record
+for `demo_documents: 6` and run the protected select probe. Do not assume the
+Pro warm-up reached the same service instance a visitor receives.
 
 ### Scheduler Returns A Safe Skip
 
