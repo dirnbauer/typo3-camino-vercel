@@ -36,16 +36,28 @@ $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 $headers = typo3_solr_proxy_request_headers($targetUrl);
 $last = ['status' => 0, 'headers' => [], 'body' => '', 'error' => 'not requested'];
 $attempts = 0;
+$connections = 0;
+$handle = typo3_solr_proxy_create_handle($targetUrl, $method, $headers, $body === false ? '' : $body);
 
-do {
-    $attempts++;
-    $last = typo3_solr_proxy_request($targetUrl, $method, $headers, $body === false ? '' : $body, $timeout);
-    if (!typo3_solr_proxy_should_retry($last)) {
-        break;
-    }
+if ($handle !== null) {
+    do {
+        $attempts++;
+        $remaining = max(0.001, $deadline - microtime(true));
+        $last = typo3_solr_proxy_request($handle, min($timeout, $remaining));
+        $connections += (int)curl_getinfo($handle, CURLINFO_NUM_CONNECTS);
+        if (!typo3_solr_proxy_should_retry($last)) {
+            break;
+        }
 
-    usleep((int)($retryDelay * 1_000_000));
-} while (microtime(true) < $deadline);
+        $remainingMicroseconds = (int)(($deadline - microtime(true)) * 1_000_000);
+        if ($remainingMicroseconds <= 0) {
+            break;
+        }
+        usleep(min($remainingMicroseconds, (int)($retryDelay * 1_000_000)));
+    } while (microtime(true) < $deadline);
+
+    curl_close($handle);
+}
 
 error_log(json_encode([
     'level' => $last['status'] >= 500 || $last['status'] === 0 ? 'warning' : 'info',
@@ -54,6 +66,7 @@ error_log(json_encode([
     'path' => parse_url($targetUrl, PHP_URL_PATH),
     'status' => $last['status'],
     'attempts' => $attempts,
+    'connections' => $connections,
     'duration_ms' => (int)round((microtime(true) - $startedAt) * 1000),
 ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
 
@@ -137,31 +150,52 @@ function typo3_solr_proxy_request_headers(string $targetUrl): array
     if (is_string($targetHost) && $targetHost !== '') {
         $headers['Host'] = $targetHost;
     }
-    $headers['Connection'] = 'close';
-
     return $headers;
 }
 
 /**
  * @param array<string, string> $headers
- * @return array{status:int,headers:array<string,string>,body:string,error:string}
+ * @return CurlHandle|null
  */
-function typo3_solr_proxy_request(string $url, string $method, array $headers, string $body, float $timeout): array
+function typo3_solr_proxy_create_handle(string $url, string $method, array $headers, string $body): ?CurlHandle
 {
     $headerLines = [];
     foreach ($headers as $name => $value) {
         $headerLines[] = $name . ': ' . $value;
     }
 
-    $responseHeaders = [];
     $handle = curl_init($url);
     if ($handle === false) {
-        return ['status' => 0, 'headers' => [], 'body' => '', 'error' => 'curl_init failed'];
+        return null;
     }
 
     curl_setopt_array($handle, [
         CURLOPT_CUSTOMREQUEST => $method,
         CURLOPT_FOLLOWLOCATION => false,
+        CURLOPT_HTTPHEADER => $headerLines,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+        CURLOPT_SSL_VERIFYPEER => true,
+    ]);
+
+    if (!in_array($method, ['GET', 'HEAD'], true)) {
+        curl_setopt($handle, CURLOPT_POSTFIELDS, $body);
+    }
+    if ($method === 'HEAD') {
+        curl_setopt($handle, CURLOPT_NOBODY, true);
+    }
+
+    return $handle;
+}
+
+/**
+ * @return array{status:int,headers:array<string,string>,body:string,error:string}
+ */
+function typo3_solr_proxy_request(CurlHandle $handle, float $timeout): array
+{
+    $responseHeaders = [];
+    curl_setopt_array($handle, [
+        CURLOPT_CONNECTTIMEOUT_MS => min(2000, max(1, (int)($timeout * 1000))),
         CURLOPT_HEADERFUNCTION => static function ($handle, string $line) use (&$responseHeaders): int {
             unset($handle);
             $length = strlen($line);
@@ -184,24 +218,12 @@ function typo3_solr_proxy_request(string $url, string $method, array $headers, s
             $responseHeaders[$name] = trim($value);
             return $length;
         },
-        CURLOPT_HTTPHEADER => $headerLines,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_SSL_VERIFYHOST => 2,
-        CURLOPT_SSL_VERIFYPEER => true,
-        CURLOPT_TIMEOUT_MS => (int)($timeout * 1000),
+        CURLOPT_TIMEOUT_MS => max(1, (int)($timeout * 1000)),
     ]);
-
-    if (!in_array($method, ['GET', 'HEAD'], true)) {
-        curl_setopt($handle, CURLOPT_POSTFIELDS, $body);
-    }
-    if ($method === 'HEAD') {
-        curl_setopt($handle, CURLOPT_NOBODY, true);
-    }
 
     $responseBody = curl_exec($handle);
     $status = (int)curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
     $error = curl_error($handle);
-    curl_close($handle);
 
     return [
         'status' => $status,

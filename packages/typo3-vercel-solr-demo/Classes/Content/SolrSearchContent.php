@@ -118,27 +118,22 @@ final class SolrSearchContent
         ];
         $url = $coreUrl . '/select?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
 
-        $lastBody = '';
         $timeout = $this->requestTimeout();
-        // A Vercel service can be waking up while the TYPO3 container is already serving.
-        // A short bounded retry turns most cold-start races into a normal search response.
-        $attempts = $this->usesInternalVercelSolrService() ? [1, 2, 3] : [1, 2];
-        foreach ($attempts as $attempt) {
+        if ($this->usesInternalVercelSolrService()) {
+            $response = $this->requestInternalServiceWithRetry($url, $timeout);
+        } else {
             $response = $this->request($url, $timeout);
-            if ($response['status'] === 200 && $response['body'] !== '') {
-                $lastBody = $response['body'];
-                break;
-            }
-
-            if ($attempt < count($attempts) && in_array($response['status'], [0, 502, 503, 504], true)) {
+            if ($this->isTemporaryServiceResponse($response)) {
                 sleep(1);
-                continue;
+                $response = $this->request($url, $timeout);
             }
+        }
 
+        if ($response['status'] !== 200 || $response['body'] === '') {
             return ['ok' => false, 'documents' => [], 'total' => 0, 'queryTimeMs' => 0];
         }
 
-        $decoded = json_decode($lastBody, true);
+        $decoded = json_decode($response['body'], true);
         if (!is_array($decoded)) {
             return ['ok' => false, 'documents' => [], 'total' => 0, 'queryTimeMs' => 0];
         }
@@ -158,10 +153,18 @@ final class SolrSearchContent
 
     private function requestTimeout(): float
     {
-        $default = $this->usesInternalVercelSolrService() ? 2.0 : 6.0;
-        $max = $this->usesInternalVercelSolrService() ? 3.0 : 10.0;
-        $timeout = (float)(getenv('TYPO3_SOLR_DEMO_REQUEST_TIMEOUT') ?: $default);
+        $default = $this->usesInternalVercelSolrService() ? 4.0 : 6.0;
+        $max = $this->usesInternalVercelSolrService() ? 6.0 : 10.0;
+        $configured = getenv('TYPO3_SOLR_DEMO_REQUEST_TIMEOUT');
+        $timeout = is_string($configured) && is_numeric($configured) ? (float)$configured : $default;
         return max(1.0, min($max, $timeout));
+    }
+
+    private function internalStartupTimeout(): float
+    {
+        $configured = getenv('TYPO3_SOLR_DEMO_STARTUP_TIMEOUT');
+        $timeout = is_string($configured) && is_numeric($configured) ? (float)$configured : 25.0;
+        return max(5.0, min(30.0, $timeout));
     }
 
     private function filterQuery(): string
@@ -223,6 +226,120 @@ final class SolrSearchContent
     }
 
     /**
+     * Keep one connection open while the private Vercel service activates.
+     * Opening a fresh connection for every attempt can activate multiple Solr
+     * instances and leave each retry waiting on a different cold container.
+     *
+     * @return array{status:int,body:string}
+     */
+    private function requestInternalServiceWithRetry(string $url, float $attemptTimeout): array
+    {
+        $deadline = microtime(true) + $this->internalStartupTimeout();
+        if (function_exists('curl_init')) {
+            return $this->curlRequestWithRetry($url, $attemptTimeout, $deadline);
+        }
+
+        $attempts = 0;
+        $lastResponse = ['status' => 0, 'body' => ''];
+        do {
+            ++$attempts;
+            $remaining = max(0.001, $deadline - microtime(true));
+            $lastResponse = $this->streamRequest($url, min($attemptTimeout, $remaining));
+            if (!$this->isTemporaryServiceResponse($lastResponse)) {
+                break;
+            }
+            $this->pauseBeforeRetry($deadline, $attempts);
+        } while (microtime(true) < $deadline);
+
+        return $lastResponse;
+    }
+
+    /**
+     * @return array{status:int,body:string}
+     */
+    private function curlRequestWithRetry(string $url, float $attemptTimeout, float $deadline): array
+    {
+        $handle = curl_init($url);
+        if ($handle === false) {
+            return ['status' => 0, 'body' => ''];
+        }
+
+        curl_setopt_array($handle, [
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_HTTPHEADER => ['Accept: application/json'],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_SSL_VERIFYPEER => true,
+        ]);
+
+        $startedAt = microtime(true);
+        $attempts = 0;
+        $connections = 0;
+        $lastResponse = ['status' => 0, 'body' => ''];
+        do {
+            ++$attempts;
+            $remainingMilliseconds = max(1, (int)(($deadline - microtime(true)) * 1000));
+            $attemptMilliseconds = min((int)round($attemptTimeout * 1000), $remainingMilliseconds);
+            curl_setopt_array($handle, [
+                CURLOPT_CONNECTTIMEOUT_MS => min(2000, $attemptMilliseconds),
+                CURLOPT_TIMEOUT_MS => $attemptMilliseconds,
+            ]);
+
+            $body = curl_exec($handle);
+            $lastResponse = [
+                'status' => (int)curl_getinfo($handle, CURLINFO_RESPONSE_CODE),
+                'body' => is_string($body) ? $body : '',
+            ];
+            $connections += (int)curl_getinfo($handle, CURLINFO_NUM_CONNECTS);
+
+            if (!$this->isTemporaryServiceResponse($lastResponse)) {
+                break;
+            }
+            $this->pauseBeforeRetry($deadline, $attempts);
+        } while (microtime(true) < $deadline);
+
+        curl_close($handle);
+
+        if ($attempts > 1) {
+            error_log((string)json_encode([
+                'level' => $lastResponse['status'] === 200 ? 'info' : 'warning',
+                'component' => 'solr-search',
+                'event' => 'service-startup-retry',
+                'status' => $lastResponse['status'],
+                'attempts' => $attempts,
+                'connections' => $connections,
+                'duration_ms' => (int)round((microtime(true) - $startedAt) * 1000),
+            ], JSON_UNESCAPED_SLASHES));
+        }
+
+        return $lastResponse;
+    }
+
+    /**
+     * @param array{status:int,body:string} $response
+     */
+    private function isTemporaryServiceResponse(array $response): bool
+    {
+        if (in_array($response['status'], [0, 502, 503, 504], true)) {
+            return true;
+        }
+
+        return $response['status'] === 500
+            && str_contains(strtolower($response['body']), 'starting');
+    }
+
+    private function pauseBeforeRetry(float $deadline, int $attempt): void
+    {
+        $remainingMicroseconds = (int)(($deadline - microtime(true)) * 1_000_000);
+        if ($remainingMicroseconds <= 0) {
+            return;
+        }
+
+        $backoffMicroseconds = min(1_000_000, 250_000 * $attempt);
+        usleep(min($remainingMicroseconds, $backoffMicroseconds));
+    }
+
+    /**
      * @return array{status:int,body:string}
      */
     private function curlRequest(string $url, float $timeout): array
@@ -235,7 +352,7 @@ final class SolrSearchContent
         curl_setopt_array($handle, [
             CURLOPT_CONNECTTIMEOUT_MS => (int)min(2000, max(500, $timeout * 1000)),
             CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_HTTPHEADER => ['Connection: close'],
+            CURLOPT_HTTPHEADER => ['Accept: application/json'],
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
             CURLOPT_SSL_VERIFYPEER => true,
@@ -258,7 +375,7 @@ final class SolrSearchContent
             'http' => [
                 'ignore_errors' => true,
                 'method' => 'GET',
-                'header' => "Connection: close\r\n",
+                'header' => "Accept: application/json\r\n",
                 'protocol_version' => 1.1,
                 'timeout' => $timeout,
             ],

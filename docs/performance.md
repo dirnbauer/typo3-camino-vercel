@@ -51,7 +51,8 @@ a temporary Solr gateway `502`; the health implementation now retries temporary
 pre-warmup candidate did not materially move the observed Vercel end-to-end
 cold floor: it remained near 12 seconds. The image change still reduces artifact
 weight and removes Apache, but it is not the user-visible cold-start solution.
-The three-minute Pro warmer is the effective mitigation. A platform
+The three-minute Pro warmer reduces exposure for TYPO3, and edge caching is the
+strongest public-frontend mitigation. Neither reserves an instance. A platform
 minimum-instance feature, or an always-on host, is required for a hard
 guarantee.
 
@@ -113,6 +114,26 @@ the first run took 16.82 seconds because Solr used 14.77 seconds and six
 readiness attempts. The immediate repeat took 1.64 seconds, with Solr at 78 ms.
 The registered warmer itself later completed all checks in 0.498 seconds. All
 requests returned HTTP 200.
+
+### Long-Run Solr Correction
+
+The short post-deploy sample above was not enough to prove that cron kept the
+private Solr service resident. After the three-minute schedule had been active
+for about 13 hours, three consecutive invocations at 08:00, 08:03, and 08:06
+still cold-started Solr:
+
+| Warm-up | Total | Solr | Attempts |
+|---|---:|---:|---:|
+| 08:00 | 17.385s | 16.989s | 6 |
+| 08:03 | 18.649s | 16.080s | 7 |
+| 08:06 | 14.864s | 14.553s | 6 |
+
+This is the more important result: a registered three-minute cron is not a
+reliable minimum-instance mechanism for the separate Vercel Solr Service. The
+frontend, proxy, and health client now reuse one cURL handle through a bounded
+retry window. That improves cold-request reliability and avoids deliberately
+closing a potentially sticky service connection; it does not remove JVM or
+platform activation time.
 
 ## Implemented Cold-Start Strategy
 
@@ -201,9 +222,10 @@ The protected endpoint performs:
 5. Solr core ping through the private service binding or external endpoint
 
 The Solr check uses bounded retries because a newly activated Vercel Service
-can temporarily return `500`, `502`, `503`, or `504` before Solr is ready. One
-warm-up request therefore primes both containers instead of requiring a second
-cron interval.
+can temporarily return `500`, `502`, `503`, or `504` before Solr is ready. It
+reuses one cURL handle for the complete 25-second health window. One invocation
+can therefore wait for both containers, but it cannot guarantee that a later
+request is routed to either warmed instance.
 
 The local loopback requests target the exact active application container and
 bypass the Vercel CDN. This is intentional: a CDN hit would not compile and
@@ -484,9 +506,10 @@ Alert on:
 ## Verdict
 
 Warm TYPO3 and Solr are fast enough for this demo and ordinary editorial work.
-The runtime overhaul reduces activation weight substantially, and the Pro cron
-addresses the five-minute idle window directly. Edge caching can remove the
-origin from eligible anonymous requests.
+The runtime overhaul reduces activation weight substantially. The Pro cron is
+useful for TYPO3 but did not reliably keep the separate Solr service resident;
+bounded same-connection retry makes that demo path reliable. Edge caching can
+remove the origin from eligible anonymous requests.
 
 The remaining risk is platform activation during deploys, scale-out, eviction,
 or missed warm-ups. More PHP tuning cannot eliminate that lifecycle. The

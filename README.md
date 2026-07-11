@@ -99,7 +99,8 @@ Use Vercel Pro or Enterprise, a durable database near the compute region,
 Vercel Blob or S3/R2, and managed external Solr when search is required. Add
 Redis only when shared cache behavior is useful. Deploy the Pro schedule with
 `scripts/deploy-pro.sh`; it warms frontend/backend every three minutes and runs
-TYPO3 Scheduler every 15 minutes.
+TYPO3 Scheduler every 15 minutes. This is a best-effort latency mitigation; it
+cannot reserve either the TYPO3 or Solr container.
 
 This can serve larger read-heavy sites when anonymous pages are cached at the
 edge and stateful services are external, but capacity must be load-tested with
@@ -211,8 +212,8 @@ layers:
    starts were 1.94-3.21 seconds with a 2.48-second median, versus 4.1-4.6
    seconds before.
 4. `vercel.pro.json` runs a protected warm-up every three minutes. It primes the
-   TYPO3 frontend, `/typo3/`, the database, Redis, and Solr before Vercel's
-   documented five-minute production idle scale-down window.
+   TYPO3 frontend, `/typo3/`, the database, Redis, and Solr on the instances
+   selected for that invocation.
 
 **Measured result:** after the image reduction, the first `/typo3/` request on
 the production deployment still took 11.87 seconds. The final full cold warmer
@@ -221,6 +222,12 @@ took 0.70 seconds. A 30-request warm backend run had a 0.208-second median and
 0.251-second p95, but one separate fresh instance still took 8.85 seconds. The
 image work alone did not remove Vercel's activation floor; Pro warming and edge
 caching are mitigations, not a minimum-instance guarantee.
+
+Long-run logs also showed that the cron did not reliably keep the separate demo
+Solr service resident: three consecutive scheduled checks still spent about
+15-17 seconds starting Solr. The demo search now reuses one connection and waits
+up to 25 seconds for that cold service; production search should use managed,
+always-on Solr.
 
 The final release check measured 0.143s median for 20 warm frontend requests,
 0.255s for 20 warm backend requests, and 0.372s for 30 post-warm searches.

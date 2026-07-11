@@ -249,31 +249,39 @@ function typo3_vercel_health_http_with_retry(string $url, float $timeout, array 
     return typo3_vercel_health_measure(static function () use ($url, $timeout, $headers): array {
         $deadline = microtime(true) + max(0.1, $timeout);
         $attempts = 0;
+        $connections = 0;
         $lastStatus = 0;
         $lastError = '';
+        $successful = false;
+        $handle = curl_init($url);
+        if ($handle === false) {
+            throw new RuntimeException('Could not initialize cURL.');
+        }
+
+        curl_setopt_array($handle, [
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_SSL_VERIFYPEER => true,
+        ]);
 
         do {
             ++$attempts;
             $remainingMilliseconds = max(1, (int)(($deadline - microtime(true)) * 1000));
             $attemptMilliseconds = min(4000, $remainingMilliseconds);
-            $handle = curl_init($url);
-            if ($handle === false) {
-                throw new RuntimeException('Could not initialize cURL.');
-            }
             curl_setopt_array($handle, [
                 CURLOPT_CONNECTTIMEOUT_MS => min(3000, $attemptMilliseconds),
-                CURLOPT_FOLLOWLOCATION => false,
-                CURLOPT_HTTPHEADER => $headers,
-                CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_TIMEOUT_MS => $attemptMilliseconds,
             ]);
             $body = curl_exec($handle);
             $lastStatus = (int)curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
             $lastError = curl_error($handle);
-            curl_close($handle);
+            $connections += (int)curl_getinfo($handle, CURLINFO_NUM_CONNECTS);
 
             if ($body !== false && $lastStatus >= 200 && $lastStatus < 400) {
-                return ['http_status' => $lastStatus, 'attempts' => $attempts];
+                $successful = true;
+                break;
             }
 
             if (!typo3_vercel_health_http_status_is_temporary($lastStatus)) {
@@ -287,6 +295,16 @@ function typo3_vercel_health_http_with_retry(string $url, float $timeout, array 
             $backoffMicroseconds = min(1_000_000, 250_000 * $attempts);
             usleep(min($remainingMicroseconds, $backoffMicroseconds));
         } while (microtime(true) < $deadline);
+
+        curl_close($handle);
+
+        if ($successful) {
+            return [
+                'http_status' => $lastStatus,
+                'attempts' => $attempts,
+                'connections' => $connections,
+            ];
+        }
 
         throw new RuntimeException(sprintf(
             'HTTP probe failed after %d attempt(s) with status %d%s.',

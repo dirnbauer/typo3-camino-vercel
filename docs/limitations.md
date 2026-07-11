@@ -111,11 +111,11 @@ cache behavior, but it is not an always-on runtime control.
 
 ## Cold Starts
 
-The Pro profile warms TYPO3 frontend/backend and Solr every three minutes, and
-the smaller images reduce activation work. This prevents the usual five-minute
-idle scale-down path when cron runs normally. It does not reserve a minimum
-instance and cannot guarantee zero cold starts during deploys, scale-out,
-eviction, or delayed cron. Hobby cannot run the frequent cron.
+The Pro profile calls TYPO3 frontend/backend and Solr every three minutes, and
+the smaller images reduce activation work. This often keeps a selected TYPO3
+instance active, but it does not reserve a minimum instance and cannot guarantee
+zero cold starts during deploys, scale-out, eviction, or delayed cron. Hobby
+cannot run the frequent cron.
 
 Production validation observed one `/typo3/` request at 8.85 seconds after the
 protected warmer had already succeeded; immediate repeats were about 0.2
@@ -123,6 +123,11 @@ seconds. The warmer reduces the common idle case, but Vercel can still select or
 create another instance. Public pages can use edge caching. The private backend
 needs a platform minimum-instance guarantee or an always-on host for a hard
 latency SLO.
+
+The limitation is stronger for the separate Solr service. After roughly 13
+hours with the three-minute schedule registered, three consecutive warm-ups
+still spent 14.553-16.989 seconds in Solr startup. Cron is therefore not a
+reliable Solr residency control in this deployment.
 
 ## Solr
 
@@ -138,8 +143,10 @@ The internal demo Solr service has an extra Vercel-specific cold-start problem:
 the internal service gateway can return HTTP `500 Starting...` or a temporary
 `502/503/504` before the Solr container has received the request. The repo works
 around that for demos by routing TYPO3/EXT:solr through a loopback-only app
-proxy and by retrying those statuses in the protected warm-up. This is a
-workaround, not a replacement for managed Solr.
+proxy, reusing one service connection, and waiting within a bounded 20-25
+second window. This turns most cold failures into one slow successful request;
+it does not make Solr always-on or durable and is not a replacement for managed
+Solr.
 
 ## Marketplace Status
 

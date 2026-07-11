@@ -109,13 +109,23 @@ EXT:solr
 ```
 
 The proxy retries only startup-class `500`, `502`, `503`, and `504` responses.
-Per-attempt timeout is four seconds and the complete retry window is bounded to
+Per-attempt timeout is four seconds and the complete proxy window is bounded to
 20 seconds. Public access to the proxy returns `404`.
 
-The Camino renderer makes one bounded internal request and catches service
-startup errors so visitors receive a valid page instead of a TYPO3 exception.
-The Pro warm-up cron pings Solr every three minutes to keep the service active
-alongside TYPO3.
+The proxy, protected warmer, and Camino renderer each reuse one cURL handle
+through their retry loop instead of sending `Connection: close`. This gives the
+Vercel binding the best chance to keep retries on one activated service
+connection rather than starting another cold instance. The Camino renderer has
+a separate 25-second total startup budget, configurable with
+`TYPO3_SOLR_DEMO_STARTUP_TIMEOUT` and clamped to 5-30 seconds. External managed
+Solr keeps its shorter normal request behavior.
+
+The Pro warm-up cron pings Solr every three minutes, but it is not an instance
+reservation. After the schedule had run for about 13 hours, three consecutive
+cron invocations still found Solr cold: Solr took 14.553, 16.080, and 16.989
+seconds with 6-7 attempts. The cron remains useful for the TYPO3 app, but the
+reliable demo behavior comes from bounded waiting and per-instance self-seeding,
+not from assuming Solr stays resident.
 
 ## Enable The Internal Demo
 
@@ -131,6 +141,8 @@ TYPO3_SOLR_INCLUDE_STYLESHEETS=1
 TYPO3_SOLR_STYLESHEET_SITE_SET=webconsulting/typo3-vercel-solr-demo-stylesheets
 TYPO3_SOLR_SEARCH_SLUG=/search
 TYPO3_SOLR_INDEX_ON_SETUP=0
+# Optional; default 25, accepted range 5-30 seconds
+TYPO3_SOLR_DEMO_STARTUP_TIMEOUT=25
 CRON_SECRET=<long-random-secret>
 ```
 
@@ -159,7 +171,9 @@ Open:
 /search?tx_solr[q]=camino
 ```
 
-The expected demo result count is six after the Solr service is ready.
+The expected demo result count is six. A genuinely cold first search may take
+roughly 15-20 seconds, but it should wait for results rather than first showing
+the intermediate warming state.
 
 ## External Production Solr
 
@@ -333,10 +347,15 @@ solution.
 Check the protected probe first. Then check Vercel logs for:
 
 - service `startup` without a later `ready`
-- `500 Starting...` beyond the 20-second proxy window
+- `500 Starting...` beyond the 20-second proxy or 25-second renderer window
 - nginx `502`/`503`
 - wrong core name
 - external TLS/authentication failures
+
+Structured `solr-search`, `solr-proxy`, and warm-up logs include retry and
+connection counts. Several attempts with one connection are expected during a
+cold activation. Several new connections indicate that the platform or upstream
+closed the connection and may have selected more than one instance.
 
 Verify `TYPO3_SOLR_ENABLED=1` and redeploy after any environment change.
 
@@ -358,8 +377,8 @@ page and `vercel_solr_demo_results` content element.
 ### Search Returns Zero During A Deploy
 
 The service may be ready before its startup seed is committed. Retry after a
-few seconds and inspect the protected select probe. The Pro warm-up normally
-completes this before a user searches.
+few seconds and inspect the protected select probe. Do not assume the Pro
+warm-up completed this on the same service instance a visitor receives.
 
 ### Scheduler Returns A Safe Skip
 

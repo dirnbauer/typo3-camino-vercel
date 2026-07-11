@@ -109,6 +109,27 @@ because Solr needed 14.77 seconds and six readiness attempts. Its immediate
 repeat took 1.64 seconds, including a 1.33-second Blob OIDC write probe and a
 78 ms Solr check. Both returned HTTP 200 and removed their probe objects.
 
+### 13-Hour Solr Follow-Up
+
+The release sample above showed a fast post-warm search, but it did not prove
+service residency. After the three-minute schedule had been registered for
+about 13 hours, three consecutive scheduled warm-ups still cold-started the
+private Solr service:
+
+| Scheduled run | Full endpoint | Solr only | Attempts |
+|---|---:|---:|---:|
+| 08:00 | 17.385s | 16.989s | 6 |
+| 08:03 | 18.649s | 16.080s | 7 |
+| 08:06 | 14.864s | 14.553s | 6 |
+
+All returned HTTP 200, but the logs also showed repeated Solr startup records
+during one retry sequence. The engineering correction was to stop sending
+`Connection: close`, reuse one cURL handle in the frontend, proxy, and health
+client, and give the demo renderer one bounded 25-second startup budget. This is
+a reliability improvement: a cold search waits for results instead of giving up
+after roughly eight seconds. It is not a startup-speed improvement and it is not
+equivalent to a minimum warm instance.
+
 ## Numbers
 
 ### Before The Overhaul
@@ -408,10 +429,13 @@ images, not live index data.
 - Vercel Service bindings made private TYPO3-to-Solr connectivity possible, but
   a newly activated Solr service can temporarily answer `Starting...` through
   the gateway. Bounded retries and graceful frontend handling were necessary.
+  A three-minute cron still found Solr cold after 13 hours, so cron registration
+  must not be presented as proof that a separate service remains resident.
 - The most expensive-looking optimization, compile-all OPcache, was one of the
   least useful after its image-size cost was measured.
-- A simple periodic request is currently more effective for CMS latency than
-  Redis, more CPU, or JIT because it addresses scale-to-zero directly.
+- A simple periodic request helped TYPO3 more than Redis, more CPU, or JIT, but
+  it did not reliably keep the separate JVM Solr service warm. The distinction
+  between calling a service and reserving an instance matters.
 - An origin middleware cannot use the current request's cookies to protect a
   response that the CDN already cached. The live preview initially returned an
   anonymous `HIT` to a cookie-bearing request; adding `Vary: Cookie,
@@ -511,6 +535,9 @@ limit. Executable web formats are blocked by default.
   volume.
 - Document activation gateway responses and recommended health/readiness
   behavior for JVM services.
+- Document whether a service binding offers request or connection affinity;
+  without that contract, retry clients cannot know whether a new attempt reaches
+  the instance they just activated.
 - Consider a Marketplace path for managed OpenSearch/Solr, or make external
   private service connectivity easier to configure.
 
@@ -550,6 +577,11 @@ feel immediate. Without a platform minimum-instance feature, occasional
 activation during deploys, scaling, failures, or missed cron runs remains an
 architectural limitation rather than a TYPO3 tuning problem; strict latency
 sites should keep an always-on origin.
+
+For search specifically, the internal Solr container is a demonstrator, not the
+professional solution. A production TYPO3 site should use managed or always-on
+Solr with durable index storage; the bounded Vercel retry path exists to make
+the transient demo honest and usable.
 
 See [Performance](performance.md), [Solr](solr.md),
 [Object storage](object-storage.md), and [Limitations](limitations.md) for the
