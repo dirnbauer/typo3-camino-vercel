@@ -28,6 +28,7 @@ COPY start-vercel-solr.sh /usr/local/bin/start-vercel-solr
 RUN chmod 755 /usr/local/bin/start-vercel-solr
 
 ENV PORT=80 \
+    LOG4J_PROPS=/opt/solr/server/resources/log4j2.xml \
     SOLR_PORT_LISTEN=8983 \
     SOLR_JAVA_MEM="-Xms256m -Xmx512m" \
     GC_TUNE="-XX:+UseSerialGC -XX:TieredStopAtLevel=1" \
