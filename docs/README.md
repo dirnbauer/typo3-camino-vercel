@@ -49,6 +49,7 @@ when the deployment becomes more than a disposable demo.
 
 | Guide | Purpose |
 |---|---|
+| [Final cleanup audit](final-cleanup.md) | Last production problems, fixes, rejected experiments, and acceptance evidence |
 | [TYPO3 packages](typo3-packages.md) | Included CMS and extension packages |
 | [Template submission](vercel-template-submission.md) | Vercel Marketplace/template metadata |
 | [Vercel product manager summary](vercel-product-manager-summary.md) | Results, surprises, product gaps, and recommendations |

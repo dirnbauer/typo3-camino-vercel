@@ -153,6 +153,25 @@ did not solve correctness by itself. The effective fix was to keep every Solr
 path at `503 starting` until that instance had committed and counted all six
 seed documents, then let the bounded client retry succeed.
 
+### Final Cleanup Follow-Up
+
+The final audit found several smaller issues that materially improved the
+quality of the result:
+
+| Finding | What changed | Product implication |
+|---|---|---|
+| Missing Solr Log4j file | The service now points at Solr's bundled production configuration | Custom entrypoints can bypass image initialization assumptions; Services guidance should call this out |
+| Excessive INFO logging | A custom WARN-only file was tested but rejected after a 41.9s start and a separate pre-bind exit | Quieter logs were not worth an unproven startup regression; per-service log controls would help |
+| Missing favicon | A tracked multi-size Camino favicon removed the only unexpected HTTP 404 | Runtime-log review found a user-visible polish defect that route-only checks missed |
+| Host PHP mismatch | Validation moved from macOS PHP 8.3 to DDEV PHP 8.4 | Reproducible project runtimes are essential for template maintainers |
+| Repeated cache misses | About 159KB, 22KB, and 2KB uploads each caused a full three-minute image rebuild with `Previous build caches not available` | Build-cache reuse was the least predictable and least repository-controllable part of finalization |
+
+The latest accepted runtime returned six search results on the first cold
+request in 16.69s and on the immediate repeat in 0.93s. The Log4j
+reconfiguration error was gone, the favicon returned HTTP 200, and no
+unexpected runtime HTTP errors remained. The complete evidence and rejected
+experiment are in [Final cleanup audit](final-cleanup.md).
+
 ## Numbers
 
 ### Before The Overhaul

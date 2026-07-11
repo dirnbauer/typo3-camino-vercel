@@ -141,6 +141,13 @@ which confirms that cURL handle reuse does not guarantee binding affinity. The
 correctness guarantee is the `503 starting` readiness gate plus the exact
 six-document seed check.
 
+The final cleanup also found that the custom entrypoint inherited
+`LOG4J_PROPS=/var/solr/log4j2.xml` without running the official initializer that
+creates that file. The service now selects Solr's bundled production
+configuration explicitly. A custom WARN-only replacement was tested and
+rejected after one 41.9-second start and one pre-bind exit. See
+[Final cleanup audit](final-cleanup.md) for the complete problem/solution table.
+
 ## Enable The Internal Demo
 
 Set production environment variables:

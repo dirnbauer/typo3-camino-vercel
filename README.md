@@ -450,6 +450,7 @@ Start with the [documentation index](docs/README.md). Important guides:
 - [Scheduler](docs/scheduler.md)
 - [Limitations](docs/limitations.md)
 - [Production hardening](docs/production-hardening.md)
+- [Final cleanup audit](docs/final-cleanup.md)
 - [Vercel product manager summary](docs/vercel-product-manager-summary.md)
 
 Current plan limits and product behavior can change. Verify them against the
