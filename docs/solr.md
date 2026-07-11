@@ -118,8 +118,10 @@ Per-attempt timeout is four seconds and the complete proxy window is bounded to
 The proxy, protected warmer, and Camino renderer each reuse one cURL handle
 through their retry loop instead of sending `Connection: close`. This gives the
 Vercel binding the best chance to keep retries on one activated service
-connection rather than starting another cold instance. The Camino renderer has
-a separate 25-second total startup budget, configurable with
+connection rather than starting another cold instance. It is an optimization,
+not a connection-affinity guarantee: the gateway may close or reroute requests
+between attempts. The Camino renderer has a separate 25-second total startup
+budget, configurable with
 `TYPO3_SOLR_DEMO_STARTUP_TIMEOUT` and clamped to 5-30 seconds. External managed
 Solr keeps its shorter normal request behavior.
 
@@ -129,6 +131,15 @@ cron invocations still found Solr cold: Solr took 14.553, 16.080, and 16.989
 seconds with 6-7 attempts. The cron remains useful for the TYPO3 app, but the
 reliable demo behavior comes from bounded waiting and per-instance self-seeding,
 not from assuming Solr stays resident.
+
+The final production acceptance on 2026-07-11 warmed only the TYPO3 application
+first, then requested the search page while Solr was cold. The first search
+returned HTTP 200 with all six documents in 16.36 seconds and showed neither a
+warming message nor an empty-result state. Its immediate repeat took 0.96
+seconds. Runtime telemetry recorded nine attempts and nine actual connections,
+which confirms that cURL handle reuse does not guarantee binding affinity. The
+correctness guarantee is the `503 starting` readiness gate plus the exact
+six-document seed check.
 
 ## Enable The Internal Demo
 

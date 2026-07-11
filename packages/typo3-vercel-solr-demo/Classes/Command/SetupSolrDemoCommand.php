@@ -759,7 +759,7 @@ final class SetupSolrDemoCommand extends Command
         ));
         if ($visibleDocumentCount !== null) {
             $output->writeln(sprintf(
-                'EXT:solr same-connection verification sees %d/%d Camino page document(s).',
+                'EXT:solr post-commit verification sees %d/%d Camino page document(s).',
                 $visibleDocumentCount,
                 count($documents),
             ));

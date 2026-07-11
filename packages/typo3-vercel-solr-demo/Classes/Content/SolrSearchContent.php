@@ -226,9 +226,10 @@ final class SolrSearchContent
     }
 
     /**
-     * Keep one connection open while the private Vercel service activates.
-     * Opening a fresh connection for every attempt can activate multiple Solr
-     * instances and leave each retry waiting on a different cold container.
+     * Keep one cURL handle reusable while the private service activates.
+     * The service gateway may still close or reroute individual HTTP
+     * connections, so correctness comes from bounded retries and Solr's
+     * readiness gate rather than connection affinity.
      *
      * @return array{status:int,body:string}
      */

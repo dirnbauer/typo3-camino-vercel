@@ -135,11 +135,32 @@ retry window. That improves cold-request reliability and avoids deliberately
 closing a potentially sticky service connection; it does not remove JVM or
 platform activation time.
 
-The first production acceptance after adding same-connection retry confirmed
+The first production acceptance after adding same-handle retry confirmed
 why readiness must include data: the cold request returned HTTP 200 in 20.583
 seconds but contained zero results; its immediate repeat returned all six in
 0.796 seconds. The Solr service now returns `503 starting` on every bound query
 until its startup seed commits and an exact six-document count passes.
+
+### Final Solr Readiness Acceptance
+
+The follow-up production deployment on 2026-07-11 reported revision
+`d1717692ebf4` in `fra1`. The acceptance sequence warmed only the TYPO3
+application through the shallow health endpoint, then issued the first search
+against a cold Solr service:
+
+| Check | Result |
+|---|---:|
+| Shallow application health | HTTP 200 in 4.682s |
+| First cold search | HTTP 200 in 16.360s; 6 results; no warming or empty state |
+| Immediate search repeat | HTTP 200 in 0.956s; the same 6 results |
+| Renderer startup telemetry | 13.890s; 9 attempts; 9 actual connections |
+| Solr ready record | `demo_documents: 6` before normal queries were admitted |
+
+This closes the data-readiness race. It also corrects an assumption from the
+local retry fixture: reusing one cURL handle can reuse a connection, but the
+Vercel service gateway may close or reroute every temporary `503` response. The
+reliability mechanism is bounded retry plus per-instance seeded-data readiness,
+not connection affinity.
 
 ## Implemented Cold-Start Strategy
 
@@ -514,8 +535,8 @@ Alert on:
 Warm TYPO3 and Solr are fast enough for this demo and ordinary editorial work.
 The runtime overhaul reduces activation weight substantially. The Pro cron is
 useful for TYPO3 but did not reliably keep the separate Solr service resident;
-bounded same-connection retry makes that demo path reliable. Edge caching can
-remove the origin from eligible anonymous requests.
+bounded retry plus a seeded-data readiness gate makes that demo path reliable.
+Edge caching can remove the origin from eligible anonymous requests.
 
 The remaining risk is platform activation during deploys, scale-out, eviction,
 or missed warm-ups. More PHP tuning cannot eliminate that lifecycle. The

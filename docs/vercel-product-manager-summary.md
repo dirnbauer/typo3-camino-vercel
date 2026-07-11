@@ -68,7 +68,7 @@ edge-cached and all state is external. It is not a universal replacement for an
 always-on origin: a hard backend/first-hit latency SLA still calls for always-on
 TYPO3 compute with Vercel used for CDN, assets, previews, and public delivery.
 
-## Final Acceptance Audit (2026-07-10)
+## Release Acceptance Audit (2026-07-10)
 
 This final pass checked the deployed product, not only the repository. Results
 below are direct observations from the production alias and Vercel CLI.
@@ -138,6 +138,21 @@ starting` until the seed has committed and an exact six-document count succeeds.
 Readiness therefore means usable demo search, not only a running JVM and open
 core.
 
+### Final Solr Readiness Acceptance (2026-07-11)
+
+The follow-up deployment `d1717692ebf4` was verified from the production alias
+after warming only the TYPO3 application. The first search then had to activate
+Solr and returned HTTP 200 in 16.36 seconds with all six results, no warming
+message, and no empty-result state. The immediate repeat took 0.96 seconds.
+
+The most useful surprise was in the structured telemetry: the renderer reused
+one cURL handle but Vercel recorded nine attempts and nine actual connections.
+Handle reuse therefore did not provide connection or instance affinity across
+temporary `503 starting` responses. It was worthwhile transport hygiene, but it
+did not solve correctness by itself. The effective fix was to keep every Solr
+path at `503 starting` until that instance had committed and counted all six
+seed documents, then let the bounded client retry succeed.
+
 ## Numbers
 
 ### Before The Overhaul
@@ -157,7 +172,7 @@ is unambiguous: the warm application was already fast; activation was not.
 
 ### Image And Startup Work
 
-| Component | Before | Current candidate | Change |
+| Component | Before | Final image | Change |
 |---|---:|---:|---:|
 | TYPO3 local image size | about 950 MB | about 465 MB | about 51% smaller, including targeted warm cache |
 | Solr local image size | about 843 MB | about 589 MB | about 30% smaller |

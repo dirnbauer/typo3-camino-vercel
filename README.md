@@ -225,9 +225,13 @@ caching are mitigations, not a minimum-instance guarantee.
 
 Long-run logs also showed that the cron did not reliably keep the separate demo
 Solr service resident: three consecutive scheduled checks still spent about
-15-17 seconds starting Solr. The demo search now reuses one connection and waits
-up to 25 seconds for that cold service; production search should use managed,
-always-on Solr.
+15-17 seconds starting Solr. The demo search now keeps one retry client alive
+and waits up to 25 seconds for that cold service; the gateway may still create
+several HTTP connections. Production search should use managed, always-on Solr.
+
+The final production acceptance after fixing Solr's data-readiness gate returned
+all six results on the first cold search in 16.36 seconds, with no warming or
+empty-result state. Its immediate repeat took 0.96 seconds.
 
 The final release check measured 0.143s median for 20 warm frontend requests,
 0.255s for 20 warm backend requests, and 0.372s for 30 post-warm searches.
