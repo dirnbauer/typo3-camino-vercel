@@ -376,6 +376,14 @@ query-string, personalized, evicted, or stale entries. A product-level solution
 would be minimum resident Container Image instances or a platform-supported
 pre-render/invalidation integration for conventional CMS output.
 
+Autocomplete showed the same boundary at smaller scale: a PHP JSON endpoint
+had a 0.35-second median but intermittent 4-6 second service-routing outliers.
+For the immutable six-record demo index, the final implementation embeds the
+seed catalog and filters it in the browser with no jQuery or follow-up request.
+External production Solr still uses live server suggestions. This is an
+effective demo workaround, not a general replacement for low-latency dynamic
+Functions or managed search.
+
 ## What Helped Less Than Expected
 
 ### Redis Did Not Solve Cold Starts

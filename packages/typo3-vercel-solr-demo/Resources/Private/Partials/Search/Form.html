@@ -3,8 +3,15 @@
     data-namespace-typo3-fluid="true"
 >
 
-<f:asset.script identifier="typo3-vercel-solr-autocomplete" src="EXT:solr/Resources/Public/JavaScript/autocomplete.min.js" />
-<f:asset.script identifier="typo3-vercel-solr-suggest" src="EXT:solr/Resources/Public/JavaScript/suggest_controller.js" />
+<f:if condition="{demoSuggestCatalog}">
+    <f:then>
+        <f:asset.script identifier="typo3-vercel-solr-demo-suggest" src="EXT:typo3_vercel_solr_demo/Resources/Public/JavaScript/demo_suggest_controller.js" />
+    </f:then>
+    <f:else>
+        <f:asset.script identifier="typo3-vercel-solr-autocomplete" src="EXT:solr/Resources/Public/JavaScript/autocomplete.min.js" />
+        <f:asset.script identifier="typo3-vercel-solr-suggest" src="EXT:solr/Resources/Public/JavaScript/suggest_controller.js" />
+    </f:else>
+</f:if>
 
 <!-- Adapted from EXT:solr Resources/Private/Partials/Search/Form.html. -->
 <form
@@ -14,6 +21,7 @@
     role="search"
     data-suggest="{suggestUrl}"
     data-suggest-header="{f:translate(key: 'suggest.header', extensionName: 'Typo3VercelSolrDemo')}"
+    data-suggest-catalog="{demoSuggestCatalog}"
 >
     <label class="sr-only" for="tx-solr-search-field"><f:translate key="search.label" extensionName="Typo3VercelSolrDemo">Search the Camino guide</f:translate></label>
     <div class="input-group camino-solr-search__input-group">
@@ -23,7 +31,7 @@
         <input
             id="tx-solr-search-field"
             type="search"
-            class="tx-solr-q js-solr-q tx-solr-suggest tx-solr-suggest-focus form-control camino-solr-search__input"
+            class="tx-solr-q js-solr-q {suggestInputClass} form-control camino-solr-search__input"
             name="tx_solr[q]"
             value="{query}"
             maxlength="50"

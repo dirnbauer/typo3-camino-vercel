@@ -45,28 +45,28 @@ switch to a stable constraint when a compatible stable release is published.
 
 ## Search Suggestions
 
-The Camino search field uses EXT:solr's official browser-side
+External Solr mode uses EXT:solr's official browser-side
 `suggest_controller.js` and `autocomplete.min.js`. A small JSON adapter at page
 type `7384` queries the configured Solr core and returns the response shape that
-the official controller expects. The adapter preserves the localized search
-path, requires two characters, caps input at 50 characters, removes punctuation,
+the official controller expects. It preserves the localized search path,
+requires two characters, caps input at 50 characters, removes punctuation,
 deduplicates titles, and limits the top-document list to four records.
-The search partial registers both scripts through TYPO3's AssetCollector; this
-keeps their delivery coupled to the component and avoids relying on a stale
-global TypoScript asset cache after deployment.
 
 The internal demo service is a special case: it contains six immutable,
-self-seeded documents, so autocomplete ranks the same six-document catalog in
-PHP instead of cold-starting a JVM on every keystroke. Full result pages still
-query Apache Solr. When `TYPO3_SOLR_URL` points to external production Solr, the
-adapter queries that live index for suggestions as well.
+self-seeded documents, so the search page embeds that same catalog and ranks it
+with a small accessible native controller. Typing therefore makes no request
+and cannot cold-start PHP or the Solr JVM. Full result pages still query Apache
+Solr. When `TYPO3_SOLR_URL` points to external production Solr, suggestions use
+the live index instead. The search partial registers the selected controller
+through TYPO3's AssetCollector, keeping delivery coupled to the component.
 
 The adapter is deliberate. During implementation, EXT:solr 14.0.0-beta3's
 Extbase suggest action returned `RequiredArgumentMissingException` for
-`queryString` even when called with the documented request namespace. Reusing
-the official non-jQuery UI with a bounded adapter fixed the user-facing feature
-without replacing the main EXT:solr search or indexing implementation. Recheck
-this adapter when upgrading to a stable EXT:solr 14 release.
+`queryString` even when called with the documented request namespace. The
+bounded adapter fixed external mode, while the no-request catalog removed the
+internal Vercel service outlier. Neither path replaces the main EXT:solr search
+or indexing implementation. Recheck the adapter when upgrading to a stable
+EXT:solr 14 release.
 
 ## Internal Vercel Service
 

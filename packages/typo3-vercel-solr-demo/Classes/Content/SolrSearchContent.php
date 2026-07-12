@@ -141,6 +141,9 @@ final class SolrSearchContent
         ));
         $view->assignMultiple([
             'available' => $result['ok'],
+            'demoSuggestCatalog' => $this->usesInternalVercelSolrService()
+                ? $this->encodeJson($this->internalDemoDocuments())
+                : '',
             'documents' => $documents,
             'formAction' => $this->formAction($request),
             'hasSearched' => $query !== '',
@@ -148,6 +151,9 @@ final class SolrSearchContent
             'query' => $query,
             'queryTimeMs' => $result['queryTimeMs'],
             'suggestUrl' => $this->suggestUrl($request),
+            'suggestInputClass' => $this->usesInternalVercelSolrService()
+                ? 'tx-solr-demo-suggest'
+                : 'tx-solr-suggest tx-solr-suggest-focus',
             'total' => $result['total'],
         ]);
 
@@ -217,14 +223,7 @@ final class SolrSearchContent
      */
     private function queryInternalDemoSuggestions(string $query): array
     {
-        $documents = [
-            ['id' => '1', 'title' => 'Camino', 'url' => '/', 'content' => 'Camino demo site for planning a Camino route.', 'keywords' => 'camino demo route pilgrimage'],
-            ['id' => '3', 'title' => 'Privacy', 'url' => '/privacy', 'content' => 'Privacy information including data protection and GDPR notes.', 'keywords' => 'privacy gdpr data protection'],
-            ['id' => '4', 'title' => 'Imprint', 'url' => '/imprint', 'content' => 'Imprint and legal notice for the Camino demo site.', 'keywords' => 'imprint legal'],
-            ['id' => '5', 'title' => 'FAQs', 'url' => '/faqs', 'content' => 'Frequently asked Camino questions and answers.', 'keywords' => 'faq questions camino'],
-            ['id' => '6', 'title' => 'Packing List', 'url' => '/packing-list', 'content' => 'Practical Camino packing and backpack planning.', 'keywords' => 'packing camino backpack route'],
-            ['id' => '7', 'title' => 'Camino Route Comparison', 'url' => '/camino-route-comparison', 'content' => 'Compare Camino routes, distances, difficulty, and stages.', 'keywords' => 'camino route comparison frances stages'],
-        ];
+        $documents = $this->internalDemoDocuments();
 
         $tokens = preg_split('/\s+/u', mb_strtolower($query), -1, PREG_SPLIT_NO_EMPTY) ?: [];
         $ranked = [];
@@ -232,7 +231,6 @@ final class SolrSearchContent
             $score = $this->demoSuggestionScore($document, $tokens);
             if ($score > 0) {
                 $document['type'] = 'pages';
-                $document['url'] = $this->demoResultUrl($document['url']);
                 $ranked[] = ['score' => $score, 'document' => $document];
             }
         }
@@ -249,6 +247,24 @@ final class SolrSearchContent
             'total' => count($matches),
             'queryTimeMs' => 0,
         ];
+    }
+
+    /** @return list<array{id:string,title:string,url:string,content:string,keywords:string}> */
+    private function internalDemoDocuments(): array
+    {
+        $documents = [
+            ['id' => '1', 'title' => 'Camino', 'url' => '/', 'content' => 'Camino demo site for planning a Camino route.', 'keywords' => 'camino demo route pilgrimage'],
+            ['id' => '3', 'title' => 'Privacy', 'url' => '/privacy', 'content' => 'Privacy information including data protection and GDPR notes.', 'keywords' => 'privacy gdpr data protection'],
+            ['id' => '4', 'title' => 'Imprint', 'url' => '/imprint', 'content' => 'Imprint and legal notice for the Camino demo site.', 'keywords' => 'imprint legal'],
+            ['id' => '5', 'title' => 'FAQs', 'url' => '/faqs', 'content' => 'Frequently asked Camino questions and answers.', 'keywords' => 'faq questions camino'],
+            ['id' => '6', 'title' => 'Packing List', 'url' => '/packing-list', 'content' => 'Practical Camino packing and backpack planning.', 'keywords' => 'packing camino backpack route'],
+            ['id' => '7', 'title' => 'Camino Route Comparison', 'url' => '/camino-route-comparison', 'content' => 'Compare Camino routes, distances, difficulty, and stages.', 'keywords' => 'camino route comparison frances stages'],
+        ];
+
+        return array_map(function (array $document): array {
+            $document['url'] = $this->demoResultUrl($document['url']);
+            return $document;
+        }, $documents);
     }
 
     /** @param array<string, string> $document @param list<string> $tokens */

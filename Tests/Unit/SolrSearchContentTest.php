@@ -83,7 +83,9 @@ final class SolrSearchContentTest extends TestCase
         self::assertStringContainsString('EXT:solr/Resources/Public/JavaScript/suggest_controller.js', $form);
         self::assertStringNotContainsString('jquery.', strtolower($configuration . $form));
         self::assertStringContainsString('data-suggest="{suggestUrl}"', $form);
-        self::assertStringContainsString('tx-solr-suggest', $form);
+        self::assertStringContainsString('data-suggest-catalog="{demoSuggestCatalog}"', $form);
+        self::assertStringContainsString('{suggestInputClass}', $form);
+        self::assertStringContainsString('demo_suggest_controller.js', $form);
     }
 
     public function testInternalDemoSuggestionsDoNotContactTheSolrService(): void
