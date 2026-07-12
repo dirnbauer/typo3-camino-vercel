@@ -79,9 +79,9 @@ final class SolrSearchContentTest extends TestCase
         );
 
         self::assertStringContainsString('plugin.tx_solr.suggest = 1', $configuration);
-        self::assertStringContainsString('EXT:solr/Resources/Public/JavaScript/autocomplete.min.js', $configuration);
-        self::assertStringContainsString('EXT:solr/Resources/Public/JavaScript/suggest_controller.js', $configuration);
-        self::assertStringNotContainsString('jquery.', strtolower($configuration));
+        self::assertStringContainsString('EXT:solr/Resources/Public/JavaScript/autocomplete.min.js', $form);
+        self::assertStringContainsString('EXT:solr/Resources/Public/JavaScript/suggest_controller.js', $form);
+        self::assertStringNotContainsString('jquery.', strtolower($configuration . $form));
         self::assertStringContainsString('data-suggest="{suggestUrl}"', $form);
         self::assertStringContainsString('tx-solr-suggest', $form);
     }

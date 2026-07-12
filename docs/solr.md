@@ -51,6 +51,9 @@ type `7384` queries the configured Solr core and returns the response shape that
 the official controller expects. The adapter preserves the localized search
 path, requires two characters, caps input at 50 characters, removes punctuation,
 deduplicates titles, and limits the top-document list to four records.
+The search partial registers both scripts through TYPO3's AssetCollector; this
+keeps their delivery coupled to the component and avoids relying on a stale
+global TypoScript asset cache after deployment.
 
 The internal demo service is a special case: it contains six immutable,
 self-seeded documents, so autocomplete ranks the same six-document catalog in

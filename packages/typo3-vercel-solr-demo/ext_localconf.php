@@ -66,10 +66,6 @@ tt_content.solr_pi_frequentlysearched {
 
 page.includeCSS.typo3VercelSolrDemoSearch = EXT:typo3_vercel_solr_demo/Resources/Public/Css/search.css
 
-page.includeJSFooterlibs {
-  typo3VercelSolrDemoAutocomplete = EXT:solr/Resources/Public/JavaScript/autocomplete.min.js
-  typo3VercelSolrDemoSuggest = EXT:solr/Resources/Public/JavaScript/suggest_controller.js
-}
 TYPOSCRIPT,
     'defaultContentRendering',
 );
