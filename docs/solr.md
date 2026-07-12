@@ -52,6 +52,12 @@ the official controller expects. The adapter preserves the localized search
 path, requires two characters, caps input at 50 characters, removes punctuation,
 deduplicates titles, and limits the top-document list to four records.
 
+The internal demo service is a special case: it contains six immutable,
+self-seeded documents, so autocomplete ranks the same six-document catalog in
+PHP instead of cold-starting a JVM on every keystroke. Full result pages still
+query Apache Solr. When `TYPO3_SOLR_URL` points to external production Solr, the
+adapter queries that live index for suggestions as well.
+
 The adapter is deliberate. During implementation, EXT:solr 14.0.0-beta3's
 Extbase suggest action returned `RequiredArgumentMissingException` for
 `queryString` even when called with the documented request namespace. Reusing

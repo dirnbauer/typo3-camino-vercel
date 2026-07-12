@@ -85,4 +85,27 @@ final class SolrSearchContentTest extends TestCase
         self::assertStringContainsString('data-suggest="{suggestUrl}"', $form);
         self::assertStringContainsString('tx-solr-suggest', $form);
     }
+
+    public function testInternalDemoSuggestionsDoNotContactTheSolrService(): void
+    {
+        $previousServiceUrl = getenv('TYPO3_SOLR_SERVICE_URL');
+        putenv('TYPO3_SOLR_SERVICE_URL=http://unreachable.invalid');
+
+        try {
+            $request = $this->createStub(ServerRequestInterface::class);
+            $request->method('getQueryParams')->willReturn([
+                'tx_solr' => ['queryString' => 'cam'],
+            ]);
+
+            $payload = json_decode((new SolrSearchContent())->renderSuggest(request: $request), true);
+
+            self::assertIsArray($payload);
+            self::assertSame(['Camino', 'Camino Route Comparison', 'FAQs', 'Packing List'], array_keys($payload['suggestions']));
+            self::assertCount(4, $payload['documents']);
+        } finally {
+            $previousServiceUrl === false
+                ? putenv('TYPO3_SOLR_SERVICE_URL')
+                : putenv('TYPO3_SOLR_SERVICE_URL=' . $previousServiceUrl);
+        }
+    }
 }

@@ -59,16 +59,18 @@ final class SolrSearchContent
         }
 
         try {
-            $result = $this->querySolr(
-                $this->prefixQuery($query),
-                4,
-                [
-                    'defType' => 'edismax',
-                    'qf' => 'title^6 navTitle^4 content^2 keywords',
-                    'pf' => 'title^10 navTitle^6',
-                    'fl' => 'id,title,content,url,uid,type',
-                ],
-            );
+            $result = $this->usesInternalVercelSolrService()
+                ? $this->queryInternalDemoSuggestions($query)
+                : $this->querySolr(
+                    $this->prefixQuery($query),
+                    4,
+                    [
+                        'defType' => 'edismax',
+                        'qf' => 'title^6 navTitle^4 content^2 keywords',
+                        'pf' => 'title^10 navTitle^6',
+                        'fl' => 'id,title,content,url,uid,type',
+                    ],
+                );
         } catch (\Throwable $exception) {
             error_log(sprintf(
                 'TYPO3 Vercel Solr suggest adapter failed: %s: %s',
@@ -203,6 +205,83 @@ final class SolrSearchContent
             static fn(string $token): string => $token . '*',
             $tokens,
         ));
+    }
+
+    /**
+     * The internal Vercel Solr service contains this exact immutable seed. Do
+     * not activate its JVM for every autocomplete keystroke; full searches
+     * still query Solr, while external production Solr uses the live suggest
+     * query above.
+     *
+     * @return array{ok:bool,documents:array<int,array<string,mixed>>,total:int,queryTimeMs:int}
+     */
+    private function queryInternalDemoSuggestions(string $query): array
+    {
+        $documents = [
+            ['id' => '1', 'title' => 'Camino', 'url' => '/', 'content' => 'Camino demo site for planning a Camino route.', 'keywords' => 'camino demo route pilgrimage'],
+            ['id' => '3', 'title' => 'Privacy', 'url' => '/privacy', 'content' => 'Privacy information including data protection and GDPR notes.', 'keywords' => 'privacy gdpr data protection'],
+            ['id' => '4', 'title' => 'Imprint', 'url' => '/imprint', 'content' => 'Imprint and legal notice for the Camino demo site.', 'keywords' => 'imprint legal'],
+            ['id' => '5', 'title' => 'FAQs', 'url' => '/faqs', 'content' => 'Frequently asked Camino questions and answers.', 'keywords' => 'faq questions camino'],
+            ['id' => '6', 'title' => 'Packing List', 'url' => '/packing-list', 'content' => 'Practical Camino packing and backpack planning.', 'keywords' => 'packing camino backpack route'],
+            ['id' => '7', 'title' => 'Camino Route Comparison', 'url' => '/camino-route-comparison', 'content' => 'Compare Camino routes, distances, difficulty, and stages.', 'keywords' => 'camino route comparison frances stages'],
+        ];
+
+        $tokens = preg_split('/\s+/u', mb_strtolower($query), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $ranked = [];
+        foreach ($documents as $document) {
+            $score = $this->demoSuggestionScore($document, $tokens);
+            if ($score > 0) {
+                $document['type'] = 'pages';
+                $document['url'] = $this->demoResultUrl($document['url']);
+                $ranked[] = ['score' => $score, 'document' => $document];
+            }
+        }
+
+        usort($ranked, static function (array $left, array $right): int {
+            return $right['score'] <=> $left['score']
+                ?: strcasecmp((string)$left['document']['title'], (string)$right['document']['title']);
+        });
+        $matches = array_slice(array_column($ranked, 'document'), 0, 4);
+
+        return [
+            'ok' => true,
+            'documents' => $matches,
+            'total' => count($matches),
+            'queryTimeMs' => 0,
+        ];
+    }
+
+    /** @param array<string, string> $document @param list<string> $tokens */
+    private function demoSuggestionScore(array $document, array $tokens): int
+    {
+        $title = mb_strtolower($document['title']);
+        $words = preg_split('/\s+/u', $title, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $keywords = preg_split('/\s+/u', mb_strtolower($document['keywords']), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $searchable = mb_strtolower($document['title'] . ' ' . $document['content'] . ' ' . $document['keywords']);
+        $score = 0;
+
+        foreach ($tokens as $token) {
+            if (!str_contains($searchable, $token)) {
+                return 0;
+            }
+            if (str_starts_with($title, $token)) {
+                $score += 100;
+            } elseif (array_any($words, static fn(string $word): bool => str_starts_with($word, $token))) {
+                $score += 50;
+            } elseif (array_any($keywords, static fn(string $word): bool => str_starts_with($word, $token))) {
+                $score += 20;
+            } else {
+                $score += 5;
+            }
+        }
+
+        return $score;
+    }
+
+    private function demoResultUrl(string $path): string
+    {
+        $base = getenv('TYPO3_SOLR_SITE_BASE');
+        return is_string($base) && $base !== '' ? rtrim($base, '/') . $path : $path;
     }
 
     /**
