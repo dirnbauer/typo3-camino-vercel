@@ -30,10 +30,11 @@
     let matches = [];
 
     const position = () => {
-      const rect = input.getBoundingClientRect();
-      list.style.top = `${rect.bottom + window.scrollY}px`;
-      list.style.left = `${rect.left + window.scrollX}px`;
-      list.style.width = `${rect.width}px`;
+      const inputRect = input.getBoundingClientRect();
+      const formRect = form.getBoundingClientRect();
+      list.style.top = `${formRect.bottom + window.scrollY}px`;
+      list.style.left = `${inputRect.left + window.scrollX}px`;
+      list.style.width = `${inputRect.width}px`;
     };
 
     const close = () => {
