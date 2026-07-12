@@ -292,6 +292,7 @@ return array (
       array (
         'header' => 'Gehen Sie den Camino de Compostela',
         'subheader' => 'Eine Reise voller Entdeckungen, Geschichte und Transformation',
+        'header_layout' => 1,
       ),
       39 =>
       array (
@@ -743,6 +744,7 @@ return array (
       array (
         'header' => 'Recorrer el Camino de Compostela',
         'subheader' => 'Un viaje de descubrimiento, historia y transformación.',
+        'header_layout' => 1,
       ),
       39 =>
       array (
@@ -1194,6 +1196,7 @@ return array (
       array (
         'header' => '沿着卡米诺德孔波斯特拉 (Camino de Compostela) 漫步',
         'subheader' => '发现、历史和变革的旅程',
+        'header_layout' => 1,
       ),
       39 =>
       array (
@@ -1645,6 +1648,7 @@ return array (
       array (
         'header' => 'Sétáljon a Camino de Compostelán',
         'subheader' => 'A felfedezés, a történelem és az átalakulás utazása',
+        'header_layout' => 1,
       ),
       39 =>
       array (

@@ -149,7 +149,7 @@ final class SetupCaminoDemoCommand extends Command
         return (int)$connection->lastInsertId();
     }
 
-    /** @param array<int, array<string, string>> $corrections */
+    /** @param array<int, array<string, int|string>> $corrections */
     private function applyContentSourceCorrections(array $corrections, OutputInterface $output): void
     {
         $connection = $this->connectionPool->getConnectionForTable('tt_content');
@@ -202,7 +202,7 @@ final class SetupCaminoDemoCommand extends Command
     }
 
     /**
-     * @param array<int, array<string, string>> $content
+     * @param array<int, array<string, int|string>> $content
      */
     private function applyContentTranslations(int $languageId, array $content, OutputInterface $output): void
     {

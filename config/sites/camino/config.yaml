@@ -1,6 +1,7 @@
 base: /
 dependencies:
   - typo3/theme-camino
+  - webconsulting/typo3-camino-demo
   - webconsulting/typo3-vercel-frontend-cache
 languages:
   -

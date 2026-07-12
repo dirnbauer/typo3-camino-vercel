@@ -137,4 +137,19 @@ final class CaminoDemoTranslationsTest extends TestCase
             );
         }
     }
+
+    public function testHomepageHeroIsThePrimaryHeadingInEveryLanguage(): void
+    {
+        $corrections = require dirname(__DIR__, 2) . '/packages/typo3-camino-demo/Configuration/Demo/SourceCorrections.php';
+        $translations = require dirname(__DIR__, 2) . '/packages/typo3-camino-demo/Configuration/Demo/Translations.php';
+
+        self::assertSame(1, $corrections[38]['header_layout']);
+        foreach ($translations as $languageId => $translation) {
+            self::assertSame(
+                1,
+                $translation['content'][38]['header_layout'],
+                sprintf('Language %d homepage hero must render as h1.', $languageId),
+            );
+        }
+    }
 }
