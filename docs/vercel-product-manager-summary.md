@@ -4,7 +4,7 @@
 
 This document was fully re-audited on 2026-07-12 against:
 
-- repository revision `46ae0b9c96b6`
+- repository implementation revision `8c3e33dc0a77`
 - the current production deployment and Vercel CLI output
 - the repository test suite
 - current Vercel documentation linked under [Sources](#sources)
@@ -90,13 +90,13 @@ Verified on 2026-07-12:
 
 | Check | Result |
 |---|---|
-| Git revision | `46ae0b9c96b6` |
-| Production deployment | `dpl_G6QFPrntxA3vjH4Mka9nPHvahYQ7`, Ready in `fra1` |
-| Application artifact | 172.56 MB reported by `vercel inspect` |
+| Git revision | `8c3e33dc0a77` |
+| Production deployment | `dpl_3awXvSDCT5hHfaV8xANrtoXAhnJ5`, Ready in `fra1` |
+| Application artifact | 172.57 MB reported by `vercel inspect` |
 | Solr service artifact | 277.65 MB reported by `vercel inspect` |
 | Runtime | PHP 8.4.23; `/api/health.php` returned HTTP 200 |
 | Pro cron registration | Warm-up every three minutes; Scheduler every 15 minutes |
-| Automated tests | 55 tests, 2,315 assertions, all passing |
+| Automated tests | 66 tests, 2,333 assertions, all passing |
 
 The image artifact sizes above are Vercel deployment observations. The larger
 local Docker sizes in historical tests are uncompressed and are not directly
@@ -143,6 +143,15 @@ selects the core from its active language. A local Solr 10 acceptance run found
 six documents in every core and returned a localized hit for an English,
 German, Spanish, Chinese, and Hungarian term. German `inhalte` returned one
 result from `core_de` and zero from `core_en`.
+
+Production acceptance of revision `8c3e33dc0a77` then confirmed the same
+behavior. The exact German URL returned HTTP 200 with one localized Camino
+result. Its first Solr-activating request took 15.693s. Eight later German
+requests had 0.351-0.671s TTFB. Native terms returned at least one localized
+result in all five languages, and `q=*` returned six results from every core.
+The mixed-language acceptance pass still observed isolated 4-6 second requests,
+so multilingual correctness is fixed while the documented cold/new-instance
+latency limitation remains.
 
 Autocomplete uses a request-free localized catalog for each fixed six-page
 demo language. External production Solr uses the live EXT:solr suggest endpoint.

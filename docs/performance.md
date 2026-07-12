@@ -234,6 +234,13 @@ The five-core startup is slower than the optimized English-only median because
 all language schemas and 30 records must be ready before traffic is admitted.
 It remains faster than the original local service and fixes localized search.
 
+The production multilingual acceptance request for German `q=inhalte` returned
+one correct localized result in 15.693s while the new Solr service activated.
+Eight later requests had 0.351-0.671s TTFB. All five native-language terms
+matched and `q=*` returned six results per core. A mixed-language pass still had
+isolated 4-6 second requests, confirming that correct per-language indexing does
+not change Vercel's instance-selection and cold-activation behavior.
+
 The entrypoint has separate liveness and readiness endpoints and emits
 structured startup logs. The service can still cold-start independently from
 TYPO3.

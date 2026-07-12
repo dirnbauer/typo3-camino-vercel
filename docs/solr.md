@@ -126,6 +126,13 @@ every language. German `q=inhalte` returned the localized Camino document from
 `core_de` and returned zero from `core_en`, proving both matching and language
 isolation.
 
+Production deployment `dpl_3awXvSDCT5hHfaV8xANrtoXAhnJ5` confirmed the exact
+`/de/suche?tx_solr[q]=inhalte` request with one German result. Native terms
+matched in all five languages, and `q=*` returned six records per language.
+The first German request took 15.693s while Solr activated; eight later requests
+had 0.351-0.671s TTFB. This fixes language routing, not the independent service
+cold start.
+
 Local image results from the overhaul and multilingual correction:
 
 | Metric | Original service | Optimized English-only service | Current five-core service |
