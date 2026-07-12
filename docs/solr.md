@@ -40,6 +40,24 @@ switch to a stable constraint when a compatible stable release is published.
 - a private service binding from TYPO3 to Solr
 - a bounded retry proxy for Vercel service activation responses
 - six self-seeded Camino demo documents for the non-durable service
+- native EXT:solr autocomplete using `fetch`, `AbortController`, and
+  `autoComplete.js`, with Camino styling and no jQuery
+
+## Search Suggestions
+
+The Camino search field uses EXT:solr's official browser-side
+`suggest_controller.js` and `autocomplete.min.js`. A small JSON adapter at page
+type `7384` queries the configured Solr core and returns the response shape that
+the official controller expects. The adapter preserves the localized search
+path, requires two characters, caps input at 50 characters, removes punctuation,
+deduplicates titles, and limits the top-document list to four records.
+
+The adapter is deliberate. During implementation, EXT:solr 14.0.0-beta3's
+Extbase suggest action returned `RequiredArgumentMissingException` for
+`queryString` even when called with the documented request namespace. Reusing
+the official non-jQuery UI with a bounded adapter fixed the user-facing feature
+without replacing the main EXT:solr search or indexing implementation. Recheck
+this adapter when upgrading to a stable EXT:solr 14 release.
 
 ## Internal Vercel Service
 

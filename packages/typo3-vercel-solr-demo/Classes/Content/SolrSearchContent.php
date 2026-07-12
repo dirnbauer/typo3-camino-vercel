@@ -32,6 +32,89 @@ final class SolrSearchContent
         }
     }
 
+    /**
+     * EXT:solr's native frontend controller consumes this response shape. The
+     * adapter keeps the beta Extbase suggest action out of this custom content
+     * element while retaining EXT:solr's non-jQuery browser implementation.
+     *
+     * @param array<string, mixed> $configuration
+     */
+    #[AsAllowedCallable]
+    public function renderSuggest(
+        mixed $content = '',
+        array $configuration = [],
+        ?ServerRequestInterface $request = null,
+    ): string {
+        unset($content, $configuration);
+
+        $request ??= $GLOBALS['TYPO3_REQUEST'] ?? null;
+        $query = $this->suggestQueryString($request);
+        if (mb_strlen($query) < 2) {
+            return $this->encodeJson([
+                'suggestions' => [],
+                'suggestion' => $query,
+                'documents' => [],
+                'didSecondSearch' => false,
+            ]);
+        }
+
+        try {
+            $result = $this->querySolr(
+                $this->prefixQuery($query),
+                4,
+                [
+                    'defType' => 'edismax',
+                    'qf' => 'title^6 navTitle^4 content^2 keywords',
+                    'pf' => 'title^10 navTitle^6',
+                    'fl' => 'id,title,content,url,uid,type',
+                ],
+            );
+        } catch (\Throwable $exception) {
+            error_log(sprintf(
+                'TYPO3 Vercel Solr suggest adapter failed: %s: %s',
+                $exception::class,
+                $exception->getMessage(),
+            ));
+            $result = ['ok' => false, 'documents' => [], 'total' => 0, 'queryTimeMs' => 0];
+        }
+
+        if (!$result['ok']) {
+            return $this->encodeJson(['status' => false]);
+        }
+
+        $documents = [];
+        $suggestions = [];
+        $seenTitles = [];
+        foreach ($result['documents'] as $document) {
+            if (!is_array($document)) {
+                continue;
+            }
+            $normalized = $this->normalizeDocument($document);
+            $title = $normalized['title'];
+            $titleKey = mb_strtolower($title);
+            if (isset($seenTitles[$titleKey])) {
+                continue;
+            }
+            $seenTitles[$titleKey] = true;
+            $suggestions[$title] = 1;
+            $documents[] = [
+                'link' => $normalized['url'],
+                'type' => $this->stringField($document, 'type', 'pages'),
+                'title' => $title,
+                'content' => $normalized['content'],
+                'group' => '',
+                'previewImage' => '',
+            ];
+        }
+
+        return $this->encodeJson([
+            'suggestions' => $suggestions,
+            'suggestion' => $query,
+            'documents' => $documents,
+            'didSecondSearch' => false,
+        ]);
+    }
+
     private function renderSearch(?ServerRequestInterface $request): string
     {
         $request ??= $GLOBALS['TYPO3_REQUEST'] ?? null;
@@ -62,6 +145,7 @@ final class SolrSearchContent
             'isAllResults' => $query === '*',
             'query' => $query,
             'queryTimeMs' => $result['queryTimeMs'],
+            'suggestUrl' => $this->suggestUrl($request),
             'total' => $result['total'],
         ]);
 
@@ -99,23 +183,45 @@ final class SolrSearchContent
         return mb_substr(trim((string)$query), 0, 50);
     }
 
+    private function suggestQueryString(?ServerRequestInterface $request): string
+    {
+        $queryParameters = $request?->getQueryParams() ?? $_GET;
+        $query = $queryParameters['tx_solr']['queryString'] ?? '';
+        if (is_array($query)) {
+            $query = reset($query) ?: '';
+        }
+
+        $query = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', (string)$query) ?? '';
+        $query = preg_replace('/\s+/u', ' ', trim($query)) ?? '';
+        return mb_substr($query, 0, 50);
+    }
+
+    private function prefixQuery(string $query): string
+    {
+        $tokens = preg_split('/\s+/u', $query, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        return implode(' AND ', array_map(
+            static fn(string $token): string => $token . '*',
+            $tokens,
+        ));
+    }
+
     /**
      * @return array{ok:bool,documents:array<int,array<string,mixed>>,total:int,queryTimeMs:int}
      */
-    private function querySolr(string $query): array
+    private function querySolr(string $query, int $rows = 10, array $additionalParameters = []): array
     {
         $coreUrl = $this->solrCoreUrl();
         if ($coreUrl === null) {
             return ['ok' => false, 'documents' => [], 'total' => 0, 'queryTimeMs' => 0];
         }
 
-        $params = [
+        $params = array_replace([
             'q' => $query,
             'fq' => $this->filterQuery(),
-            'rows' => '10',
+            'rows' => (string)max(0, min(20, $rows)),
             'fl' => 'id,title,content,url,uid',
             'wt' => 'json',
-        ];
+        ], $additionalParameters);
         $url = $coreUrl . '/select?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
 
         $timeout = $this->requestTimeout();
@@ -442,6 +548,22 @@ final class SolrSearchContent
     {
         $path = $request?->getUri()->getPath() ?? '/search';
         return $path !== '' && str_starts_with($path, '/') ? $path : '/search';
+    }
+
+    private function suggestUrl(?ServerRequestInterface $request): string
+    {
+        return $this->formAction($request) . '?type=7384';
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function encodeJson(array $payload): string
+    {
+        return (string)json_encode(
+            $payload,
+            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR,
+        );
     }
 
     private function truncate(string $value, int $maxLength): string

@@ -7,6 +7,7 @@
     <unit id="search.label"><segment state="final"><source>Search the Camino guide</source><target>Keresés a Camino útikalauzban</target></segment></unit>
     <unit id="search.placeholder"><segment state="final"><source>Search the Camino guide</source><target>Keresés a Camino útikalauzban</target></segment></unit>
     <unit id="search.submit"><segment state="final"><source>Search</source><target>Keresés</target></segment></unit>
+    <unit id="suggest.header"><segment state="final"><source>Top Camino matches</source><target>Kapcsolódó Camino-oldalak</target></segment></unit>
     <unit id="results.eyebrow"><segment state="final"><source>Search results</source><target>Keresési eredmények</target></segment></unit>
     <unit id="results.all"><segment state="final"><source>All indexed pages</source><target>Minden indexelt oldal</target></segment></unit>
     <unit id="results.for"><segment state="final"><source>Results for “%s”</source><target>Találatok erre: „%s”</target></segment></unit>

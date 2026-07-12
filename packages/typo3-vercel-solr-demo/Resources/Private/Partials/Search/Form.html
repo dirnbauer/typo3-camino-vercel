@@ -4,7 +4,14 @@
 >
 
 <!-- Adapted from EXT:solr Resources/Private/Partials/Search/Form.html. -->
-<form action="{formAction}" method="get" class="tx-solr-search-form camino-solr-search__form" role="search">
+<form
+    action="{formAction}"
+    method="get"
+    class="tx-solr-search-form camino-solr-search__form"
+    role="search"
+    data-suggest="{suggestUrl}"
+    data-suggest-header="{f:translate(key: 'suggest.header', extensionName: 'Typo3VercelSolrDemo')}"
+>
     <label class="sr-only" for="tx-solr-search-field"><f:translate key="search.label" extensionName="Typo3VercelSolrDemo">Search the Camino guide</f:translate></label>
     <div class="input-group camino-solr-search__input-group">
         <span class="camino-solr-search__input-icon" aria-hidden="true">
@@ -13,7 +20,7 @@
         <input
             id="tx-solr-search-field"
             type="search"
-            class="tx-solr-q js-solr-q form-control camino-solr-search__input"
+            class="tx-solr-q js-solr-q tx-solr-suggest tx-solr-suggest-focus form-control camino-solr-search__input"
             name="tx_solr[q]"
             value="{query}"
             maxlength="50"

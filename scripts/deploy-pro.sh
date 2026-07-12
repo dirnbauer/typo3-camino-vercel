@@ -53,3 +53,6 @@ if [[ -n "${scope}" ]]; then
 fi
 
 vercel "${args[@]}"
+
+TYPO3_PUBLIC_BASE_URL="${TYPO3_PUBLIC_BASE_URL:-https://typo3-camino-vercel.vercel.app}" \
+  "${root}/scripts/warm-public-pages.sh"

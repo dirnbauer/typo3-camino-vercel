@@ -61,6 +61,7 @@ final class VercelFrontendCacheHeadersTest extends TestCase
             's-maxage=300, stale-while-revalidate=300',
             $response->getHeaderLine('Vercel-CDN-Cache-Control'),
         );
+        self::assertSame('typo3-public', $response->getHeaderLine('Vercel-Cache-Tag'));
         self::assertSame('Cookie, Authorization', $response->getHeaderLine('Vary'));
     }
 
@@ -82,6 +83,7 @@ final class VercelFrontendCacheHeadersTest extends TestCase
             's-maxage=300, stale-while-revalidate=300',
             $response->getHeaderLine('Vercel-CDN-Cache-Control'),
         );
+        self::assertSame('typo3-public', $response->getHeaderLine('Vercel-Cache-Tag'));
         self::assertSame('Accept-Encoding, Cookie, Authorization', $response->getHeaderLine('Vary'));
     }
 
@@ -102,6 +104,15 @@ final class VercelFrontendCacheHeadersTest extends TestCase
             'staticfilecache/fallback',
             $middlewares['frontend']['webconsulting/typo3-vercel-storage/frontend-cache-headers']['before'],
         );
+    }
+
+    public function testTrackedSettingsRemainEnvironmentDriven(): void
+    {
+        $settings = (string)file_get_contents(dirname(__DIR__, 2) . '/config/system/settings.php');
+
+        self::assertStringContainsString("require_once dirname(__DIR__, 2) . '/scripts/typo3-env.php';", $settings);
+        self::assertStringContainsString('return typo3_vercel_settings();', $settings);
+        self::assertStringNotContainsString("'host' => 'db'", $settings);
     }
 
     public function testDurableDatabaseKeepsEdgeCacheOptIn(): void
@@ -179,6 +190,7 @@ final class VercelFrontendCacheHeadersTest extends TestCase
         $response = $this->process($request);
 
         self::assertFalse($response->hasHeader('Vercel-CDN-Cache-Control'));
+        self::assertFalse($response->hasHeader('Vercel-Cache-Tag'));
         self::assertSame('private, no-store', $response->getHeaderLine('Cache-Control'));
     }
 
@@ -204,6 +216,7 @@ final class VercelFrontendCacheHeadersTest extends TestCase
         self::assertSame('no-cache', $response->getHeaderLine('Pragma'));
         self::assertFalse($response->hasHeader('CDN-Cache-Control'));
         self::assertFalse($response->hasHeader('Vercel-CDN-Cache-Control'));
+        self::assertFalse($response->hasHeader('Vercel-Cache-Tag'));
         self::assertFalse($response->hasHeader('ETag'));
         self::assertFalse($response->hasHeader('Expires'));
     }

@@ -7,6 +7,7 @@
     <unit id="search.label"><segment state="final"><source>Search the Camino guide</source><target>Buscar en la guía del Camino</target></segment></unit>
     <unit id="search.placeholder"><segment state="final"><source>Search the Camino guide</source><target>Buscar en la guía del Camino</target></segment></unit>
     <unit id="search.submit"><segment state="final"><source>Search</source><target>Buscar</target></segment></unit>
+    <unit id="suggest.header"><segment state="final"><source>Top Camino matches</source><target>Mejores páginas del Camino</target></segment></unit>
     <unit id="results.eyebrow"><segment state="final"><source>Search results</source><target>Resultados de búsqueda</target></segment></unit>
     <unit id="results.all"><segment state="final"><source>All indexed pages</source><target>Todas las páginas indexadas</target></segment></unit>
     <unit id="results.for"><segment state="final"><source>Results for “%s”</source><target>Resultados para «%s»</target></segment></unit>

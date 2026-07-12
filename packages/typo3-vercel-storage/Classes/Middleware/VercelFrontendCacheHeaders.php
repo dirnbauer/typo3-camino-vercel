@@ -43,6 +43,7 @@ final class VercelFrontendCacheHeaders implements MiddlewareInterface
             ->withHeader('Cache-Control', 'public, max-age=0')
             ->withHeader('CDN-Cache-Control', $cdnCacheControl)
             ->withHeader('Vercel-CDN-Cache-Control', $cdnCacheControl)
+            ->withHeader('Vercel-Cache-Tag', 'typo3-public')
             ->withHeader('Pragma', 'public')
             ->withHeader('Vary', $this->sharedCacheVary($response));
     }
@@ -99,6 +100,7 @@ final class VercelFrontendCacheHeaders implements MiddlewareInterface
         return $response
             ->withoutHeader('CDN-Cache-Control')
             ->withoutHeader('Vercel-CDN-Cache-Control')
+            ->withoutHeader('Vercel-Cache-Tag')
             ->withoutHeader('Expires')
             ->withoutHeader('ETag')
             ->withHeader('Cache-Control', 'private, no-store')

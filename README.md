@@ -15,7 +15,7 @@ Live demo: [typo3-camino-vercel.vercel.app](https://typo3-camino-vercel.vercel.a
 | Best for | Fast evaluation with fewer features | Durable editorial and larger read-heavy sites |
 | Setup | Deploy Button, no database | Pro/Enterprise plus SQL, object storage, and operations |
 | State | Temporary SQLite; edits can disappear | Durable PostgreSQL/MySQL and Blob/S3 |
-| Speed strategy | Automatic CDN cache for public demo pages | Three-minute warmer, optional CDN, regional services |
+| Speed strategy | Automatic CDN cache for public demo pages | Edge cache, post-deploy warm-up, regional services |
 | Search/jobs | No Solr and no cron | Managed Solr and bounded Scheduler/worker jobs |
 
 Start with the one-click test when you only want to see TYPO3. Choose the
@@ -98,9 +98,10 @@ experience a container cold start.
 Use Vercel Pro or Enterprise, a durable database near the compute region,
 Vercel Blob or S3/R2, and managed external Solr when search is required. Add
 Redis only when shared cache behavior is useful. Deploy the Pro schedule with
-`scripts/deploy-pro.sh`; it warms frontend/backend every three minutes and runs
-TYPO3 Scheduler every 15 minutes. This is a best-effort latency mitigation; it
-cannot reserve either the TYPO3 or Solr container.
+`scripts/deploy-pro.sh`; it preloads the public edge cache after deployment,
+warms frontend/backend every three minutes, and runs TYPO3 Scheduler every 15
+minutes. This is a best-effort latency mitigation; it cannot reserve either the
+TYPO3 or Solr container.
 
 This can serve larger read-heavy sites when anonymous pages are cached at the
 edge and stateful services are external, but capacity must be load-tested with
@@ -267,8 +268,8 @@ durable database-backed site, edge caching remains opt-in because editors may
 expect immediate publication and pages may contain forms or personalization:
 
 ```dotenv
-TYPO3_VERCEL_EDGE_CACHE_TTL=300
-TYPO3_VERCEL_EDGE_CACHE_STALE_WHILE_REVALIDATE=600
+TYPO3_VERCEL_EDGE_CACHE_TTL=86400
+TYPO3_VERCEL_EDGE_CACHE_STALE_WHILE_REVALIDATE=604800
 ```
 
 Only cookie-free `GET`/`HEAD` HTML without a query string is cached. `/typo3/`,
@@ -276,8 +277,18 @@ Only cookie-free `GET`/`HEAD` HTML without a query string is cached. `/typo3/`,
 made public by this middleware. Cached responses explicitly vary on Cookie and
 Authorization so Vercel cannot reuse the anonymous representation for those
 requests. The policy also wraps Static File Cache so its fallback cannot bypass
-these private-response rules. Content can remain cached for the selected TTL,
-so keep it disabled for workflows that require immediate publication.
+these private-response rules. After publishing, invalidate and immediately warm
+all public pages:
+
+```bash
+VERCEL_SCOPE=your-team scripts/invalidate-frontend-cache.sh
+```
+
+The public-page target is at most 1 second TTFB and 2 seconds to browser load
+from a warmed edge. Vercel still scales Container Images to zero and exposes no
+minimum-instance control, so the backend, uncached query pages, and an evicted
+CDN entry cannot receive an absolute first/cold-request guarantee. Use an
+always-on origin when that guarantee is contractual.
 
 Read [Cold starts and performance](docs/performance.md) for benchmarks and cost
 estimates.

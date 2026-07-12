@@ -299,8 +299,8 @@ the free one-click config. `vercel.json` intentionally remains Hobby-safe.
 For public brochure pages:
 
 ```dotenv
-TYPO3_VERCEL_EDGE_CACHE_TTL=300
-TYPO3_VERCEL_EDGE_CACHE_STALE_WHILE_REVALIDATE=600
+TYPO3_VERCEL_EDGE_CACHE_TTL=86400
+TYPO3_VERCEL_EDGE_CACHE_STALE_WHILE_REVALIDATE=604800
 ```
 
 The TYPO3 middleware sets Vercel CDN headers only when all of these are true:
@@ -339,11 +339,53 @@ header for this reason. After moving the policy wrapper ahead of the fallback,
 the live sequence was: anonymous `HIT`, cookie `MISS` with `private, no-store`,
 Authorization `BYPASS` with `private, no-store`, then anonymous `HIT` again.
 
+Cacheable responses also receive `Vercel-Cache-Tag: typo3-public`. Vercel
+removes this internal header before delivery. After publishing content, purge
+the tag and repopulate the known language routes:
+
+```bash
+VERCEL_SCOPE=your-team scripts/invalidate-frontend-cache.sh
+```
+
+`scripts/deploy-pro.sh` runs the same two-pass route warm-up after every
+successful production deployment. The second pass verifies that all known
+public pages still return HTTP 200.
+
 This path can completely avoid PHP and its cold start for eligible cached
 requests. The temporary SQLite one-click profile defaults to a 300-second TTL.
 Durable database-backed sites remain opt-in because TYPO3 editors may expect a
 publication to appear immediately and many sites contain forms or
 personalization. Set the TTL explicitly to `0` to disable demo caching.
+
+### Hard-Reload Investigation (2026-07-12)
+
+A browser-style hard reload of `/de/camino-routenvergleich` was reproduced with
+`Cache-Control: no-cache` and `Pragma: no-cache`:
+
+| Request | Vercel result | TTFB |
+|---|---|---:|
+| First after origin inactivity | serverless `MISS` | 6.13s |
+| Next 11 requests | edge `HIT` | 0.12-0.26s |
+
+The matching runtime log showed PHP-FPM starting during the miss. Database and
+Redis probes were about 48 ms and 42 ms, so neither service caused the six
+seconds. The production edge variables existed but were empty, which made the
+durable-database profile resolve to TTL zero. The production profile now uses a
+one-day active TTL, seven days of stale-while-revalidate, tagged invalidation,
+and post-deploy warming.
+
+Performance targets for this repository are:
+
+- eligible public pages: at most 1.0s TTFB and 2.0s browser load from the edge
+- warm backend: at most 2.0s TTFB
+- active suggestions: response within 1.0s, visible within 2.0s
+
+These are acceptance targets for cached/warm delivery, not a claim that Vercel
+offers a minimum resident instance. `Pragma: no-cache` forces synchronous
+revalidation once a CDN entry is stale. An edge eviction, deployment race,
+uncached personalized page, backend request, or query-string response can still
+reach a cold origin. A literal first/warm/cold guarantee therefore requires
+pre-rendered static output or an always-on origin with minimum instances.
 
 ## What Not To Expect
 

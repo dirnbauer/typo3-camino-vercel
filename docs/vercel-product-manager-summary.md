@@ -361,6 +361,21 @@ Authorization `BYPASS` with `private, no-store`, and an unchanged anonymous
 `HIT`. The cache can remove origin cold starts from a brochure frontend, but it
 introduces a publication delay equal to the TTL.
 
+A 2026-07-12 hard-reload reproduction made the boundary especially clear. The
+first German route request was a serverless cache miss at 6.13 seconds; the next
+11 edge hits were 0.12-0.26 seconds. Database and Redis checks were only tens of
+milliseconds. The useful change was therefore not more PHP tuning: it was
+activating the previously empty production edge-cache variables, tagging all
+eligible pages as `typo3-public`, invalidating that tag after publication, and
+warming known localized routes after deployment. The operational sequence is
+short: publish, invalidate one tag, warm twice, verify HTTP 200.
+
+This gives the demo a target of <=1 second TTFB and <=2 seconds browser load for
+warmed public pages. It does not create a hard first/cold guarantee for backend,
+query-string, personalized, evicted, or stale entries. A product-level solution
+would be minimum resident Container Image instances or a platform-supported
+pre-render/invalidation integration for conventional CMS output.
+
 ## What Helped Less Than Expected
 
 ### Redis Did Not Solve Cold Starts
