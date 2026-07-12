@@ -9,6 +9,7 @@ export SOLR_LOGS_DIR="${SOLR_LOGS_DIR:-/tmp/solr-logs}"
 export SOLR_PID_DIR="${SOLR_PID_DIR:-/tmp/solr-pids}"
 export NGINX_CONF="${NGINX_CONF:-/tmp/nginx-solr.conf}"
 export TYPO3_SOLR_SEED_DEMO_DOCS="${TYPO3_SOLR_SEED_DEMO_DOCS:-1}"
+export TYPO3_SOLR_DEMO_CORES="${TYPO3_SOLR_DEMO_CORES:-core_en core_de core_es core_zh core_hu}"
 startup_started_ms="$(date +%s%3N)"
 
 mkdir -p "${SOLR_HOME}" "${SOLR_LOGS_DIR}" "${SOLR_PID_DIR}"
@@ -97,172 +98,47 @@ seed_demo_documents() {
 
   local base_url
   local changed
+  local core
+  local count
   local docs_file
+  local source_file
   base_url="$(normalize_base_url)"
   changed="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-  docs_file="/tmp/typo3-solr-demo-docs.json"
 
-  cat > "${docs_file}" <<EOF
-[
-  {
-    "id": "vercel-demo/pages/1/0/0/c:0",
-    "site": "camino",
-    "typo3Context_stringS": "Production",
-    "siteHash": "vercel-demo",
-    "domain_stringS": "${base_url}",
-    "appKey": "EXT:solr",
-    "type": "pages",
-    "uid": 1,
-    "pid": 0,
-    "variantId": "vercel-demo/pages/1/0/0/c:0",
-    "typeNum": 0,
-    "created": "2026-01-01T00:00:00Z",
-    "changed": "${changed}",
-    "rootline": ["1"],
-    "access": ["c:0"],
-    "title": "Camino",
-    "navTitle": "Camino",
-    "content": "Camino demo site for planning a Camino route. Find route comparison, frequently asked questions, packing list, privacy and imprint pages.",
-    "url": "${base_url}/",
-    "keywords": ["camino", "demo", "route", "pilgrimage"]
-  },
-  {
-    "id": "vercel-demo/pages/3/0/0/c:0",
-    "site": "camino",
-    "typo3Context_stringS": "Production",
-    "siteHash": "vercel-demo",
-    "domain_stringS": "${base_url}",
-    "appKey": "EXT:solr",
-    "type": "pages",
-    "uid": 3,
-    "pid": 2,
-    "variantId": "vercel-demo/pages/3/0/0/c:0",
-    "typeNum": 0,
-    "created": "2026-01-01T00:00:00Z",
-    "changed": "${changed}",
-    "rootline": ["1", "2", "3"],
-    "access": ["c:0"],
-    "title": "Privacy",
-    "navTitle": "Privacy",
-    "content": "Privacy information for the Camino demo site, including data protection and GDPR related notes.",
-    "url": "${base_url}/privacy",
-    "keywords": ["privacy", "gdpr", "data protection"]
-  },
-  {
-    "id": "vercel-demo/pages/4/0/0/c:0",
-    "site": "camino",
-    "typo3Context_stringS": "Production",
-    "siteHash": "vercel-demo",
-    "domain_stringS": "${base_url}",
-    "appKey": "EXT:solr",
-    "type": "pages",
-    "uid": 4,
-    "pid": 2,
-    "variantId": "vercel-demo/pages/4/0/0/c:0",
-    "typeNum": 0,
-    "created": "2026-01-01T00:00:00Z",
-    "changed": "${changed}",
-    "rootline": ["1", "2", "4"],
-    "access": ["c:0"],
-    "title": "Imprint",
-    "navTitle": "Imprint",
-    "content": "Imprint and legal notice for the Camino demo site.",
-    "url": "${base_url}/imprint",
-    "keywords": ["imprint", "legal"]
-  },
-  {
-    "id": "vercel-demo/pages/5/0/0/c:0",
-    "site": "camino",
-    "typo3Context_stringS": "Production",
-    "siteHash": "vercel-demo",
-    "domain_stringS": "${base_url}",
-    "appKey": "EXT:solr",
-    "type": "pages",
-    "uid": 5,
-    "pid": 1,
-    "variantId": "vercel-demo/pages/5/0/0/c:0",
-    "typeNum": 0,
-    "created": "2026-01-01T00:00:00Z",
-    "changed": "${changed}",
-    "rootline": ["1", "5"],
-    "access": ["c:0"],
-    "title": "FAQs",
-    "navTitle": "FAQs",
-    "content": "Frequently asked Camino questions and answers for the demo site.",
-    "url": "${base_url}/faqs",
-    "keywords": ["faq", "questions", "camino"]
-  },
-  {
-    "id": "vercel-demo/pages/6/0/0/c:0",
-    "site": "camino",
-    "typo3Context_stringS": "Production",
-    "siteHash": "vercel-demo",
-    "domain_stringS": "${base_url}",
-    "appKey": "EXT:solr",
-    "type": "pages",
-    "uid": 6,
-    "pid": 1,
-    "variantId": "vercel-demo/pages/6/0/0/c:0",
-    "typeNum": 0,
-    "created": "2026-01-01T00:00:00Z",
-    "changed": "${changed}",
-    "rootline": ["1", "6"],
-    "access": ["c:0"],
-    "title": "Packing List",
-    "navTitle": "Packing List",
-    "content": "Camino packing list with practical items for a Camino route, walking stages, backpack planning and travel preparation.",
-    "url": "${base_url}/packing-list",
-    "keywords": ["packing", "camino", "backpack", "route"]
-  },
-  {
-    "id": "vercel-demo/pages/7/0/0/c:0",
-    "site": "camino",
-    "typo3Context_stringS": "Production",
-    "siteHash": "vercel-demo",
-    "domain_stringS": "${base_url}",
-    "appKey": "EXT:solr",
-    "type": "pages",
-    "uid": 7,
-    "pid": 1,
-    "variantId": "vercel-demo/pages/7/0/0/c:0",
-    "typeNum": 0,
-    "created": "2026-01-01T00:00:00Z",
-    "changed": "${changed}",
-    "rootline": ["1", "7"],
-    "access": ["c:0"],
-    "title": "Camino Route Comparison",
-    "navTitle": "Camino Route Comparison",
-    "content": "Compare Camino routes, including Camino Frances route planning, distances, difficulty, stages and practical travel decisions.",
-    "url": "${base_url}/camino-route-comparison",
-    "keywords": ["camino", "route", "comparison", "frances", "stages"]
-  }
-]
-EOF
+  for core in ${TYPO3_SOLR_DEMO_CORES}; do
+    source_file="/opt/typo3-solr-demo/${core}.json"
+    docs_file="/tmp/typo3-solr-demo-${core}.json"
+    if [ ! -f "${source_file}" ]; then
+      echo "Missing Camino demo document catalog for ${core}" >&2
+      return 1
+    fi
 
-  if ! curl -fsS \
-    -H 'Content-Type: application/json' \
-    --data-binary '{"delete":{"query":"siteHash:vercel-demo AND type:pages"}}' \
-    "http://127.0.0.1:${SOLR_PORT_LISTEN}/solr/core_en/update?commit=true" >/dev/null; then
-    echo "Could not clear old Camino demo documents" >&2
-    return 1
-  fi
+    sed -e "s|__BASE_URL__|${base_url}|g" -e "s|__CHANGED__|${changed}|g" "${source_file}" > "${docs_file}"
 
-  if ! curl -fsS \
-    -H 'Content-Type: application/json' \
-    --data-binary "@${docs_file}" \
-    "http://127.0.0.1:${SOLR_PORT_LISTEN}/solr/core_en/update/json/docs?commit=true" >/dev/null; then
-    echo "Could not seed Camino demo documents" >&2
-    return 1
-  fi
+    if ! curl -fsS \
+      -H 'Content-Type: application/json' \
+      --data-binary '{"delete":{"query":"siteHash:vercel-demo AND type:pages"}}' \
+      "http://127.0.0.1:${SOLR_PORT_LISTEN}/solr/${core}/update?commit=true" >/dev/null; then
+      echo "Could not clear old Camino demo documents from ${core}" >&2
+      return 1
+    fi
 
-  local count
-  count="$(curl -fsS "http://127.0.0.1:${SOLR_PORT_LISTEN}/solr/core_en/select?q=*:*&fq=siteHash:vercel-demo&rows=0&wt=json" | sed -n 's/.*"numFound":\([0-9][0-9]*\).*/\1/p')"
-  if [ "${count:-0}" -ne 6 ]; then
-    echo "Expected 6 Camino demo documents after seeding, found ${count:-0}" >&2
-    return 1
-  fi
+    if ! curl -fsS \
+      -H 'Content-Type: application/json' \
+      --data-binary "@${docs_file}" \
+      "http://127.0.0.1:${SOLR_PORT_LISTEN}/solr/${core}/update/json/docs?commit=true" >/dev/null; then
+      echo "Could not seed Camino demo documents into ${core}" >&2
+      return 1
+    fi
 
-  echo "Seeded 6 Camino demo documents into TYPO3 Solr core_en"
+    count="$(curl -fsS "http://127.0.0.1:${SOLR_PORT_LISTEN}/solr/${core}/select?q=*:*&fq=siteHash:vercel-demo&rows=0&wt=json" | sed -n 's/.*"numFound":\([0-9][0-9]*\).*/\1/p')"
+    if [ "${count:-0}" -ne 6 ]; then
+      echo "Expected 6 Camino demo documents in ${core}, found ${count:-0}" >&2
+      return 1
+    fi
+
+    echo "Seeded 6 Camino demo documents into TYPO3 Solr ${core}"
+  done
 }
 
 (
@@ -271,7 +147,7 @@ EOF
       if seed_demo_documents; then
         touch /tmp/solr-ready
         ready_ms="$(( $(date +%s%3N) - startup_started_ms ))"
-        echo "{\"level\":\"info\",\"component\":\"solr\",\"event\":\"ready\",\"duration_ms\":${ready_ms},\"demo_documents\":6}"
+        echo "{\"level\":\"info\",\"component\":\"solr\",\"event\":\"ready\",\"duration_ms\":${ready_ms},\"demo_documents\":30,\"demo_cores\":5}"
         exit 0
       fi
 

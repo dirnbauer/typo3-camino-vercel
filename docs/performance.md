@@ -222,12 +222,17 @@ Vercel image activation remains a separate cost.
 ### 3. Smaller Solr Runtime
 
 The Solr service now uses `solr:10.0-slim` and copies only modules required by
-the official EXT:solr 14 configset. It enables one English demo core.
+the official EXT:solr 14 configset. It enables English, German, Spanish,
+Chinese, and Hungarian demo cores.
 
-| Metric | Before | After |
-|---|---:|---:|
-| Local image size | about 843 MB | about 589 MB |
-| Ready for requests | 4.13-4.62s | 1.94-3.21s; 2.48s median over 5 starts |
+| Metric | Before | Optimized English-only | Current five-core service |
+|---|---:|---:|---:|
+| Local image size | about 843 MB | about 589 MB | about 589 MB |
+| Ready for requests | 4.13-4.62s | 1.94-3.21s; 2.48s median over 5 starts | 3.51s acceptance run |
+
+The five-core startup is slower than the optimized English-only median because
+all language schemas and 30 records must be ready before traffic is admitted.
+It remains faster than the original local service and fixes localized search.
 
 The entrypoint has separate liveness and readiness endpoints and emits
 structured startup logs. The service can still cold-start independently from

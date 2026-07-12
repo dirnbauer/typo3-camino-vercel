@@ -1,0 +1,8 @@
+[
+  {"id":"vercel-demo-zh-1","appKey":"EXT:solr","siteHash":"vercel-demo","type":"pages","uid":1,"title":"圣地亚哥之路","navTitle":"圣地亚哥之路","content":"用于规划圣地亚哥朝圣之路的中文演示网站，包含路线、常见问题、行李清单、隐私和法律信息。","url":"__BASE_URL__/zh/","keywords":["圣地亚哥","内容","路线","朝圣"],"changed":"__CHANGED__"},
+  {"id":"vercel-demo-zh-3","appKey":"EXT:solr","siteHash":"vercel-demo","type":"pages","uid":3,"title":"隐私","navTitle":"隐私","content":"演示网站的隐私、数据保护和用户权利信息。","url":"__BASE_URL__/zh/yinsi","keywords":["隐私","数据保护","权利"],"changed":"__CHANGED__"},
+  {"id":"vercel-demo-zh-4","appKey":"EXT:solr","siteHash":"vercel-demo","type":"pages","uid":4,"title":"法律信息","navTitle":"法律信息","content":"圣地亚哥之路演示网站的法律声明和运营者信息。","url":"__BASE_URL__/zh/falv-xinxi","keywords":["法律","声明","信息"],"changed":"__CHANGED__"},
+  {"id":"vercel-demo-zh-5","appKey":"EXT:solr","siteHash":"vercel-demo","type":"pages","uid":5,"title":"常见问题","navTitle":"常见问题","content":"关于路线规划、住宿、装备和徒步阶段的常见问题与回答。","url":"__BASE_URL__/zh/changjian-wenti","keywords":["问题","回答","路线"],"changed":"__CHANGED__"},
+  {"id":"vercel-demo-zh-6","appKey":"EXT:solr","siteHash":"vercel-demo","type":"pages","uid":6,"title":"行李清单","navTitle":"行李清单","content":"准备背包、衣物、鞋子、饮水和旅行用品的实用清单。","url":"__BASE_URL__/zh/xingli-qingdan","keywords":["行李","背包","装备"],"changed":"__CHANGED__"},
+  {"id":"vercel-demo-zh-7","appKey":"EXT:solr","siteHash":"vercel-demo","type":"pages","uid":7,"title":"路线比较","navTitle":"路线比较","content":"按照距离、难度、阶段、风景和时间比较不同的圣地亚哥路线。","url":"__BASE_URL__/zh/luxian-bijiao","keywords":["路线","比较","阶段","距离"],"changed":"__CHANGED__"}
+]

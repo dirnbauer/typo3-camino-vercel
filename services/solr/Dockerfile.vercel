@@ -21,10 +21,13 @@ COPY --from=typo3-solr-config /opt/solr/modules/extraction/ /opt/solr/modules/ex
 
 RUN set -eu; \
     for core_properties in /var/solr/data/cores/*/core.properties; do mv "${core_properties}" "${core_properties}_disabled"; done; \
-    mv /var/solr/data/cores/english/core.properties_disabled /var/solr/data/cores/english/core.properties; \
+    for language in english german spanish chinese hungarian; do \
+        mv "/var/solr/data/cores/${language}/core.properties_disabled" "/var/solr/data/cores/${language}/core.properties"; \
+    done; \
     chown -R solr:solr /var/solr
 
 COPY start-vercel-solr.sh /usr/local/bin/start-vercel-solr
+COPY demo-documents/ /opt/typo3-solr-demo/
 RUN chmod 755 /usr/local/bin/start-vercel-solr
 
 ENV PORT=80 \
@@ -37,7 +40,7 @@ ENV PORT=80 \
     SOLR_PID_DIR=/tmp/solr-pids \
     SOLR_ALLOW_RUNASROOT=true \
     SOLR_ULIMIT_CHECKS=false \
-    TYPO3_SOLR_ENABLED_CORES="english"
+    TYPO3_SOLR_ENABLED_CORES="english,german,spanish,chinese,hungarian"
 
 EXPOSE 80
 

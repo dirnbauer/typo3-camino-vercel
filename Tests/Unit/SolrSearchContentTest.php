@@ -68,6 +68,78 @@ final class SolrSearchContentTest extends TestCase
         self::assertSame('/de/suche?type=7384', $method->invoke(new SolrSearchContent(), $request));
     }
 
+    #[DataProvider('localizedCoreProvider')]
+    public function testLocalizedPathSelectsMatchingSolrCore(string $path, string $expectedCore): void
+    {
+        $uri = $this->createStub(UriInterface::class);
+        $uri->method('getPath')->willReturn($path);
+        $request = $this->createStub(ServerRequestInterface::class);
+        $request->method('getUri')->willReturn($uri);
+
+        $method = new ReflectionMethod(SolrSearchContent::class, 'coreForRequest');
+
+        self::assertSame($expectedCore, $method->invoke(new SolrSearchContent(), $request));
+    }
+
+    /** @return iterable<string, array{0:string,1:string}> */
+    public static function localizedCoreProvider(): iterable
+    {
+        yield 'English' => ['/search', 'core_en'];
+        yield 'German' => ['/de/suche', 'core_de'];
+        yield 'Spanish' => ['/es/buscar', 'core_es'];
+        yield 'Chinese' => ['/zh/sousuo', 'core_zh'];
+        yield 'Hungarian' => ['/hu/kereses', 'core_hu'];
+    }
+
+    public function testGermanDemoCatalogContainsLocalizedSearchTerm(): void
+    {
+        $uri = $this->createStub(UriInterface::class);
+        $uri->method('getPath')->willReturn('/de/suche');
+        $request = $this->createStub(ServerRequestInterface::class);
+        $request->method('getUri')->willReturn($uri);
+
+        $method = new ReflectionMethod(SolrSearchContent::class, 'internalDemoDocuments');
+        $documents = $method->invoke(new SolrSearchContent(), $request);
+
+        self::assertSame('Camino', $documents[0]['title']);
+        self::assertStringContainsString('Inhalte', $documents[0]['content']);
+        self::assertSame('/de/', $documents[0]['url']);
+    }
+
+    #[DataProvider('localizedCatalogProvider')]
+    public function testLocalizedSuggestionCatalogMatchesSolrSeed(string $path, string $core): void
+    {
+        $uri = $this->createStub(UriInterface::class);
+        $uri->method('getPath')->willReturn($path);
+        $request = $this->createStub(ServerRequestInterface::class);
+        $request->method('getUri')->willReturn($uri);
+
+        $method = new ReflectionMethod(SolrSearchContent::class, 'internalDemoDocuments');
+        $suggestions = $method->invoke(new SolrSearchContent(), $request);
+        $seed = json_decode(
+            (string)file_get_contents(dirname(__DIR__, 2) . '/services/solr/demo-documents/' . $core . '.json'),
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        );
+
+        self::assertSame(array_column($seed, 'title'), array_column($suggestions, 'title'));
+        self::assertSame(
+            array_map(static fn(string $url): string => str_replace('__BASE_URL__', '', $url), array_column($seed, 'url')),
+            array_column($suggestions, 'url'),
+        );
+    }
+
+    /** @return iterable<string, array{0:string,1:string}> */
+    public static function localizedCatalogProvider(): iterable
+    {
+        yield 'English' => ['/search', 'core_en'];
+        yield 'German' => ['/de/suche', 'core_de'];
+        yield 'Spanish' => ['/es/buscar', 'core_es'];
+        yield 'Chinese' => ['/zh/sousuo', 'core_zh'];
+        yield 'Hungarian' => ['/hu/kereses', 'core_hu'];
+    }
+
     public function testSuggestFrontendUsesExtSolrNativeAssets(): void
     {
         $root = dirname(__DIR__, 2);

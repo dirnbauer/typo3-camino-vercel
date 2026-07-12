@@ -325,7 +325,7 @@ The repository includes EXT:solr 14 beta, Apache Solr 10 configuration, a Camino
 search page, Scheduler integration, and a separate private Vercel container
 Service for the demo.
 The internal service is useful for demonstrations and self-seeds six Camino
-documents when an instance starts.
+documents in each of five language-specific cores when an instance starts.
 
 It is **not durable production Solr**. Vercel Blob is object storage and cannot
 be mounted as Solr's low-latency live Lucene index at `/var/solr`. No

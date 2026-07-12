@@ -60,7 +60,7 @@ final class SolrSearchContent
 
         try {
             $result = $this->usesInternalVercelSolrService()
-                ? $this->queryInternalDemoSuggestions($query)
+                ? $this->queryInternalDemoSuggestions($query, $request)
                 : $this->querySolr(
                     $this->prefixQuery($query),
                     4,
@@ -70,6 +70,7 @@ final class SolrSearchContent
                         'pf' => 'title^10 navTitle^6',
                         'fl' => 'id,title,content,url,uid,type',
                     ],
+                    $request,
                 );
         } catch (\Throwable $exception) {
             error_log(sprintf(
@@ -123,7 +124,7 @@ final class SolrSearchContent
         $query = $this->searchQuery($request);
         $result = $query === ''
             ? ['ok' => true, 'documents' => [], 'total' => 0, 'queryTimeMs' => 0]
-            : $this->querySolr($query);
+            : $this->querySolr($query, request: $request);
 
         $documents = array_map(
             fn(array $document): array => $this->normalizeDocument($document),
@@ -142,7 +143,7 @@ final class SolrSearchContent
         $view->assignMultiple([
             'available' => $result['ok'],
             'demoSuggestCatalog' => $this->usesInternalVercelSolrService()
-                ? $this->encodeJson($this->internalDemoDocuments())
+                ? $this->encodeJson($this->internalDemoDocuments($request))
                 : '',
             'documents' => $documents,
             'formAction' => $this->formAction($request),
@@ -221,9 +222,9 @@ final class SolrSearchContent
      *
      * @return array{ok:bool,documents:array<int,array<string,mixed>>,total:int,queryTimeMs:int}
      */
-    private function queryInternalDemoSuggestions(string $query): array
+    private function queryInternalDemoSuggestions(string $query, ?ServerRequestInterface $request): array
     {
-        $documents = $this->internalDemoDocuments();
+        $documents = $this->internalDemoDocuments($request);
 
         $tokens = preg_split('/\s+/u', mb_strtolower($query), -1, PREG_SPLIT_NO_EMPTY) ?: [];
         $ranked = [];
@@ -250,16 +251,50 @@ final class SolrSearchContent
     }
 
     /** @return list<array{id:string,title:string,url:string,content:string,keywords:string}> */
-    private function internalDemoDocuments(): array
+    private function internalDemoDocuments(?ServerRequestInterface $request = null): array
     {
-        $documents = [
-            ['id' => '1', 'title' => 'Camino', 'url' => '/', 'content' => 'Camino demo site for planning a Camino route.', 'keywords' => 'camino demo route pilgrimage'],
-            ['id' => '3', 'title' => 'Privacy', 'url' => '/privacy', 'content' => 'Privacy information including data protection and GDPR notes.', 'keywords' => 'privacy gdpr data protection'],
-            ['id' => '4', 'title' => 'Imprint', 'url' => '/imprint', 'content' => 'Imprint and legal notice for the Camino demo site.', 'keywords' => 'imprint legal'],
-            ['id' => '5', 'title' => 'FAQs', 'url' => '/faqs', 'content' => 'Frequently asked Camino questions and answers.', 'keywords' => 'faq questions camino'],
-            ['id' => '6', 'title' => 'Packing List', 'url' => '/packing-list', 'content' => 'Practical Camino packing and backpack planning.', 'keywords' => 'packing camino backpack route'],
-            ['id' => '7', 'title' => 'Camino Route Comparison', 'url' => '/camino-route-comparison', 'content' => 'Compare Camino routes, distances, difficulty, and stages.', 'keywords' => 'camino route comparison frances stages'],
-        ];
+        $documents = match ($this->languageCode($request)) {
+            'de' => [
+                ['id' => '1', 'title' => 'Camino', 'url' => '/de/', 'content' => 'Deutsche Inhalte zur Planung einer Camino-Route.', 'keywords' => 'camino inhalte route pilgerweg'],
+                ['id' => '3', 'title' => 'Datenschutz', 'url' => '/de/datenschutz', 'content' => 'Informationen zu Datenschutz, DSGVO und personenbezogenen Daten.', 'keywords' => 'datenschutz dsgvo daten'],
+                ['id' => '4', 'title' => 'Impressum', 'url' => '/de/impressum', 'content' => 'Impressum und rechtliche Hinweise.', 'keywords' => 'impressum recht anbieter'],
+                ['id' => '5', 'title' => 'Häufige Fragen', 'url' => '/de/haeufige-fragen', 'content' => 'Fragen und Antworten zur Camino-Planung.', 'keywords' => 'fragen antworten camino'],
+                ['id' => '6', 'title' => 'Packliste', 'url' => '/de/packliste', 'content' => 'Packliste für Rucksack und Reisevorbereitung.', 'keywords' => 'packliste rucksack ausrüstung camino'],
+                ['id' => '7', 'title' => 'Camino-Routenvergleich', 'url' => '/de/camino-routenvergleich', 'content' => 'Camino-Routen nach Entfernung, Schwierigkeit und Etappen vergleichen.', 'keywords' => 'camino route vergleich etappen'],
+            ],
+            'es' => [
+                ['id' => '1', 'title' => 'Camino de Santiago', 'url' => '/es/', 'content' => 'Contenido en español para planificar el Camino.', 'keywords' => 'camino contenido ruta peregrinación'],
+                ['id' => '3', 'title' => 'Privacidad', 'url' => '/es/privacidad', 'content' => 'Información de privacidad y protección de datos.', 'keywords' => 'privacidad rgpd datos'],
+                ['id' => '4', 'title' => 'Aviso legal', 'url' => '/es/aviso-legal', 'content' => 'Aviso legal del sitio Camino.', 'keywords' => 'aviso legal responsable'],
+                ['id' => '5', 'title' => 'Preguntas frecuentes', 'url' => '/es/preguntas-frecuentes', 'content' => 'Preguntas y respuestas sobre el Camino.', 'keywords' => 'preguntas respuestas camino'],
+                ['id' => '6', 'title' => 'Lista de equipaje', 'url' => '/es/lista-equipaje', 'content' => 'Lista práctica para preparar la mochila.', 'keywords' => 'equipaje mochila camino'],
+                ['id' => '7', 'title' => 'Comparación de rutas', 'url' => '/es/comparacion-rutas-camino', 'content' => 'Comparación por distancia, dificultad y etapas.', 'keywords' => 'camino rutas comparación etapas'],
+            ],
+            'zh' => [
+                ['id' => '1', 'title' => '圣地亚哥之路', 'url' => '/zh/', 'content' => '用于规划朝圣之路的中文内容。', 'keywords' => '圣地亚哥 内容 路线 朝圣'],
+                ['id' => '3', 'title' => '隐私', 'url' => '/zh/yinsi', 'content' => '隐私和数据保护信息。', 'keywords' => '隐私 数据保护 权利'],
+                ['id' => '4', 'title' => '法律信息', 'url' => '/zh/falv-xinxi', 'content' => '网站法律声明和运营者信息。', 'keywords' => '法律 声明 信息'],
+                ['id' => '5', 'title' => '常见问题', 'url' => '/zh/changjian-wenti', 'content' => '关于路线规划的常见问题与回答。', 'keywords' => '问题 回答 路线'],
+                ['id' => '6', 'title' => '行李清单', 'url' => '/zh/xingli-qingdan', 'content' => '准备背包和装备的实用清单。', 'keywords' => '行李 背包 装备'],
+                ['id' => '7', 'title' => '路线比较', 'url' => '/zh/luxian-bijiao', 'content' => '按照距离、难度和阶段比较路线。', 'keywords' => '路线 比较 阶段 距离'],
+            ],
+            'hu' => [
+                ['id' => '1', 'title' => 'Camino', 'url' => '/hu/', 'content' => 'Magyar tartalom a Camino megtervezéséhez.', 'keywords' => 'camino tartalom útvonal zarándoklat'],
+                ['id' => '3', 'title' => 'Adatvédelem', 'url' => '/hu/adatvedelem', 'content' => 'Adatvédelmi és GDPR információk.', 'keywords' => 'adatvédelem gdpr adatok'],
+                ['id' => '4', 'title' => 'Impresszum', 'url' => '/hu/impresszum', 'content' => 'Impresszum és jogi tájékoztató.', 'keywords' => 'impresszum jogi üzemeltető'],
+                ['id' => '5', 'title' => 'Gyakori kérdések', 'url' => '/hu/gyakori-kerdesek', 'content' => 'Kérdések és válaszok a Camino tervezéséről.', 'keywords' => 'kérdések válaszok camino'],
+                ['id' => '6', 'title' => 'Csomaglista', 'url' => '/hu/csomaglista', 'content' => 'Gyakorlati csomaglista hátizsákhoz és felszereléshez.', 'keywords' => 'csomaglista hátizsák felszerelés'],
+                ['id' => '7', 'title' => 'Útvonal-összehasonlítás', 'url' => '/hu/utvonal-osszehasonlitas', 'content' => 'Útvonalak összehasonlítása távolság és nehézség alapján.', 'keywords' => 'camino útvonal összehasonlítás szakaszok'],
+            ],
+            default => [
+                ['id' => '1', 'title' => 'Camino', 'url' => '/', 'content' => 'Camino demo site for planning a Camino route.', 'keywords' => 'camino demo route pilgrimage'],
+                ['id' => '3', 'title' => 'Privacy', 'url' => '/privacy', 'content' => 'Privacy information including data protection and GDPR notes.', 'keywords' => 'privacy gdpr data protection'],
+                ['id' => '4', 'title' => 'Imprint', 'url' => '/imprint', 'content' => 'Imprint and legal notice for the Camino demo site.', 'keywords' => 'imprint legal'],
+                ['id' => '5', 'title' => 'FAQs', 'url' => '/faqs', 'content' => 'Frequently asked Camino questions and answers.', 'keywords' => 'faq questions camino'],
+                ['id' => '6', 'title' => 'Packing List', 'url' => '/packing-list', 'content' => 'Practical Camino packing and backpack planning.', 'keywords' => 'packing camino backpack route'],
+                ['id' => '7', 'title' => 'Camino Route Comparison', 'url' => '/camino-route-comparison', 'content' => 'Compare Camino routes, distances, difficulty, and stages.', 'keywords' => 'camino route comparison frances stages'],
+            ],
+        };
 
         return array_map(function (array $document): array {
             $document['url'] = $this->demoResultUrl($document['url']);
@@ -303,9 +338,14 @@ final class SolrSearchContent
     /**
      * @return array{ok:bool,documents:array<int,array<string,mixed>>,total:int,queryTimeMs:int}
      */
-    private function querySolr(string $query, int $rows = 10, array $additionalParameters = []): array
+    private function querySolr(
+        string $query,
+        int $rows = 10,
+        array $additionalParameters = [],
+        ?ServerRequestInterface $request = null,
+    ): array
     {
-        $coreUrl = $this->solrCoreUrl();
+        $coreUrl = $this->solrCoreUrl($request);
         if ($coreUrl === null) {
             return ['ok' => false, 'documents' => [], 'total' => 0, 'queryTimeMs' => 0];
         }
@@ -382,15 +422,15 @@ final class SolrSearchContent
         return 'type:pages';
     }
 
-    private function solrCoreUrl(): ?string
+    private function solrCoreUrl(?ServerRequestInterface $request = null): ?string
     {
-        $core = getenv('TYPO3_SOLR_CORE') ?: getenv('SOLR_CORE') ?: 'core_en';
         $serviceUrl = getenv('TYPO3_SOLR_SERVICE_URL')
             ?: getenv('SOLR_SERVICE_URL')
             ?: getenv('TYPO3_SOLR_INTERNAL_URL')
             ?: getenv('SOLR_INTERNAL_URL');
 
         if (is_string($serviceUrl) && $serviceUrl !== '') {
+            $core = $this->coreForRequest($request);
             return rtrim($serviceUrl, '/') . '/solr/' . rawurlencode($core);
         }
 
@@ -400,6 +440,33 @@ final class SolrSearchContent
         }
 
         return null;
+    }
+
+    private function coreForRequest(?ServerRequestInterface $request = null): string
+    {
+        return 'core_' . $this->languageCode($request);
+    }
+
+    private function languageCode(?ServerRequestInterface $request = null): string
+    {
+        $request ??= $GLOBALS['TYPO3_REQUEST'] ?? null;
+        $language = $request?->getAttribute('language');
+        if (is_object($language) && method_exists($language, 'getLanguageId')) {
+            $languageId = (int)$language->getLanguageId();
+            $languageCode = [0 => 'en', 1 => 'de', 2 => 'es', 3 => 'zh', 4 => 'hu'][$languageId] ?? null;
+            if ($languageCode !== null) {
+                return $languageCode;
+            }
+        }
+
+        $path = $request?->getUri()->getPath() ?? '';
+        foreach (['de', 'es', 'zh', 'hu'] as $languageCode) {
+            if ($path === '/' . $languageCode || str_starts_with($path, '/' . $languageCode . '/')) {
+                return $languageCode;
+            }
+        }
+
+        return 'en';
     }
 
     private function usesInternalVercelSolrService(): bool

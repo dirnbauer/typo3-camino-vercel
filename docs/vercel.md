@@ -122,6 +122,10 @@ TYPO3_SOLR_ENABLED=1
 TYPO3_SOLR_SITE_BASE=https://your-project.vercel.app/
 TYPO3_SOLR_SITE_IDENTIFIER=camino
 TYPO3_SOLR_CORE=core_en
+TYPO3_SOLR_CORE_LANGUAGE_1=core_de
+TYPO3_SOLR_CORE_LANGUAGE_2=core_es
+TYPO3_SOLR_CORE_LANGUAGE_3=core_zh
+TYPO3_SOLR_CORE_LANGUAGE_4=core_hu
 TYPO3_SOLR_APPLY_SITE_SET=1
 TYPO3_SOLR_SITE_SET=webconsulting/typo3-vercel-solr-demo
 TYPO3_SOLR_STYLESHEET_SITE_SET=webconsulting/typo3-vercel-solr-demo-stylesheets
@@ -136,9 +140,12 @@ This uses the Vercel service binding `TYPO3_SOLR_SERVICE_URL` and the internal
 Solr index is runtime state, not durable managed storage. To make the demo
 predictable, the Solr service self-seeds the static Camino demo documents on
 each service instance startup. The service binds the Vercel port immediately
-for reliable deployment promotion and seeds the demo documents as soon as
-`core_en` answers. An immediate first Solr request can still see a short
-cold-start warmup. `TYPO3_SOLR_APPLY_SITE_SET=1` is needed for the EXT:solr
+for reliable deployment promotion and seeds six localized documents in each of
+five language cores as soon as `core_en` answers. The app config writer supplies
+the language-core defaults automatically for the internal service; the explicit
+variables above document and can override that mapping. An immediate first Solr
+request can still see a short cold-start warmup. `TYPO3_SOLR_APPLY_SITE_SET=1`
+is needed for the EXT:solr
 frontend plugin. This starter uses the local
 `webconsulting/typo3-vercel-solr-demo` site set so Camino is not broken by the
 official EXT:solr site set's Fluid Styled Content dependency.

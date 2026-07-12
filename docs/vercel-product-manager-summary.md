@@ -66,7 +66,7 @@ official `typo3/theme-camino` distribution.
 | Large uploads | Authenticated direct browser-to-Blob upload, multipart above 100 MB, 5 GiB project default |
 | Shared cache | Optional native TYPO3 Redis caches over TCP/TLS |
 | Public cache | Cookie- and authorization-aware Vercel edge policy with tag invalidation and route warming |
-| Search | EXT:solr 14.0.0-beta3 and Solr 10 demo service; external Solr recommended for production |
+| Search | EXT:solr 14.0.0-beta3 and five-language Solr 10 demo service; external Solr recommended for production |
 | Editing | Visual Editor and strict German, Spanish, Simplified Chinese, and Hungarian translations |
 | Jobs | Protected warm-up and TYPO3 Scheduler endpoints invoked by Vercel Cron in the Pro profile |
 | Health | Public shallow health plus protected DB, Redis, Blob, Solr, and temporary-filesystem probes |
@@ -131,11 +131,21 @@ deployment and cached public path at that time.
 
 ### Search Check
 
-The production query `/search?tx_solr[q]=*` returned all six demo documents on
-its first audited request, but the independently idled Solr service made that
-request take 16.495s. Its immediate repeat returned the same six results in
-0.459s. Autocomplete uses a request-free embedded catalog for the fixed
-six-page demo. External production Solr uses the live EXT:solr suggest endpoint.
+The English-only production baseline query `/search?tx_solr[q]=*` returned all
+six demo documents on its first audited request, but the independently idled
+Solr service made that request take 16.495s. Its immediate repeat returned the
+same six results in 0.459s.
+
+The subsequent multilingual audit found that localized search pages still used
+`core_en`, so German `q=inhalte` returned zero. The correction enables and
+self-seeds `core_en`, `core_de`, `core_es`, `core_zh`, and `core_hu`; TYPO3 now
+selects the core from its active language. A local Solr 10 acceptance run found
+six documents in every core and returned a localized hit for an English,
+German, Spanish, Chinese, and Hungarian term. German `inhalte` returned one
+result from `core_de` and zero from `core_en`.
+
+Autocomplete uses a request-free localized catalog for each fixed six-page
+demo language. External production Solr uses the live EXT:solr suggest endpoint.
 
 Warm local Solr benchmarks against the same small index were:
 
@@ -263,13 +273,13 @@ Blob is object storage, not a POSIX volume, SQL database, or Solr Lucene volume.
 
 The private Solr 10 Vercel Service proves that a real JVM service, TYPO3
 EXT:solr connectivity, startup readiness, demo indexing, and search can run on
-Vercel. It deliberately stores its index in `/tmp` and recreates six demo
-documents, so it is not durable production search.
+Vercel. It deliberately stores its index in `/tmp` and recreates six localized
+demo documents in each of five cores, so it is not durable production search.
 
 The service has a separate cold-start boundary. Historical scheduled checks
 after about 13 hours still measured 14.553-16.989 seconds of Solr startup even
 with a three-minute warmer. The corrected service returns `503 starting` until
-all six documents are committed and counted. A bounded client waits for that
+all 30 documents are committed and counted. A bounded client waits for that
 readiness state, which fixes empty first results but does not make startup fast.
 
 Production Solr should use a managed Solr 10 endpoint or always-on infrastructure

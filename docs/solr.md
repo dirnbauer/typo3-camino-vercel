@@ -40,7 +40,7 @@ switch to a stable constraint when a compatible stable release is published.
 - a separate private Vercel container Service running real Solr 10
 - a private service binding from TYPO3 to Solr
 - a bounded retry proxy for Vercel service activation responses
-- six self-seeded Camino demo documents for the non-durable service
+- six localized Camino demo documents in each of five self-seeded cores
 - native EXT:solr autocomplete using `fetch`, `AbortController`, and
   `autoComplete.js`, with Camino styling and no jQuery
 
@@ -53,13 +53,14 @@ the official controller expects. It preserves the localized search path,
 requires two characters, caps input at 50 characters, removes punctuation,
 deduplicates titles, and limits the top-document list to four records.
 
-The internal demo service is a special case: it contains six immutable,
-self-seeded documents, so the search page embeds that same catalog and ranks it
-with a small accessible native controller. Typing therefore makes no request
-and cannot cold-start PHP or the Solr JVM. Full result pages still query Apache
-Solr. When `TYPO3_SOLR_URL` points to external production Solr, suggestions use
-the live index instead. The search partial registers the selected controller
-through TYPO3's AssetCollector, keeping delivery coupled to the component.
+The internal demo service is a special case: each language contains six
+immutable, self-seeded documents, so the search page embeds the matching
+localized catalog and ranks it with a small accessible native controller.
+Typing therefore makes no request and cannot cold-start PHP or the Solr JVM.
+Full result pages still query the matching Apache Solr core. When
+`TYPO3_SOLR_URL` points to external production Solr, suggestions use the live
+index instead. The search partial registers the selected controller through
+TYPO3's AssetCollector, keeping delivery coupled to the component.
 
 The adapter is deliberate. During implementation, EXT:solr 14.0.0-beta3's
 Extbase suggest action returned `RequiredArgumentMissingException` for
@@ -84,7 +85,7 @@ The Solr service is not exposed through a public rewrite. Its image:
 2. runs it on `solr:10.0-slim`
 3. copies only the required `analysis-extras`, `langid`, `language-models`,
    `scripting`, `clustering`, and `extraction` modules
-4. enables only the English `core_en` demo core
+4. enables `core_en`, `core_de`, `core_es`, `core_zh`, and `core_hu`
 5. uses a 256 MB initial and 512 MB maximum Java heap
 6. stores writable state below `/tmp/solr-home`
 
@@ -96,18 +97,45 @@ It exposes internal health paths:
 /__health/ready
 ```
 
-Readiness returns success only after `core_en` answers a query and all six demo
-documents have been committed and counted. Until then, every externally bound
-Solr path returns `503 starting`; seeding uses the service-local Solr port and
-does not pass through that gate. Startup logs contain structured `startup` and
-`ready` records with the measured duration and verified document count.
+Readiness returns success only after `core_en` answers a query and all 30 demo
+documents have been committed and counted across five cores. Until then, every
+externally bound Solr path returns `503 starting`; seeding uses the service-local
+Solr port and does not pass through that gate. Startup logs contain structured
+`startup` and `ready` records with the measured duration and verified document
+and core counts.
 
-Local image results from the overhaul:
+### Multilingual Core Routing
 
-| Metric | Old service | Current service |
-|---|---:|---:|
-| Docker image size | about 843 MB | about 589 MB |
-| Local readiness | 4.13-4.62s | 1.94-3.21s; 2.48s median over 5 starts |
+Each TYPO3 site language uses the matching official EXT:solr schema:
+
+| TYPO3 language ID | Language | Solr core |
+|---:|---|---|
+| 0 | English | `core_en` |
+| 1 | German | `core_de` |
+| 2 | Spanish | `core_es` |
+| 3 | Simplified Chinese | `core_zh` |
+| 4 | Hungarian | `core_hu` |
+
+The site config writer adds `solr_core_read` to every language, and the custom
+demo result renderer independently resolves the active request language before
+building its core URL. The duplicated mapping is intentional: EXT:solr backend
+modules and the Camino result renderer must agree.
+
+The local release test checked all five core counts and queried a native term in
+every language. German `q=inhalte` returned the localized Camino document from
+`core_de` and returned zero from `core_en`, proving both matching and language
+isolation.
+
+Local image results from the overhaul and multilingual correction:
+
+| Metric | Original service | Optimized English-only service | Current five-core service |
+|---|---:|---:|---:|
+| Docker image size | about 843 MB | about 589 MB | about 589 MB |
+| Local readiness | 4.13-4.62s | 1.94-3.21s; 2.48s median over 5 starts | 3.51s acceptance run |
+
+Enabling the four additional core directories adds negligible image size
+because the official configset was already present. It adds startup work because
+Solr must load and seed five schemas before advertising readiness.
 
 ## Why The Demo Self-Seeds
 
@@ -115,9 +143,9 @@ Vercel can start several Solr service instances. Their `/tmp` filesystems are
 not shared, so an update can reach one instance and the next select can reach a
 fresh instance with zero documents.
 
-The service avoids a broken demo by inserting the same six Camino documents
-when every instance becomes ready. This makes static demo search repeatable,
-but it does not make editor-driven runtime indexing durable.
+The service avoids a broken demo by inserting six localized Camino documents
+per core when every instance becomes ready. This makes static demo search
+repeatable, but it does not make editor-driven runtime indexing durable.
 
 By default, the protected setup endpoint detects the internal service and skips
 the TYPO3 runtime index write. Set `TYPO3_SOLR_INDEX_ON_SETUP=1` only when you
@@ -218,11 +246,12 @@ Open:
 
 ```text
 /search?tx_solr[q]=camino
+/de/suche?tx_solr[q]=inhalte
 ```
 
-The expected demo result count is six. A genuinely cold first search may take
-roughly 15-20 seconds, but it should wait for results rather than first showing
-the intermediate warming state.
+The expected result count for `q=*` is six in each language. A genuinely cold
+first search may take roughly 15-20 seconds, but it should wait for results
+rather than first showing the intermediate warming state.
 
 ## External Production Solr
 
@@ -415,8 +444,9 @@ the complete `/solr/core_en` URL; the config writer normalizes it. Do not also
 set `TYPO3_SOLR_PATH=/solr/` unless the provider actually has an additional
 prefix.
 
-The generated TYPO3 site connection should normally have base path `/` and
-language core `core_en` for the private service proxy.
+The generated TYPO3 site connection should normally have base path `/`. The
+private service proxy maps language IDs 0-4 to `core_en`, `core_de`, `core_es`,
+`core_zh`, and `core_hu` respectively.
 
 ### Search Page Is Missing
 
@@ -427,7 +457,7 @@ page and `vercel_solr_demo_results` content element.
 
 Current service images do not advertise readiness before the startup seed is
 committed. If zero results still appear, inspect the structured `ready` record
-for `demo_documents: 6` and run the protected select probe. Do not assume the
+for `demo_documents: 30`, `demo_cores: 5`, and run the protected select probe. Do not assume the
 Pro warm-up reached the same service instance a visitor receives.
 
 ### Scheduler Returns A Safe Skip

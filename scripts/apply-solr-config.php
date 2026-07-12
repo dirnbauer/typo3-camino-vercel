@@ -264,6 +264,18 @@ function solr_apply_credentials(array &$site, array $connection, string $scope):
 
 function solr_apply_language_cores(array $languages, string $defaultCore): array
 {
+    $internalService = solr_env('TYPO3_SOLR_SERVICE_URL') !== null
+        || solr_env('SOLR_SERVICE_URL') !== null
+        || solr_env('TYPO3_SOLR_INTERNAL_URL') !== null
+        || solr_env('SOLR_INTERNAL_URL') !== null;
+    $internalCores = [
+        '0' => 'core_en',
+        '1' => 'core_de',
+        '2' => 'core_es',
+        '3' => 'core_zh',
+        '4' => 'core_hu',
+    ];
+
     foreach ($languages as $index => $language) {
         if (!is_array($language)) {
             continue;
@@ -271,7 +283,10 @@ function solr_apply_language_cores(array $languages, string $defaultCore): array
         $languageId = (string)($language['languageId'] ?? $index);
         $specificCore = solr_env('TYPO3_SOLR_CORE_LANGUAGE_' . $languageId)
             ?? solr_env('SOLR_CORE_LANGUAGE_' . $languageId);
-        $language['solr_core_read'] = $specificCore ?? $language['solr_core_read'] ?? $defaultCore;
+        $language['solr_core_read'] = $specificCore
+            ?? ($internalService ? ($internalCores[$languageId] ?? null) : null)
+            ?? $language['solr_core_read']
+            ?? $defaultCore;
         $languages[$index] = $language;
     }
 
