@@ -24,7 +24,7 @@ required.
 
 The default `vercel.json` deliberately deploys only the TYPO3 application:
 
-- one PHP 8.4/nginx container service
+- one PHP 8.4/nginx Dockerfile-backed container Service
 - no Solr container
 - no scheduled jobs
 - a pre-seeded Camino SQLite copy in `/tmp`
@@ -78,12 +78,13 @@ proved with a load test using the site's real extensions, templates, cache
 policy, database, and traffic mix; this starter cannot assign a universal page
 view limit.
 
-Vercel currently does not expose a minimum always-warm instance for this
-Container Image path. The three-minute warmer makes normal use much faster but
-cannot guarantee zero cold starts during deployments, scale-out, eviction, or
-cron delays. If a large site's backend or first request has a hard latency SLA,
-run the TYPO3 origin on always-on infrastructure and use Vercel for CDN, public
-delivery, assets, and preview deployments.
+Vercel's current Dockerfile deployment guide documents production scale-in
+after five idle minutes and does not document a minimum always-warm instance
+for this container path. The three-minute warmer makes normal use much faster
+but cannot guarantee zero cold starts during deployments, scale-out, eviction,
+or cron delays. If a large site's backend or first request has a hard latency
+SLA, run the TYPO3 origin on always-on infrastructure and use Vercel for CDN,
+public delivery, assets, and preview deployments.
 
 ## Decision Rule
 

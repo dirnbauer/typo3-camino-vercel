@@ -36,20 +36,14 @@ smallest smoke test and do not care about uploaded files.
 
 ## What It Costs
 
-For a small personal smoke test, the expected Vercel bill is `0 EUR/USD` as
-long as the project stays inside Hobby limits.
+For a small personal smoke test, the Vercel charge can be `0 EUR/USD` while the
+project is eligible for Hobby and remains inside every current allowance. Free
+means quota-limited, not unlimited or permanently price-guaranteed.
 
-The important included Vercel Hobby limits to watch are:
-
-- 4 active CPU hours per month for functions.
-- 360 GB-hours provisioned memory per month.
-- 1,000,000 function invocations per month.
-- 10 GB Vercel Container Registry image storage.
-- 10 GB Fast Origin Transfer.
-
-If a Hobby limit is exceeded, Vercel usually pauses the affected feature until
-the usage window resets instead of charging overages. Hobby is restricted to
-personal/non-commercial use.
+Do not copy fixed Function, transfer, registry, or Blob allowances from this
+document into a client quote. Vercel changes plans and regional pricing. Check
+the live Hobby, Functions, Blob, and pricing pages before deployment and monitor
+usage afterward. Hobby is intended for personal, non-commercial use.
 
 ## What Is Not Free-Durable
 
@@ -79,7 +73,8 @@ while every service stays inside its provider's free quota.
 
 Best practical stack:
 
-- Vercel Hobby for the container, personal/non-commercial use only.
+- Vercel Hobby for the Dockerfile-backed container Service,
+  personal/non-commercial use only.
 - TiDB Cloud for MySQL-compatible free database testing, or Neon/Supabase for
   Postgres.
 - Vercel Blob on Hobby within limits, or Cloudflare R2 for free object storage
@@ -120,7 +115,8 @@ Blob store created during the Deploy Button flow. This starter also includes
 
 ## Sources
 
-- Vercel Hobby plan: https://vercel.com/docs/plans/hobby
-- Vercel pricing: https://vercel.com/pricing
-- Vercel Blob pricing: https://vercel.com/docs/vercel-blob/usage-and-pricing
-- TiDB Cloud for Vercel: https://vercel.com/marketplace/tidb-cloud
+- [Vercel Hobby plan](https://vercel.com/docs/plans/hobby)
+- [Vercel pricing](https://vercel.com/pricing)
+- [Vercel Function limits](https://vercel.com/docs/functions/limitations)
+- [Vercel Blob pricing](https://vercel.com/docs/vercel-blob/usage-and-pricing)
+- [TiDB Cloud for Vercel](https://vercel.com/marketplace/tidb-cloud)

@@ -5,23 +5,21 @@ to a client.
 
 ## Vercel
 
-As checked on 2026-07-03, Vercel Hobby is $0/month for personal,
-non-commercial projects within plan limits. It includes enough usage for a
+As rechecked on 2026-07-12, Vercel Hobby has no monthly subscription charge for
+eligible personal, non-commercial projects within plan limits. It can cover a
 small TYPO3 smoke test, but it is not a production business plan.
 
 Important Hobby constraints for this starter:
 
-- Vercel Functions include 4 active CPU hours, 360 GB-hours provisioned memory,
-  and 1,000,000 invocations per month
-- Vercel Container Registry image storage includes 10 GB per month
-- Fast Origin Transfer includes 10 GB per month
-- Vercel Blob is free on Hobby within limits: 1 GB storage, 10,000 simple
-  operations, 2,000 advanced operations, and 10 GB Blob data transfer
+- every Function, transfer, registry, and Blob allowance is finite
 - cron jobs can run at most once per day on Hobby
-- Hobby cron timing has hourly precision, not exact minute precision
-- runtime logs are limited
-- production deployment protection is not the same as Pro/Enterprise
-- Vercel can pause a Hobby project until the next period if limits are exceeded
+- Hobby cron timing is not exact; current documentation allows broad delivery
+  variation
+- runtime logs and production controls differ from paid plans
+- exceeding a free allowance can pause or restrict the affected resource
+
+Use the live plan and pricing pages for exact allowances. They are deliberately
+not duplicated here because values, regions, and billing units can change.
 
 For commercial/client work, expect Vercel Pro or higher.
 
@@ -31,12 +29,11 @@ The three-minute Pro warm-up runs 20 times per hour, 480 times per day, or
 about 14,400 times in a 30-day month. A warm invocation checks DB/Redis, primes
 frontend and backend through local loopback, and pings Solr.
 
-At current active-CPU and provisioned-memory pricing, the expected incremental
-usage for this small demo is usually cents to low single-digit dollars per
-month before plan credits. This is an estimate because duration, CPU class,
-Solr activation, and concurrency affect the bill. Use Vercel Observability and
-the current `fra1` rates for an actual forecast. The fixed Pro subscription is
-the larger prerequisite.
+Those invocations consume normal Function resources. Duration, memory/CPU
+class, Solr activation, concurrency, transfer, regional pricing, and plan
+credits determine the bill. Use Vercel Observability and the current `fra1`
+rates for a forecast instead of treating the invocation count as a cost
+estimate. The Pro subscription is a prerequisite for this schedule.
 
 Hobby cannot use this schedule because its cron limit is once per day. A free
 demo can be durable, but it cannot use the built-in frequent cold-start warmer.
@@ -90,8 +87,8 @@ Important Redis cost notes:
 
 ## Solr Search Cost Notes
 
-Vercel does not currently provide managed Apache Solr as a first-party or
-Marketplace storage service for this starter. This repo includes an internal
+No Vercel-managed Apache Solr product was documented in the sources reviewed
+for this starter. This repo includes an internal
 Vercel Solr container service for demos, and DDEV includes local Solr for
 development, but production TYPO3 search needs durable Solr index storage.
 
@@ -101,9 +98,9 @@ Practical production choices:
   OpenSolr, SearchStax, or a TYPO3 host that offers Solr
 - self-managed Solr 10 on always-on infrastructure with backups and monitoring
 
-Expect Solr to add a separate monthly cost. Publicly listed entry plans checked
-during this work were roughly 10-15 EUR/month for small hosted Solr services,
-but provider plans change often and must be checked before a client quote.
+Expect production Solr to add a separate cost. Provider plans, storage,
+retention, replicas, traffic, backups, support, and region change the price;
+check a current provider quote before committing to a budget.
 
 ## Practical Recommendation
 
@@ -142,11 +139,11 @@ Blob, a durable database, and Redis cache as a working example.
 
 ## Sources
 
-- Vercel pricing: https://vercel.com/pricing
-- Vercel Hobby plan: https://vercel.com/docs/plans/hobby
-- Vercel Blob pricing: https://vercel.com/docs/vercel-blob/usage-and-pricing
-- Vercel Functions limits: https://vercel.com/docs/functions/limitations
-- Vercel Cron pricing: https://vercel.com/docs/cron-jobs/usage-and-pricing
+- [Vercel pricing](https://vercel.com/pricing)
+- [Vercel Hobby plan](https://vercel.com/docs/plans/hobby)
+- [Vercel Blob pricing](https://vercel.com/docs/vercel-blob/usage-and-pricing)
+- [Vercel Functions limits](https://vercel.com/docs/functions/limitations)
+- [Vercel Cron usage and pricing](https://vercel.com/docs/cron-jobs/usage-and-pricing)
 - Vercel Redis docs: https://vercel.com/docs/redis
 - Vercel Redis Marketplace listing: https://vercel.com/marketplace/redis
 - Vercel Upstash Marketplace listing: https://vercel.com/marketplace/upstash

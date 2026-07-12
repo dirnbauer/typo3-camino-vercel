@@ -9,7 +9,8 @@ The repository supports two Solr modes:
 | Internal Vercel Solr service | Demo, experiments, integration tests | No; self-seeded on each instance |
 | External Solr 10 endpoint | Real indexing and production search | Provider/volume dependent |
 
-Vercel does not currently provide managed Apache Solr or a persistent mounted
+No Vercel-managed Apache Solr product was documented in the sources reviewed on
+2026-07-12. The Vercel Services guide does not describe a persistent mounted
 service volume suitable for Solr's live Lucene index. Production Solr should
 run on a managed provider or always-on infrastructure with durable storage,
 backups, monitoring, and access control.
@@ -36,7 +37,7 @@ switch to a stable constraint when a compatible stable release is published.
 - a protected setup/diagnostic/benchmark endpoint
 - a protected TYPO3 Scheduler endpoint
 - a DDEV Solr 10 service for local development
-- a separate Vercel Container Image service running real Solr 10
+- a separate private Vercel container Service running real Solr 10
 - a private service binding from TYPO3 to Solr
 - a bounded retry proxy for Vercel service activation responses
 - six self-seeded Camino demo documents for the non-durable service
@@ -453,5 +454,5 @@ disabled by default. External Solr runs the real Scheduler task.
 - [EXT:solr Scheduler](https://docs.typo3.org/p/apache-solr-for-typo3/solr/main/en-us/Backend/Scheduler.html)
 - [Apache Solr Reference Guide](https://solr.apache.org/guide/solr/latest/)
 - [Vercel Services](https://vercel.com/docs/services)
-- [Vercel Container Images](https://vercel.com/docs/functions/container-images)
+- [Vercel Services](https://vercel.com/kb/guide/vercel-services)
 - [Vercel Container Registry](https://vercel.com/docs/container-registry)

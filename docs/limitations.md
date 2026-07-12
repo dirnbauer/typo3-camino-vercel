@@ -1,9 +1,10 @@
 # Limitations
 
-## Stateless Runtime
+## Disposable Runtime Filesystem
 
-Vercel container runtime storage is not a durable TYPO3 volume. Anything written
-at runtime can disappear across cold starts, redeploys, or scaling events.
+This project treats the Vercel container runtime filesystem as disposable, not
+as a durable TYPO3 volume. Anything written there can disappear across instance
+replacement, redeployment, or scaling.
 
 Impact:
 
@@ -32,15 +33,13 @@ multi-hour TYPO3 job.
 
 Current practical limits:
 
-- Hobby: maximum invocation duration is 300 seconds.
-- Pro/Enterprise: default duration is 300 seconds and can be raised up to 800
-  seconds for normal function workloads.
-- Extended duration features can be runtime-specific betas. Do not assume they
-  apply to this PHP Container Image
-  service.
-- Cron invokes an HTTP path and inherits the same invocation limits.
-- Hobby Cron can run only once per day with per-hour precision. Pro/Enterprise
-  Cron can run once per minute.
+- Cron invokes an HTTP Function and inherits the applicable invocation limits.
+- Hobby Cron can run at most once per day and its delivery time can vary
+  substantially; Pro/Enterprise schedules can run once per minute.
+- Function duration and resource limits depend on the current runtime, plan,
+  and configuration. Check the live Vercel limits before selecting a batch size.
+- Do not assume that a runtime-specific extended-duration feature applies to
+  this Dockerfile-backed PHP Function.
 
 That means a Solr full-site index that needs hours is possible only when it is
 split into many short, idempotent indexing batches, or when it runs on an
@@ -70,7 +69,8 @@ TYPO3_MAIL_SMTP_USERNAME=<smtp-user>
 TYPO3_MAIL_SMTP_PASSWORD=<smtp-password>
 ```
 
-Without an SMTP configuration, mail delivery fails silently in the frontend.
+Without an SMTP configuration, frontend code may appear to submit successfully
+while mail is not delivered. Test delivery and monitor provider failures.
 
 ## Database Setup
 
@@ -131,9 +131,10 @@ reliable Solr residency control in this deployment.
 
 ## Solr
 
-EXT:solr is installed as an optional Composer package, but Vercel does not
-provide managed Apache Solr for this starter. The repo includes an internal
-Vercel Solr container service for demos and experiments, but production search
+EXT:solr is installed as a Composer package, but no Vercel-managed Apache Solr
+product was documented in the sources reviewed for this starter. The repo
+includes an internal Vercel Solr container Service for demos and experiments,
+but production search
 should use an external managed Solr 10 service. The Vercel Solr container still
 needs durable index state and operational protection before it can be considered
 production-safe. Large indexing jobs should run as chunked scheduler batches or
@@ -155,6 +156,13 @@ submitted to the Vercel Marketplace.
 
 ## TYPO3 Introduction Package
 
-The old `typo3/cms-introduction` package currently does not target TYPO3 14.
-This starter uses `typo3/theme-camino`, which is the TYPO3 14 Camino
-distribution.
+This starter uses `typo3/theme-camino`, the Camino distribution selected for
+this TYPO3 14 integration. It does not claim to be the TYPO3 Introduction
+Package or an official Vercel package.
+
+## Sources
+
+- [Dockerfile deployment behavior](https://vercel.com/kb/guide/docker)
+- [Vercel Function limits](https://vercel.com/docs/functions/limitations)
+- [Cron usage and plan limits](https://vercel.com/docs/cron-jobs/usage-and-pricing)
+- [Vercel Blob limits and pricing](https://vercel.com/docs/vercel-blob/usage-and-pricing)

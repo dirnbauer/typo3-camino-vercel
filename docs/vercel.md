@@ -2,18 +2,19 @@
 
 ## How This Project Runs
 
-Vercel builds `Dockerfile.vercel` as a Container Image service and routes all
-traffic to that service through `vercel.json`.
+Vercel builds `Dockerfile.vercel` as an OCI image for a Dockerfile-backed
+container Service and routes traffic according to `vercel.json`.
 
 The one-click `vercel.json` deploys only TYPO3. The Pro profile also defines an
 internal demo-only Solr service in `services/solr/`. Vercel injects its binding
 URL into TYPO3 as `TYPO3_SOLR_SERVICE_URL`. The Solr service receives no public
 rewrite, so public traffic still only enters the TYPO3 app service.
 
-The template pins Functions/Container Images to `fra1` in `vercel.json`. That
+The template pins the application and optional Solr Services to `fra1` in
+`vercel.json`. That
 is a good default for this European demo and for a Neon database created in
 Frankfurt. If your database lives elsewhere, change `regions` to the database
-region before deploying. The function should be close to the database first,
+region before deploying. The application should be close to the database first,
 then close to users.
 
 The container starts nginx and PHP-FPM, serves `public/`, and lets TYPO3 handle
@@ -307,8 +308,7 @@ vercel deploy --prod --scope webconsulting --regions fra1
 - Vercel Deploy Button env vars: https://vercel.com/docs/deploy-button/environment-variables
 - Vercel Deploy Button demo card: https://vercel.com/docs/deploy-button/demo
 - Vercel project configuration: https://vercel.com/docs/project-configuration
-- Vercel Services: https://vercel.com/docs/services
-- Vercel service bindings: https://vercel.com/docs/services/bindings
-- Vercel Container Images: https://vercel.com/docs/functions/container-images
+- Vercel Services: https://vercel.com/kb/guide/vercel-services
+- Dockerfile deployments: https://vercel.com/kb/guide/docker
 - Vercel Container Registry: https://vercel.com/docs/container-registry
 - Vercel Redis docs: https://vercel.com/docs/redis

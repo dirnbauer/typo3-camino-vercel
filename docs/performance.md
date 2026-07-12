@@ -92,7 +92,7 @@ One public `/typo3/` request still took 8.85 seconds after a successful warmer,
 then ten repeats were 0.19-0.42 seconds. That is direct evidence that a cron
 invocation warms one active instance but cannot reserve every instance Vercel
 may select or create. No documented minimum-instance field currently exists for
-this Container Image path.
+this Dockerfile-backed container path.
 
 The first `/camino-route-comparison` edge miss took 11.42 seconds; subsequent
 Vercel edge hits were about 0.10 seconds. Public edge caching is therefore the
@@ -412,12 +412,11 @@ A three-minute schedule produces:
 14,400 invocations/30-day month
 ```
 
-Warm executions should be short. At current Functions active-CPU and
-provisioned-memory pricing, the incremental compute is expected to be in the
-cents to low single-digit dollars per month for this small demo, before plan
-credits. That is an estimate, not a promise. Measure the endpoint duration in
-Vercel Observability and apply current regional rates. The Pro subscription is
-the larger fixed prerequisite.
+Warm executions should be short, but they consume normal Function resources.
+Duration, CPU/memory class, Solr activation, concurrency, transfer, region, plan
+credits, and current Vercel pricing determine the bill. Measure the endpoint in
+Vercel Observability and apply current regional rates; the invocation count is
+not a cost estimate. The Pro subscription is a prerequisite for this schedule.
 
 ## TYPO3 Runtime Settings
 

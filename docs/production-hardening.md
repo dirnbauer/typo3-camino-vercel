@@ -14,14 +14,15 @@ public content with a normal editor backend.
 
 Required pieces:
 
-1. **Compute:** Vercel Pro/Enterprise Container Images, Fluid Compute enabled,
-   performance CPU, and a fixed region near the database.
+1. **Compute:** a Pro/Enterprise Dockerfile-backed Vercel container Service,
+   Fluid Compute enabled, performance CPU, and a fixed region near the database.
 2. **Database:** external Postgres or MySQL/MariaDB through `DATABASE_URL`.
    Do not use SQLite for real backend sessions or content.
 3. **Files:** Vercel Blob through the included `vercel_blob` FAL driver, or
    S3-compatible storage through `vercel_s3`.
-4. **Temporary runtime state:** TYPO3 `var`, `fileadmin`, `typo3temp`, PHP temp,
-   sessions, and ImageMagick temp paths stay in `/tmp`.
+4. **Temporary runtime state:** TYPO3 `var`, the local `fileadmin` fallback,
+   `typo3temp`, PHP temp, and ImageMagick temp paths stay in `/tmp`. TYPO3
+   sessions remain in the external database.
 5. **Caches:** runtime-local TYPO3 file caches for small demos, or Redis
    through a Vercel Marketplace Redis integration when shared cache state
    matters across runtime instances.
@@ -52,9 +53,9 @@ Recommended shape:
 4. Use Vercel as the fast public delivery layer, not the only runtime for the
    editor backend.
 
-This is not a failure of TYPO3. It is the honest boundary while Vercel Container
-Images do not expose a minimum-instances or always-warm control for this use
-case.
+This is not a failure of TYPO3. It is the honest boundary while the current
+Dockerfile deployment documentation exposes no minimum-instances or always-warm
+control for this use case.
 
 ## Concrete Settings For Architecture A
 
@@ -145,7 +146,8 @@ code paths rather than merely returning a cheap PHP response.
 
 Do not rely on this for hard realtime guarantees. It is a mitigation, not an
 SLA feature. If strict first-hit latency is required, use Architecture B until
-Vercel offers a minimum-instances or always-warm option for Container Images.
+Vercel offers a minimum-instances or always-warm option for Dockerfile-backed
+container Services.
 
 ## Remaining Engineering Work
 

@@ -6,15 +6,11 @@ Vercel containers do not run a traditional long-lived Linux cron daemon for this
 project. Do not expect `crontab`, `systemd timers`, or background daemons inside
 the container to be reliable.
 
-Cron-triggered requests are still Vercel function/container invocations. Design
-for the current duration limits:
-
-- Hobby: 300 seconds maximum.
-- Pro/Enterprise: 300 seconds default, configurable up to 800 seconds for
-  normal function workloads.
-- Extended durations can be beta and documented for selected runtimes; do not
-  assume a runtime-specific beta duration applies to this PHP
-  Container Image path.
+Cron-triggered requests are still Vercel Function invocations. Their duration
+and resources remain bounded by the current runtime, plan, and project
+configuration. Check Vercel's live Function limits before choosing a batch size;
+do not assume that a runtime-specific extended-duration feature applies to this
+Dockerfile-backed PHP container Service.
 
 Use one of these instead:
 

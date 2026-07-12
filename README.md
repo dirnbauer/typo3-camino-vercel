@@ -4,7 +4,8 @@
 
 This is **not an official TYPO3 package**. It is a community starter that uses
 the official TYPO3 Camino distribution and packages TYPO3 14.3 as a PHP 8.4
-FPM/nginx container on Alpine Linux for Vercel Container Images.
+FPM/nginx container on Alpine Linux for a Dockerfile-backed Vercel container
+Service. Vercel Services is currently a Beta product.
 
 Live demo: [typo3-camino-vercel.vercel.app](https://typo3-camino-vercel.vercel.app)
 
@@ -22,6 +23,11 @@ Start with the one-click test when you only want to see TYPO3. Choose the
 professional setup before any editor creates content that matters. See
 [Choose one of two setups](docs/deployment-profiles.md) for the complete
 decision guide and the honest large-site boundary.
+
+**The core concept works, with an important boundary:** Vercel runs disposable
+TYPO3 compute and public delivery; durable SQL, files, and production search
+must live in services designed to retain that state. This is not an all-in-one
+replacement for a traditional persistent TYPO3 server.
 
 ## Solution 1: Install In One Click
 
@@ -105,7 +111,9 @@ TYPO3 or Solr container.
 
 This can serve larger read-heavy sites when anonymous pages are cached at the
 edge and stateful services are external, but capacity must be load-tested with
-the real site. Vercel still cannot guarantee a permanently warm TYPO3 instance.
+the real site. The current Dockerfile deployment documentation describes
+production scale-in after five idle minutes and does not document a
+minimum-instance control for this container path.
 Use an always-on TYPO3 origin with Vercel as CDN/delivery when predictable
 first-hit latency is mandatory. Follow [Professional hosting](docs/deployment-profiles.md)
 and [Production hardening](docs/production-hardening.md).
@@ -257,11 +265,11 @@ vercel env add CRON_SECRET production
 ```
 
 Hobby permits cron only once per day, so the three-minute warm-up is Pro-only.
-Vercel currently exposes no minimum-instance setting for this Container Image
-path. The warm-up greatly reduces normal user-visible cold starts but is not a
-formal zero-cold-start guarantee during deployments, scaling, failures, or cron
-delays. An always-on PHP host is still the strict solution when that guarantee
-is mandatory.
+The current Vercel documentation exposes no minimum-instance setting for this
+Dockerfile-backed container path. The warm-up greatly reduces normal
+user-visible cold starts but is not a formal zero-cold-start guarantee during
+deployments, scaling, failures, or cron delays. An always-on PHP host is still
+the strict solution when that guarantee is mandatory.
 
 The one-click SQLite profile enables a 300-second CDN TTL automatically. For a
 durable database-backed site, edge caching remains opt-in because editors may
@@ -285,13 +293,14 @@ VERCEL_SCOPE=your-team scripts/invalidate-frontend-cache.sh
 ```
 
 The public-page target is at most 1 second TTFB and 2 seconds to browser load
-from a warmed edge. Vercel still scales Container Images to zero and exposes no
-minimum-instance control, so the backend, uncached query pages, and an evicted
-CDN entry cannot receive an absolute first/cold-request guarantee. Use an
-always-on origin when that guarantee is contractual.
+from a warmed edge. Vercel documents production scale-in after five idle
+minutes and currently documents no minimum-instance control for this path, so
+the backend, uncached query pages, and an evicted CDN entry cannot receive an
+absolute first/cold-request guarantee. Use an always-on origin when that
+guarantee is contractual.
 
-Read [Cold starts and performance](docs/performance.md) for benchmarks and cost
-estimates.
+Read [Cold starts and performance](docs/performance.md) for benchmarks and the
+warm-up usage model.
 
 ## Redis
 
@@ -313,13 +322,16 @@ with TYPO3's native Redis backend. See [Redis cache](docs/redis-cache.md).
 ## Solr Search
 
 The repository includes EXT:solr 14 beta, Apache Solr 10 configuration, a Camino
-search page, Scheduler integration, and a separate Vercel Solr Container Image.
+search page, Scheduler integration, and a separate private Vercel container
+Service for the demo.
 The internal service is useful for demonstrations and self-seeds six Camino
 documents when an instance starts.
 
 It is **not durable production Solr**. Vercel Blob is object storage and cannot
-be mounted as Solr's low-latency live Lucene index at `/var/solr`. Vercel does
-not currently offer a managed durable Solr service or persistent service volume.
+be mounted as Solr's low-latency live Lucene index at `/var/solr`. No
+Vercel-managed Solr product was documented in the sources reviewed for this
+project, and the Vercel Services guide does not describe a persistent mounted
+service volume.
 Production must use external managed Solr 10 or always-on infrastructure with a
 durable volume, backups, monitoring, and access control.
 
@@ -465,7 +477,8 @@ Start with the [documentation index](docs/README.md). Important guides:
 - [Vercel product manager summary](docs/vercel-product-manager-summary.md)
 
 Current plan limits and product behavior can change. Verify them against the
-[Vercel Container Images](https://vercel.com/docs/functions/container-images),
-[Cron Jobs](https://vercel.com/docs/cron-jobs),
+[Dockerfile deployment guide](https://vercel.com/kb/guide/docker),
+[Vercel Services](https://vercel.com/kb/guide/vercel-services),
+[Cron Jobs](https://vercel.com/docs/cron-jobs/usage-and-pricing),
 [Function limits](https://vercel.com/docs/functions/limitations), and
 [Blob pricing](https://vercel.com/docs/vercel-blob/usage-and-pricing) pages.
