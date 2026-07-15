@@ -6,14 +6,14 @@ dependencies:
 languages:
   -
     title: English
-    enabled: '1'
+    enabled: true
     locale: en_US.UTF-8
     hreflang: en-US
     base: /
     websiteTitle: Camino
     navigationTitle: English
     flag: global
-    languageId: '0'
+    languageId: 0
   -
     title: Deutsch
     enabled: true
@@ -23,7 +23,7 @@ languages:
     websiteTitle: Camino
     navigationTitle: Deutsch
     flag: de
-    languageId: '1'
+    languageId: 1
     fallbackType: strict
     fallbacks: ''
   -
@@ -35,7 +35,7 @@ languages:
     websiteTitle: Camino
     navigationTitle: Español
     flag: es
-    languageId: '2'
+    languageId: 2
     fallbackType: strict
     fallbacks: ''
   -
@@ -47,7 +47,7 @@ languages:
     websiteTitle: Camino
     navigationTitle: 中文
     flag: cn
-    languageId: '3'
+    languageId: 3
     fallbackType: strict
     fallbacks: ''
   -
@@ -59,7 +59,7 @@ languages:
     websiteTitle: Camino
     navigationTitle: Magyar
     flag: hu
-    languageId: '4'
+    languageId: 4
     fallbackType: strict
     fallbacks: ''
 rootPageId: 1

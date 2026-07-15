@@ -44,10 +44,6 @@ try {
 }
 
 $passwordHash = password_hash($adminPassword, PASSWORD_ARGON2I);
-if ($passwordHash === false) {
-    fwrite(STDERR, "Failed to hash TYPO3 admin password.\n");
-    exit(1);
-}
 
 // Scope the update to the live (non-deleted) account only. Without the
 // `deleted = 0` guard, a previously soft-deleted "admin" row would be matched

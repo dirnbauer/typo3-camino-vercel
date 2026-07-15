@@ -1,0 +1,18 @@
+.. This file is included by all TYPO3 ReST documentation pages.
+
+.. |project_name| replace:: TYPO3 Camino on Vercel
+.. |repository| replace:: dirnbauer/typo3-camino-vercel
+
+.. role:: php(code)
+   :language: php
+
+.. role:: yaml(code)
+   :language: yaml
+
+.. role:: json(code)
+   :language: json
+
+.. role:: shell(code)
+   :language: shell
+
+.. default-role:: code

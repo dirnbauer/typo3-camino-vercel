@@ -19,7 +19,7 @@ backups, monitoring, and access control.
 
 The Composer lock and service image currently use:
 
-- TYPO3 CMS `14.3.4`
+- TYPO3 CMS `14.3.5`
 - EXT:solr `14.0.0-beta3`
 - Apache Solr `10.0.0`
 - EXT:solr configset `ext_solr_14_0_0`
@@ -204,12 +204,12 @@ which confirms that cURL handle reuse does not guarantee binding affinity. The
 correctness guarantee is the `503 starting` readiness gate plus the exact
 six-document seed check.
 
-The final cleanup also found that the custom entrypoint inherited
+The final runtime review found that the custom entrypoint inherited
 `LOG4J_PROPS=/var/solr/log4j2.xml` without running the official initializer that
 creates that file. The service now selects Solr's bundled production
 configuration explicitly. A custom WARN-only replacement was tested and
-rejected after one 41.9-second start and one pre-bind exit. See
-[Final cleanup audit](final-cleanup.md) for the complete problem/solution table.
+rejected after one slow start and one pre-bind exit. The bundled production
+configuration is the supported choice.
 
 ## Enable The Internal Demo
 

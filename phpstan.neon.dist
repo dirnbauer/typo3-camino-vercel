@@ -1,0 +1,9 @@
+parameters:
+  level: 5
+  paths:
+    - config/system
+    - packages
+    - public/api
+    - public/index.php
+    - scripts
+  tmpDir: var/phpstan

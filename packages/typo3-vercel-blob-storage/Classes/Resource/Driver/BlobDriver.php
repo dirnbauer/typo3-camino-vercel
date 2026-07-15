@@ -313,8 +313,9 @@ final class BlobDriver extends AbstractHierarchicalFilesystemDriver implements S
             (string)($head['uploadedAt'] ?? ''),
             $fileIdentifier,
         ]);
-        $hash = hash($hashAlgorithm, $fingerprint);
-        if ($hash === false) {
+        try {
+            $hash = hash($hashAlgorithm, $fingerprint);
+        } catch (\ValueError $exception) {
             throw new FileOperationErrorException('Could not hash file "' . $fileIdentifier . '".', 1720010008);
         }
         return $hash;

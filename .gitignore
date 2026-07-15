@@ -21,6 +21,7 @@ nbproject/
 # Dependencies and build artifacts
 /vendor/
 /node_modules/
+/Documentation-GENERATED-temp/
 /.phpunit.cache/
 /.phpunit.result.cache
 

@@ -21,7 +21,7 @@ The added system packages are:
 
 The full direct TYPO3 CMS package list is the `typo3/cms-*` block in
 `composer.json`. `composer.lock` currently resolves these packages to TYPO3
-`v14.3.4`.
+`v14.3.5`.
 
 ## Legacy Package Names
 

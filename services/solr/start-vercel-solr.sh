@@ -142,7 +142,7 @@ seed_demo_documents() {
 }
 
 (
-  for attempt in $(seq 1 240); do
+  for _ in $(seq 1 240); do
     if curl -fsS "http://127.0.0.1:${SOLR_PORT_LISTEN}/solr/core_en/select?q=*:*&rows=0" >/dev/null 2>&1; then
       if seed_demo_documents; then
         touch /tmp/solr-ready

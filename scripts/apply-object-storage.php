@@ -377,7 +377,7 @@ function typo3_vercel_table_columns(PDO $pdo, string $table): array
     $columns = [];
     for ($i = 0; $i < $statement->columnCount(); $i++) {
         $meta = $statement->getColumnMeta($i);
-        if (isset($meta['name']) && is_string($meta['name'])) {
+        if (isset($meta['name'])) {
             $columns[] = $meta['name'];
         }
     }

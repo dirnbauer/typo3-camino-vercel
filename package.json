@@ -2,10 +2,12 @@
   "name": "typo3-camino-vercel-assets",
   "private": true,
   "scripts": {
-    "build:blob-upload": "esbuild packages/typo3-vercel-blob-storage/Resources/Private/JavaScript/large-upload.js --bundle --format=esm --platform=browser --target=es2022 --minify --banner:js=\"/* Generated from Resources/Private/JavaScript/large-upload.js. */\" --outfile=packages/typo3-vercel-blob-storage/Resources/Public/JavaScript/large-upload.js"
+    "build:blob-upload": "esbuild packages/typo3-vercel-blob-storage/Resources/Private/JavaScript/large-upload.js --bundle --format=esm --platform=browser --target=es2022 --minify --banner:js=\"/* Generated from Resources/Private/JavaScript/large-upload.js. */\" --outfile=packages/typo3-vercel-blob-storage/Resources/Public/JavaScript/large-upload.js",
+    "lint:docs": "markdownlint-cli2 README.md 'docs/**/*.md'"
   },
   "devDependencies": {
     "@vercel/blob": "2.6.1",
-    "esbuild": "0.28.1"
+    "esbuild": "0.28.1",
+    "markdownlint-cli2": "0.23.0"
   }
 }

@@ -33,9 +33,15 @@ try {
     exit;
 }
 
-$start = $range?->start ?? 0;
-$end = $range?->end ?? $fileSize - 1;
-$length = $range?->length() ?? $fileSize;
+if ($range === null) {
+    $start = 0;
+    $end = $fileSize - 1;
+    $length = $fileSize;
+} else {
+    $start = $range->start;
+    $end = $range->end;
+    $length = $range->length();
+}
 
 header('Accept-Ranges: bytes');
 header('Cache-Control: public, max-age=31536000, immutable');

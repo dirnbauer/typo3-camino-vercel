@@ -61,7 +61,8 @@ function typo3_vercel_health_database(): array
             (string)($database['password'] ?? ''),
             [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 5],
         );
-        if ($pdo->query('SELECT 1')?->fetchColumn() === false) {
+        $statement = $pdo->query('SELECT 1');
+        if ($statement === false || $statement->fetchColumn() === false) {
             throw new RuntimeException('Database probe did not return a row.');
         }
 

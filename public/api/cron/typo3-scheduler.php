@@ -62,6 +62,7 @@ if (typo3_scheduler_truthy_param('force') || typo3_scheduler_truthy_env('TYPO3_S
 // until the Vercel function times out.
 $process = proc_open(
     $command,
+    // @phpstan-ignore argument.type (PHP supports ['redirect', 1] descriptors.)
     [
         0 => ['pipe', 'r'],
         1 => ['pipe', 'w'],

@@ -9,6 +9,23 @@ permissions:
   contents: read
 
 jobs:
+  documentation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Render TYPO3 documentation
+        run: |
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}:/project" \
+            -w /project \
+            ghcr.io/typo3-documentation/render-guides@sha256:6080cbe815ae702e11a932924cdbcf6ec934fbdf9568931a5ed6bafc4b69959c \
+            render \
+            --config=Documentation \
+            --output=Documentation-GENERATED-temp \
+            Documentation
+      - name: Reject documentation warnings
+        run: test ! -s Documentation-GENERATED-temp/warnings.txt
+
   assets:
     runs-on: ubuntu-latest
     steps:
@@ -19,6 +36,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build:blob-upload
+      - run: npm run lint:docs
       - name: Verify generated Blob upload bundle
         run: git diff --exit-code -- packages/typo3-vercel-blob-storage/Resources/Public/JavaScript/large-upload.js
 
@@ -32,8 +50,6 @@ jobs:
           extensions: curl, dom, gd, intl, mbstring, mysqli, pdo_mysql, pdo_pgsql, pgsql, redis, xmlwriter, zip
           coverage: none
       - uses: ramsey/composer-install@v3
-      - name: Restore immutable Vercel settings
-        run: git show HEAD:config/system/settings.php > config/system/settings.php
       - run: Build/Scripts/runTests.sh -s all
 
   containers:

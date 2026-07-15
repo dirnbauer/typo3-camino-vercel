@@ -67,7 +67,7 @@ final readonly class DirectUploadIndexer
 
         $metadata = array_filter(
             $metadata,
-            static fn(mixed $value): bool => is_int($value) && $value > 0,
+            static fn(int $value): bool => $value > 0,
         );
         if ($metadata !== []) {
             $file->getMetaData()->add($metadata)->save();

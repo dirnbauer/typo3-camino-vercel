@@ -45,6 +45,7 @@ function runTypo3Command(string $root, string $commandName, string ...$arguments
     $command = [$root . '/vendor/bin/typo3', $commandName, ...$arguments];
     $process = proc_open(
         $command,
+        // @phpstan-ignore argument.type (PHP supports ['redirect', 1] descriptors.)
         [
             0 => ['pipe', 'r'],
             1 => ['pipe', 'w'],

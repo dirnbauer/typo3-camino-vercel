@@ -105,7 +105,7 @@ final class PresignedUploadFactory
      */
     private function contentTypeIsAllowed(string $contentType, array $allowedContentTypes): bool
     {
-        $type = explode('/', $contentType, 2)[0] ?? '';
+        $type = explode('/', $contentType, 2)[0];
         return in_array($contentType, $allowedContentTypes, true)
             || ($type !== '' && in_array($type . '/*', $allowedContentTypes, true));
     }

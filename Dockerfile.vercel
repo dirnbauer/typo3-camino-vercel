@@ -70,6 +70,8 @@ WORKDIR /var/www/html
 
 COPY composer.json composer.lock ./
 COPY packages ./packages
+COPY Build/ProjectFiles ./Build/ProjectFiles
+COPY scripts/restore-project-files.php ./scripts/restore-project-files.php
 RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --classmap-authoritative
 
 COPY . .
@@ -97,6 +99,8 @@ RUN set -eu; \
         TYPO3_SETUP_ADMIN_EMAIL=admin@example.com \
         TYPO3_SETUP_DISTRIBUTION=theme_camino \
         php scripts/bootstrap-typo3.php; \
+    php scripts/restore-project-files.php; \
+    php scripts/restore-project-files.php --check; \
     VERCEL=1 \
         TYPO3_CONTEXT=Production/Vercel \
         TYPO3_CACHE_BACKEND=file \
@@ -115,7 +119,9 @@ RUN set -eu; \
     cp /var/www/html/var/seed/camino.sqlite /usr/local/share/typo3-seed/camino.sqlite; \
     cp -a var/cache/code/di /usr/local/share/typo3-cache/code/di; \
     cp -a var/cache/code/fluid_template /usr/local/share/typo3-cache/code/fluid_template; \
-    rm -rf var/* public/typo3temp/*
+    rm -rf var/* public/typo3temp/*; \
+    php scripts/restore-project-files.php; \
+    php scripts/restore-project-files.php --check
 
 RUN chmod +x docker/entrypoint.sh docker/serve.sh scripts/bootstrap-typo3.php scripts/apply-admin-password.php scripts/apply-object-storage.php scripts/apply-solr-config.php scripts/frontend-edge-cache-policy.php scripts/resolve-system-maintainers.php \
     && mkdir -p var public/fileadmin/_temp_ public/fileadmin/user_upload public/typo3temp config/system \

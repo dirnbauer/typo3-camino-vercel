@@ -99,6 +99,7 @@ if ($action === 'diagnose') {
 
 $process = proc_open(
     $command,
+    // @phpstan-ignore argument.type (PHP supports ['redirect', 1] descriptors.)
     [
         0 => ['pipe', 'r'],
         1 => ['pipe', 'w'],
@@ -493,7 +494,7 @@ function typo3_solr_benchmark_request(string $url, string $method, ?string $body
     ]);
     $responseBody = @file_get_contents($url, false, $context);
     $status = 'n/a';
-    foreach (($http_response_header ?? []) as $header) {
+    foreach ($http_response_header as $header) {
         if (preg_match('/^HTTP\/\S+\s+(\d+)/', $header, $match) === 1) {
             $status = (int)$match[1];
             break;
@@ -504,7 +505,7 @@ function typo3_solr_benchmark_request(string $url, string $method, ?string $body
     return [
         'status' => $status,
         'time' => microtime(true) - $started,
-        'error' => is_array($lastError) ? (string)($lastError['message'] ?? '') : '',
+        'error' => is_array($lastError) ? (string)$lastError['message'] : '',
         'body' => is_string($responseBody) ? $responseBody : '',
     ];
 }
@@ -592,7 +593,7 @@ function typo3_solr_probe_request(string $url, float $timeout): array
     $started = microtime(true);
     $body = @file_get_contents($url, false, $context);
     $time = microtime(true) - $started;
-    $headers = isset($http_response_header) && is_array($http_response_header) ? $http_response_header : [];
+    $headers = $http_response_header;
     $status = 'n/a';
 
     foreach ($headers as $header) {
@@ -605,7 +606,7 @@ function typo3_solr_probe_request(string $url, float $timeout): array
     $error = '';
     if ($body === false) {
         $lastError = error_get_last();
-        $error = is_array($lastError) ? (string)($lastError['message'] ?? '') : 'request failed';
+        $error = is_array($lastError) ? (string)$lastError['message'] : 'request failed';
         $body = '';
     }
 

@@ -89,9 +89,6 @@ final class SolrSearchContent
         $suggestions = [];
         $seenTitles = [];
         foreach ($result['documents'] as $document) {
-            if (!is_array($document)) {
-                continue;
-            }
             $normalized = $this->normalizeDocument($document);
             $title = $normalized['title'];
             $titleKey = mb_strtolower($title);
@@ -655,7 +652,7 @@ final class SolrSearchContent
         ]);
 
         $body = @file_get_contents($url, false, $context);
-        $headers = isset($http_response_header) && is_array($http_response_header) ? $http_response_header : [];
+        $headers = $http_response_header;
         $status = 0;
         foreach ($headers as $header) {
             if (preg_match('/^HTTP\/\S+\s+(\d+)/', $header, $match) === 1) {
@@ -718,7 +715,7 @@ final class SolrSearchContent
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param array<array-key, mixed> $payload
      */
     private function encodeJson(array $payload): string
     {

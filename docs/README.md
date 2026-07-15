@@ -10,6 +10,7 @@ when the deployment becomes more than a disposable demo.
 |---|---|
 | [Choose one of two setups](deployment-profiles.md) | One-click evaluation versus professional hosting |
 | [Quickstart](quickstart.md) | One-click and first durable deployment |
+| [Configuration](configuration.md) | Canonical environment and profile reference |
 | [Vercel deployment](vercel.md) | CLI, environment, regions, and deployment lifecycle |
 | [Costs](costs.md) | Hobby, Pro, databases, Blob, Redis, and Solr cost shape |
 | [Free demo](free-demo.md) | Exactly what can remain free and what is temporary |
@@ -49,10 +50,9 @@ when the deployment becomes more than a disposable demo.
 
 | Guide | Purpose |
 |---|---|
-| [Final cleanup audit](final-cleanup.md) | Last production problems, fixes, rejected experiments, and acceptance evidence |
 | [TYPO3 packages](typo3-packages.md) | Included CMS and extension packages |
 | [Template submission](vercel-template-submission.md) | Vercel Marketplace/template metadata |
-| [Vercel product manager summary](vercel-product-manager-summary.md) | Results, surprises, product gaps, and recommendations |
+| [Architecture decisions](../Documentation/Adr/Index.rst) | Decisions reconstructed from Git history and current implementation |
 
 ## Configuration Profiles
 

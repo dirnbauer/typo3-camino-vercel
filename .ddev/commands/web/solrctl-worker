@@ -43,7 +43,7 @@ declare -A LANG_CODE_MAP=(
     [arabic]=ar [armenian]=hy [basque]=eu [brazilian_portuguese]=ptbr
     [bulgarian]=bg [burmese]=my [catalan]=ca [chinese]=zh
     [czech]=cs [danish]=da [dutch]=nl [english]=en
-    [finnish]=fi [french]=fr [galician]=gl [generic]=generic
+    [finnish]="fi" [french]=fr [galician]=gl [generic]=generic
     [german]=de [greek]=el [hindi]=hi [hungarian]=hu
     [indonesian]=id [irish]=ie [italian]=it [japanese]=ja
     [khmer]=km [korean]=ko [lao]=lo [latvia]=lv

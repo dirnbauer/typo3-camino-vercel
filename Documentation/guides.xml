@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<guides
+    xmlns="https://www.phpdoc.org/guides"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="https://www.phpdoc.org/guides vendor/phpdocumentor/guides-cli/resources/schema/guides.xsd"
+    theme="typo3docs"
+>
+    <project
+        title="TYPO3 Camino on Vercel"
+        version="main"
+        release="main"
+        copyright="since 2026 by the project contributors"
+    />
+
+    <extension
+        class="\T3Docs\Typo3DocsTheme\DependencyInjection\Typo3DocsThemeExtension"
+        project-home="https://github.com/dirnbauer/typo3-camino-vercel"
+        project-repository="https://github.com/dirnbauer/typo3-camino-vercel"
+        project-issues="https://github.com/dirnbauer/typo3-camino-vercel/issues"
+        edit-on-github="dirnbauer/typo3-camino-vercel"
+        edit-on-github-branch="main"
+        edit-on-github-directory="Documentation"
+        interlink-shortcode="dirnbauer/typo3-camino-vercel"
+    />
+
+    <inventory
+        id="t3coreapi"
+        url="https://docs.typo3.org/m/typo3/reference-coreapi/14.3/en-us/"
+    />
+</guides>
