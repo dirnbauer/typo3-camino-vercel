@@ -48,8 +48,10 @@ TYPO3_INSTALL_TOOL_ENABLED=1
 TYPO3_INSTALL_TOOL_PASSWORD_HASH=<argon2i-hash>
 ```
 
-Setting a non-empty `TYPO3_INSTALL_TOOL_PASSWORD_HASH` also enables the switch.
-Disable it again (`TYPO3_INSTALL_TOOL_ENABLED=0` and an empty hash) after use.
+The password hash does not enable the public entry point by itself; it is also
+used by authenticated System modules. Disable `TYPO3_INSTALL_TOOL_ENABLED` again
+after standalone maintenance, while keeping the hash configured for backend
+verification.
 
 ## Backend Security
 

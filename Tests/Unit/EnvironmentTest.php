@@ -133,11 +133,11 @@ final class EnvironmentTest extends TestCase
         self::assertTrue(\typo3_vercel_install_tool_direct_access(['__typo3_install' => '']));
     }
 
-    public function testInstallToolPasswordHashEnablesStandaloneAccess(): void
+    public function testInstallToolPasswordHashDoesNotEnableStandaloneAccess(): void
     {
         $this->setEnv('TYPO3_INSTALL_TOOL_PASSWORD_HASH', '$argon2id$example');
 
-        self::assertTrue(\typo3_vercel_install_tool_direct_access(['__typo3_install' => '']));
+        self::assertFalse(\typo3_vercel_install_tool_direct_access(['__typo3_install' => '']));
     }
 
     public function testParsesSystemMaintainerUids(): void

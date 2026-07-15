@@ -41,8 +41,7 @@ function typo3_vercel_install_tool_direct_access(array $query): bool
         return true;
     }
 
-    return typo3_vercel_bool_env('TYPO3_INSTALL_TOOL_ENABLED', false)
-        || typo3_vercel_env('TYPO3_INSTALL_TOOL_PASSWORD_HASH', '') !== '';
+    return typo3_vercel_bool_env('TYPO3_INSTALL_TOOL_ENABLED', false);
 }
 
 /** @return list<int> */
