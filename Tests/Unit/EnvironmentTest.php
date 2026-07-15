@@ -120,6 +120,26 @@ final class EnvironmentTest extends TestCase
         self::assertSame(5, \typo3_vercel_int_env('MISSING_INTEGER', 5, 1, 20));
     }
 
+    public function testInstallToolAllowsOnlyBackendContextOrExplicitOptIn(): void
+    {
+        self::assertFalse(\typo3_vercel_install_tool_direct_access([]));
+        self::assertFalse(\typo3_vercel_install_tool_direct_access(['__typo3_install' => '']));
+        self::assertTrue(\typo3_vercel_install_tool_direct_access([
+            '__typo3_install' => '',
+            'install' => ['context' => 'backend'],
+        ]));
+
+        $this->setEnv('TYPO3_INSTALL_TOOL_ENABLED', '1');
+        self::assertTrue(\typo3_vercel_install_tool_direct_access(['__typo3_install' => '']));
+    }
+
+    public function testInstallToolPasswordHashEnablesStandaloneAccess(): void
+    {
+        $this->setEnv('TYPO3_INSTALL_TOOL_PASSWORD_HASH', '$argon2id$example');
+
+        self::assertTrue(\typo3_vercel_install_tool_direct_access(['__typo3_install' => '']));
+    }
+
     public function testParsesSystemMaintainerUids(): void
     {
         self::assertSame([1], \typo3_vercel_system_maintainers());
@@ -180,6 +200,8 @@ final class EnvironmentTest extends TestCase
             'TEST_INTEGER',
             'MISSING_INTEGER',
             'TYPO3_SYSTEM_MAINTAINERS',
+            'TYPO3_INSTALL_TOOL_ENABLED',
+            'TYPO3_INSTALL_TOOL_PASSWORD_HASH',
         ];
     }
 

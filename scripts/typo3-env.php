@@ -28,6 +28,23 @@ function typo3_vercel_int_env(string $name, int $default, int $min, int $max): i
     return max($min, min($max, (int)$value));
 }
 
+function typo3_vercel_install_tool_direct_access(array $query): bool
+{
+    if (!array_key_exists('__typo3_install', $query)) {
+        return false;
+    }
+
+    // TYPO3's authenticated System modules initialize a short-lived Install
+    // session before redirecting to this context. The Install application
+    // validates that session; standalone public access remains opt-in below.
+    if (($query['install']['context'] ?? null) === 'backend') {
+        return true;
+    }
+
+    return typo3_vercel_bool_env('TYPO3_INSTALL_TOOL_ENABLED', false)
+        || typo3_vercel_env('TYPO3_INSTALL_TOOL_PASSWORD_HASH', '') !== '';
+}
+
 /** @return list<int> */
 function typo3_vercel_system_maintainers(): array
 {

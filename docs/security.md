@@ -37,9 +37,11 @@ TYPO3_TRUSTED_HOSTS_PATTERN=example\.com|staging\.example\.com
 
 ## Install Tool
 
-This starter uses a single entry point for every route, so the Install Tool GUI
-(reached via `?__typo3_install`) is disabled by default and cannot be opened on
-public URLs. Enable it deliberately only when you need it:
+Standalone Install Tool access (reached via `?__typo3_install`) is disabled by
+default. TYPO3's **System** backend modules remain available to authenticated
+system maintainers: Core creates a short-lived authorized Install session and
+redirects to `install[context]=backend`, which this starter permits. Enable the
+standalone Install Tool deliberately only when you need it:
 
 ```dotenv
 TYPO3_INSTALL_TOOL_ENABLED=1
