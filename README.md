@@ -55,6 +55,10 @@ openssl rand -hex 48
    container images first.
 6. Open the generated site URL. The backend is at `/typo3/`.
 
+The container resolves the configured admin user's database UID on startup, so
+that account also receives TYPO3's **System** modules; it is not assumed to be
+UID 1.
+
 There is no shared default password. The username and password are exactly the
 values entered during deployment. Store both the password and encryption key in
 a password manager; never commit them to Git.

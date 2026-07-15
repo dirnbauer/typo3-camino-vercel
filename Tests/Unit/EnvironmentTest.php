@@ -120,6 +120,47 @@ final class EnvironmentTest extends TestCase
         self::assertSame(5, \typo3_vercel_int_env('MISSING_INTEGER', 5, 1, 20));
     }
 
+    public function testParsesSystemMaintainerUids(): void
+    {
+        self::assertSame([1], \typo3_vercel_system_maintainers());
+
+        $this->setEnv('TYPO3_SYSTEM_MAINTAINERS', '7, 2,7');
+
+        self::assertSame([7, 2], \typo3_vercel_system_maintainers());
+    }
+
+    public function testRejectsInvalidSystemMaintainerUids(): void
+    {
+        $this->setEnv('TYPO3_SYSTEM_MAINTAINERS', '1,admin');
+
+        $this->expectException(\RuntimeException::class);
+        \typo3_vercel_system_maintainers();
+    }
+
+    public function testResolvesActiveAdminUidFromDatabase(): void
+    {
+        $databasePath = tempnam(sys_get_temp_dir(), 'typo3-maintainer-');
+        self::assertIsString($databasePath);
+
+        try {
+            $pdo = new \PDO('sqlite:' . $databasePath);
+            $pdo->exec('CREATE TABLE be_users (uid INTEGER, username TEXT, admin INTEGER, disable INTEGER, deleted INTEGER)');
+            $pdo->exec("INSERT INTO be_users VALUES (1, 'old-admin', 1, 0, 0)");
+            $pdo->exec("INSERT INTO be_users VALUES (7, 'admin', 1, 0, 0)");
+            $pdo->exec("INSERT INTO be_users VALUES (8, 'admin', 1, 1, 0)");
+
+            self::assertSame(
+                [7],
+                \typo3_vercel_resolve_system_maintainers(
+                    ['driver' => 'pdo_sqlite', 'path' => $databasePath],
+                    'admin',
+                ),
+            );
+        } finally {
+            @unlink($databasePath);
+        }
+    }
+
     /** @return list<string> */
     private function environmentNames(): array
     {
@@ -138,6 +179,7 @@ final class EnvironmentTest extends TestCase
             'TEST_BOOLEAN',
             'TEST_INTEGER',
             'MISSING_INTEGER',
+            'TYPO3_SYSTEM_MAINTAINERS',
         ];
     }
 

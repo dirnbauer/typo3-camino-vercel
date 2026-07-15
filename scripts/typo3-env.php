@@ -28,6 +28,52 @@ function typo3_vercel_int_env(string $name, int $default, int $min, int $max): i
     return max($min, min($max, (int)$value));
 }
 
+/** @return list<int> */
+function typo3_vercel_system_maintainers(): array
+{
+    $value = typo3_vercel_env('TYPO3_SYSTEM_MAINTAINERS');
+    if ($value === null) {
+        return [1];
+    }
+
+    $maintainers = [];
+    foreach (explode(',', $value) as $item) {
+        $item = trim($item);
+        if (!preg_match('/^[1-9][0-9]*$/', $item)) {
+            throw new RuntimeException(
+                'TYPO3_SYSTEM_MAINTAINERS must contain comma-separated positive backend user UIDs.',
+                1784120401,
+            );
+        }
+        $maintainers[] = (int)$item;
+    }
+
+    return array_values(array_unique($maintainers));
+}
+
+/** @return list<int> */
+function typo3_vercel_resolve_system_maintainers(array $database, string $username): array
+{
+    $pdo = new PDO(
+        typo3_vercel_pdo_dsn($database),
+        (string)($database['user'] ?? null),
+        (string)($database['password'] ?? null),
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION],
+    );
+    $statement = $pdo->prepare(
+        'SELECT uid
+           FROM be_users
+          WHERE username = :username
+            AND admin = 1
+            AND disable = 0
+            AND deleted = 0
+          ORDER BY uid',
+    );
+    $statement->execute(['username' => $username]);
+
+    return array_values(array_map('intval', $statement->fetchAll(PDO::FETCH_COLUMN)));
+}
+
 function typo3_vercel_project_root(): string
 {
     return str_replace('\\', '/', dirname(__DIR__));
@@ -654,7 +700,7 @@ function typo3_vercel_settings(): array
                 ? 'Webconsulting\\Typo3VercelStorage\\Error\\VercelProductionExceptionHandler'
                 : 'TYPO3\\CMS\\Core\\Error\\ProductionExceptionHandler',
             'sitename' => typo3_vercel_env('TYPO3_PROJECT_NAME', 'TYPO3 Camino'),
-            'systemMaintainers' => [1],
+            'systemMaintainers' => typo3_vercel_system_maintainers(),
             // The pattern must be wrapped in a single non-capturing group. TYPO3 evaluates
             // it as preg_match('/^' . $pattern . '$/i', $host), so a bare a|b|c alternation
             // would anchor ^ only to the first branch and $ only to the last, leaving the

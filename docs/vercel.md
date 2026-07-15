@@ -81,6 +81,9 @@ TYPO3_AUTO_SETUP=0
 TYPO3_BOOTSTRAP_EMPTY_DATABASE=0
 TYPO3_SETUP_DISTRIBUTION=theme_camino
 TYPO3_SETUP_ADMIN_USERNAME=admin
+# Optional explicit comma-separated backend user UIDs. When omitted, startup
+# resolves TYPO3_SETUP_ADMIN_USERNAME from be_users automatically.
+# TYPO3_SYSTEM_MAINTAINERS=1,7
 TYPO3_SETUP_ADMIN_PASSWORD=<long-random-password>
 TYPO3_SETUP_ADMIN_EMAIL=admin@example.com
 TYPO3_PROJECT_NAME=TYPO3 Camino

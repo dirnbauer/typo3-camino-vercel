@@ -160,6 +160,21 @@ apply_database_defaults() {
   esac
 }
 
+configure_system_maintainers() {
+  local resolved_maintainers
+
+  if [ -n "${TYPO3_SYSTEM_MAINTAINERS:-}" ]; then
+    return
+  fi
+
+  if resolved_maintainers="$(php scripts/resolve-system-maintainers.php)"; then
+    export TYPO3_SYSTEM_MAINTAINERS="$resolved_maintainers"
+    echo "Configured the TYPO3 setup admin as a system maintainer."
+  else
+    echo "Could not resolve the setup admin UID; using the fallback system maintainer UID 1." >&2
+  fi
+}
+
 configure_frontend_shared_cache_headers() {
   local enabled
 
@@ -278,5 +293,7 @@ if should_run_extension_setup; then
   apply_object_storage
   fix_runtime_permissions_recursive
 fi
+
+configure_system_maintainers
 
 exec "$@"
