@@ -248,6 +248,13 @@ function typo3_vercel_database_config_from_url(string $url): array
     }
 
     if (in_array($scheme, ['mysql', 'mariadb'], true)) {
+        // Only accept a MySQL-family driver override here. The image bakes
+        // TYPO3_DB_DRIVER=pdo_sqlite as its demo default, and inheriting that
+        // for a mysql:// URL would produce a broken sqlite/MySQL hybrid.
+        $driver = typo3_vercel_env('TYPO3_DB_DRIVER', 'mysqli');
+        if (!in_array($driver, ['mysqli', 'pdo_mysql'], true)) {
+            $driver = 'mysqli';
+        }
         return [
             'charset' => 'utf8mb4',
             'dbname' => $dbname,
@@ -255,7 +262,7 @@ function typo3_vercel_database_config_from_url(string $url): array
                 'charset' => 'utf8mb4',
                 'collation' => 'utf8mb4_unicode_ci',
             ],
-            'driver' => typo3_vercel_env('TYPO3_DB_DRIVER', 'mysqli'),
+            'driver' => $driver,
             'host' => $host,
             'password' => $password,
             'port' => (int)($parts['port'] ?? 3306),

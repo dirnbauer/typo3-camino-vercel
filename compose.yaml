@@ -13,7 +13,8 @@ services:
       TYPO3_ENCRYPTION_KEY: 8b0f3e41a10d4d2a98e9ee8af52cd9e0f214b725fb08aab8d13cf7d961a0307724d03f61b58f1c0e69a0bc7f34f6018d
       TYPO3_PROJECT_NAME: TYPO3 Camino
       TYPO3_SETUP_ADMIN_EMAIL: admin@example.com
-      TYPO3_SETUP_ADMIN_PASSWORD: admin-password-change-me
+      # Local smoke default only; must satisfy TYPO3's policy (upper/lower/digit/special).
+      TYPO3_SETUP_ADMIN_PASSWORD: Change-me-locally-1!
       TYPO3_SETUP_ADMIN_USERNAME: admin
       TYPO3_SETUP_DISTRIBUTION: theme_camino
       TYPO3_TRUSTED_HOSTS_PATTERN: (?:localhost(:[0-9]+)?|127\.0\.0\.1(:[0-9]+)?)

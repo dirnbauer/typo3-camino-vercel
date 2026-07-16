@@ -76,6 +76,21 @@ final class EnvironmentTest extends TestCase
         self::assertSame('/tmp/typo3/camino.sqlite', $sqlite['path']);
     }
 
+    public function testMySqlUrlIgnoresNonMySqlDriverOverride(): void
+    {
+        // The image bakes TYPO3_DB_DRIVER=pdo_sqlite as its demo default; a
+        // mysql:// DATABASE_URL must not inherit it as a hybrid config.
+        $this->setEnv('TYPO3_DB_DRIVER', 'pdo_sqlite');
+
+        $mysql = \typo3_vercel_database_config_from_url('mysql://typo3:secret@db.example.test:3306/camino');
+        self::assertSame('mysqli', $mysql['driver']);
+        self::assertArrayNotHasKey('path', $mysql);
+
+        $this->setEnv('TYPO3_DB_DRIVER', 'pdo_mysql');
+        $mysql = \typo3_vercel_database_config_from_url('mysql://typo3:secret@db.example.test:3306/camino');
+        self::assertSame('pdo_mysql', $mysql['driver']);
+    }
+
     public function testParsesTlsRedisUrlWithoutLeakingCredentialsIntoHost(): void
     {
         $this->setEnv('REDIS_URL', 'rediss://default:p%40ss@redis.example.test:6380/3');
