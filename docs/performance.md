@@ -87,8 +87,8 @@ vercel crons ls --scope your-team
 ```
 
 The expected schedules are the three-minute warmer and the 15-minute TYPO3
-Scheduler invocation. Git deployments use `vercel.json`, so verify schedules
-after every production release that is meant to use the Pro profile.
+Scheduler invocation. Pushes to `main` deploy the Pro profile through CI;
+verify the schedules after every production release.
 
 ## Historical Measurements
 

@@ -52,6 +52,11 @@ if [[ -n "${scope}" ]]; then
   args+=(--scope "${scope}")
 fi
 
+# CI passes a token; interactive use relies on `vercel login` state.
+if [[ -n "${VERCEL_TOKEN:-}" ]]; then
+  args+=(--token "${VERCEL_TOKEN}")
+fi
+
 vercel "${args[@]}"
 
 TYPO3_PUBLIC_BASE_URL="${TYPO3_PUBLIC_BASE_URL:-https://typo3-camino-vercel.vercel.app}" \

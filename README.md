@@ -86,9 +86,10 @@ three-minute warm-up plus a 15-minute Scheduler invocation. Deploy it with:
 VERCEL_SCOPE=your-team scripts/deploy-pro.sh
 ```
 
-Git-based deployments read `vercel.json`, so run the script after a production
-push when the Pro profile is intended. Set a strong `CRON_SECRET` first and
-verify the registered schedules after deployment.
+Pushes to `main` deploy the Pro profile automatically: the CI `deploy` job
+runs the same script after all checks pass (it needs the `VERCEL_TOKEN`
+repository secret). Set a strong `CRON_SECRET` first and verify the
+registered schedules after deployment.
 
 The warmer reduces ordinary cold-start exposure but does not reserve an
 instance. Use always-on TYPO3 and managed Solr infrastructure when predictable

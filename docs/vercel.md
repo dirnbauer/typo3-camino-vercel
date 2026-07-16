@@ -111,8 +111,9 @@ checks database, Redis, and Solr. Configure `CRON_SECRET` and deploy with:
 VERCEL_SCOPE=webconsulting scripts/deploy-pro.sh
 ```
 
-Git-based Vercel deployments read `vercel.json`. Run the Pro command after a
-push when the deployment must keep its frequent warm-up schedule.
+The Vercel project is not Git-connected. Pushes to `main` deploy the Pro
+profile through the CI `deploy` job once the `VERCEL_TOKEN` repository secret
+exists; the script above remains the manual path.
 
 Generate secrets locally:
 
