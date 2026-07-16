@@ -27,11 +27,12 @@ History evidence
 - ``4294273`` (2026-07-06) reverted unsafe TYPO3 cache seeding.
 - ``5ff0007`` (2026-07-09) overhauled runtime and cold-start handling.
 - ``635d5f2`` (2026-07-09) hardened warm-up and the runtime build.
+- ``654f2ba`` (2026-07-16) moved the runtime to PHP 8.5.
 
 Decision
 ========
 
-Use a multi-stage Alpine image with nginx and PHP 8.4 FPM. Compile extensions
+Use a multi-stage Alpine image with nginx and PHP 8.5 FPM. Compile extensions
 and install Composer dependencies during the image build. Exclude development
 dependencies and build tools from the runtime stage.
 
@@ -69,3 +70,6 @@ Alternatives considered
    that environment-specific cache seeding was unsafe.
 3. **Accept Composer's stock entry point:** Rejected because it would bypass the
    Vercel runtime preparation and direct Install Tool access policy.
+4. **Serve PHP through FrankenPHP instead of nginx and PHP-FPM:** Rejected
+   (2026-07 review) because TYPO3 does not support its worker mode, and classic
+   mode yields a larger image without a latency benefit.

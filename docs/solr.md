@@ -9,11 +9,11 @@ The repository supports two Solr modes:
 | Internal Vercel Solr service | Demo, experiments, integration tests | No; self-seeded on each instance |
 | External Solr 10 endpoint | Real indexing and production search | Provider/volume dependent |
 
-No Vercel-managed Apache Solr product was documented in the sources reviewed on
-2026-07-12. The Vercel Services guide does not describe a persistent mounted
-service volume suitable for Solr's live Lucene index. Production Solr should
-run on a managed provider or always-on infrastructure with durable storage,
-backups, monitoring, and access control.
+Vercel offers no managed Apache Solr product and no persistent mounted volume
+suitable for Solr's live Lucene index. Production Solr should run on a managed
+provider or always-on infrastructure with durable storage, backups, monitoring,
+and access control. Confirm the provider actually offers Solr 10: EXT:solr 14
+requires it, and many managed vendors still run Solr 9.
 
 ## Version Set
 
@@ -62,13 +62,10 @@ Full result pages still query the matching Apache Solr core. When
 index instead. The search partial registers the selected controller through
 TYPO3's AssetCollector, keeping delivery coupled to the component.
 
-The adapter is deliberate. During implementation, EXT:solr 14.0.0-beta3's
-Extbase suggest action returned `RequiredArgumentMissingException` for
-`queryString` even when called with the documented request namespace. The
-bounded adapter fixed external mode, while the no-request catalog removed the
-internal Vercel service outlier. Neither path replaces the main EXT:solr search
-or indexing implementation. Recheck the adapter when upgrading to a stable
-EXT:solr 14 release.
+The adapter exists because EXT:solr 14.0.0-beta3's Extbase suggest action
+returned `RequiredArgumentMissingException` for `queryString` even with the
+documented request namespace. Neither path replaces the main EXT:solr search or
+indexing implementation; recheck the adapter on the stable EXT:solr 14 release.
 
 ## Internal Vercel Service
 
@@ -119,30 +116,20 @@ Each TYPO3 site language uses the matching official EXT:solr schema:
 The site config writer adds `solr_core_read` to every language, and the custom
 demo result renderer independently resolves the active request language before
 building its core URL. The duplicated mapping is intentional: EXT:solr backend
-modules and the Camino result renderer must agree.
+modules and the Camino result renderer must agree. `TYPO3_SOLR_CORE` and
+`TYPO3_SOLR_CORE_LANGUAGE_<id>` override the default core mapping when a
+provider uses different core names.
 
-The local release test checked all five core counts and queried a native term in
-every language. German `q=inhalte` returned the localized Camino document from
-`core_de` and returned zero from `core_en`, proving both matching and language
-isolation.
+Release and production acceptance verified language isolation: German
+`q=inhalte` returned the localized document from `core_de` and zero from
+`core_en`, native terms matched in all five languages, and `q=*` returned six
+records per language. A cold first request still took about 16 seconds while
+the service activated; warm repeats had 0.35-0.67s TTFB. Language routing does
+not remove the independent service cold start.
 
-Production deployment `dpl_3awXvSDCT5hHfaV8xANrtoXAhnJ5` confirmed the exact
-`/de/suche?tx_solr[q]=inhalte` request with one German result. Native terms
-matched in all five languages, and `q=*` returned six records per language.
-The first German request took 15.693s while Solr activated; eight later requests
-had 0.351-0.671s TTFB. This fixes language routing, not the independent service
-cold start.
-
-Local image results from the overhaul and multilingual correction:
-
-| Metric | Original service | Optimized English-only service | Current five-core service |
-|---|---:|---:|---:|
-| Docker image size | about 843 MB | about 589 MB | about 589 MB |
-| Local readiness | 4.13-4.62s | 1.94-3.21s; 2.48s median over 5 starts | 3.51s acceptance run |
-
-Enabling the four additional core directories adds negligible image size
-because the official configset was already present. It adds startup work because
-Solr must load and seed five schemas before advertising readiness.
+The optimized five-core image is about 589 MB (down from 843 MB) and reaches
+local readiness in roughly 2-4 seconds; loading and seeding five schemas is
+startup work, not image size.
 
 ## Why The Demo Self-Seeds
 
@@ -189,31 +176,19 @@ budget, configurable with
 Solr keeps its shorter normal request behavior.
 
 The Pro warm-up cron pings Solr every three minutes, but it is not an instance
-reservation. After the schedule had run for about 13 hours, three consecutive
-cron invocations still found Solr cold: Solr took 14.553, 16.080, and 16.989
-seconds with 6-7 attempts. The cron remains useful for the TYPO3 app, but the
-reliable demo behavior comes from bounded waiting and per-instance self-seeding,
-not from assuming Solr stays resident.
-
-The final production acceptance on 2026-07-11 warmed only the TYPO3 application
-first, then requested the search page while Solr was cold. The first search
-returned HTTP 200 with all six documents in 16.36 seconds and showed neither a
-warming message nor an empty-result state. Its immediate repeat took 0.96
-seconds. Runtime telemetry recorded nine attempts and nine actual connections,
-which confirms that cURL handle reuse does not guarantee binding affinity. The
-correctness guarantee is the `503 starting` readiness gate plus the exact
-six-document seed check.
-
-The final runtime review found that the custom entrypoint inherited
-`LOG4J_PROPS=/var/solr/log4j2.xml` without running the official initializer that
-creates that file. The service now selects Solr's bundled production
-configuration explicitly. A custom WARN-only replacement was tested and
-rejected after one slow start and one pre-bind exit. The bundled production
-configuration is the supported choice.
+reservation: after 13 hours on that schedule, consecutive invocations still
+found Solr cold (14.6-17.0 seconds of startup). Production acceptance on
+2026-07-11 confirmed the intended behavior: a cold search waited and returned
+HTTP 200 with all six documents in 16.4 seconds, and the immediate repeat took
+0.96 seconds. Telemetry also showed that cURL handle reuse does not guarantee
+binding affinity. The correctness guarantee is therefore the `503 starting`
+readiness gate plus the exact six-document seed check — not cron residency and
+not connection affinity. The service uses Solr's bundled production logging
+configuration.
 
 ## Enable The Internal Demo
 
-Set production environment variables:
+Deploy `vercel.pro.json` and set production environment variables:
 
 ```dotenv
 TYPO3_SOLR_ENABLED=1
@@ -232,6 +207,10 @@ CRON_SECRET=<long-random-secret>
 
 Do not set `TYPO3_SOLR_URL` for this mode. Vercel injects
 `TYPO3_SOLR_SERVICE_URL` from the service binding.
+`TYPO3_SOLR_APPLY_SITE_SET=1` is required for the EXT:solr frontend plugin;
+the local `webconsulting/typo3-vercel-solr-demo` site set is used instead of
+the official EXT:solr set so Camino is not broken by that set's Fluid Styled
+Content dependency.
 
 After deployment, create or repair the `/search` page:
 
@@ -309,7 +288,7 @@ templates.
 
 ## Local DDEV Setup
 
-DDEV uses PHP 8.4 and the matching Solr 10 configset:
+DDEV uses PHP 8.5 and the matching Solr 10 configset:
 
 ```bash
 ddev start
@@ -491,5 +470,4 @@ disabled by default. External Solr runs the real Scheduler task.
 - [EXT:solr Scheduler](https://docs.typo3.org/p/apache-solr-for-typo3/solr/main/en-us/Backend/Scheduler.html)
 - [Apache Solr Reference Guide](https://solr.apache.org/guide/solr/latest/)
 - [Vercel Services](https://vercel.com/docs/services)
-- [Vercel Services](https://vercel.com/kb/guide/vercel-services)
 - [Vercel Container Registry](https://vercel.com/docs/container-registry)

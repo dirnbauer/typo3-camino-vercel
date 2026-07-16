@@ -3,133 +3,58 @@
 ## The Rule
 
 TYPO3 uploads are durable on Vercel only when object storage is configured.
-Without object storage, uploaded files are written to the runtime filesystem and
-can disappear after a cold start, redeploy, or scale-out.
+Without it, uploaded files land on the runtime filesystem and can disappear
+after a cold start, redeploy, or scale-out.
 
-This starter includes two TYPO3 14 FAL drivers for durable uploads.
-
-Drivers:
+This starter includes two TYPO3 14 FAL drivers:
 
 - `vercel_blob` for Vercel Blob
-- `vercel_s3` for S3-compatible object storage
-
-Supported storage targets:
-
-- Vercel Blob
-- Cloudflare R2
-- AWS S3
-- MinIO
-- DigitalOcean Spaces
-- other providers with a compatible S3 API
+- `vercel_s3` for S3-compatible storage: Cloudflare R2, AWS S3, MinIO,
+  DigitalOcean Spaces, and similar providers
 
 Vercel Blob is not S3-compatible, so it uses the separate
-`typo3_vercel_blob_storage` extension instead of the S3 driver.
-
-## Vercel Blob Versus The Vercel File APIs
-
-Use Vercel Blob for TYPO3 uploads.
-
-The Vercel deployment File API (`POST /v2/files`) is for uploading files before
-creating a Vercel deployment. It is not runtime storage for CMS uploads and it
-does not behave like a persistent `fileadmin` volume.
-
-The Vercel Sandbox filesystem APIs and Sandbox Drives are for Vercel Sandbox
-sessions. They are useful for agent/code-execution workflows, but they are not
-the production filesystem of this TYPO3 container project.
-
-For TYPO3 FAL, the correct Vercel-native product is still Vercel Blob:
-
-- it is designed for images, videos, and other uploaded files
-- it is available on all Vercel plans
-- the Deploy Button can create a public Blob store for each clone
-- this repo includes the `vercel_blob` FAL driver for it
-
-The Blob driver follows Vercel's connected-store model. An explicitly configured
-credential remains an operator override; normal requests prefer the short-lived
-Vercel OIDC token with `BLOB_STORE_ID`, then use `BLOB_READ_WRITE_TOKEN` as a
-compatibility fallback for older connections and non-request CLI work.
-
-The public demo deployment uses this Vercel Blob path. New projects cloned from
-the Deploy Button can create their own Vercel Blob store during deployment. If
-you skip that storage step, configure a Blob store or S3-compatible bucket
-manually before accepting uploads.
-For the full Blob extension manual, see
-[Vercel Blob FAL driver](vercel-blob-fal-driver.md).
-
-## Implementation Status
-
-Durable TYPO3 uploads are implemented for Vercel Blob and S3-compatible
-storage.
-
-Vercel Blob implementation:
-
-- TYPO3 driver: `vercel_blob`
-- PHP namespace: `Webconsulting\Typo3VercelBlobStorage`
-- Composer package: `webconsulting/typo3-vercel-blob-storage`
-- Boot script: `scripts/apply-object-storage.php`
-- Storage record: `sys_file_storage` uid `2` by default
-
-S3-compatible implementation:
-
-- TYPO3 driver: `vercel_s3`
-- PHP namespace: `Webconsulting\Typo3VercelStorage`
-- Composer package: `webconsulting/typo3-vercel-storage`
-- Boot script: `scripts/apply-object-storage.php`
-- Storage record: `sys_file_storage` uid `2` by default
-
-When object storage is enabled, the Vercel container creates or updates the
-TYPO3 storage record on boot. This happens when
-`TYPO3_OBJECT_STORAGE_ENABLED=1`, when `TYPO3_OBJECT_STORAGE_DRIVER` is set, or
-when a connected Vercel Blob store provides `BLOB_READ_WRITE_TOKEN`. Explicit
-`TYPO3_OBJECT_STORAGE_ENABLED=0` disables automatic Blob setup.
-
-To keep cold starts cheap, the boot script is a no-op once the stored record
-already matches the configured driver: when the computed configuration is
-unchanged it skips both the database write and the network folder verification.
-The verification (and folder creation) therefore runs on the first boot after
-object storage is enabled or its configuration changes, not on every request.
-When verification does run and fails, the container exits with a clear error so
-uploads do not silently fall back to Vercel's temporary filesystem.
+`typo3_vercel_blob_storage` extension instead of the S3 driver. Use Vercel
+Blob for the all-Vercel path; its driver details are in the
+[Vercel Blob FAL driver manual](vercel-blob-fal-driver.md). Vercel's
+deployment File API and Sandbox filesystems are different products for build
+artifacts and sandbox sessions; they are not runtime CMS storage.
 
 ## What The Entrypoint Does
 
-When object storage is enabled, `docker/entrypoint.sh` runs
-`scripts/apply-object-storage.php`. The script:
+Object storage is applied during container boot when
+`TYPO3_OBJECT_STORAGE_ENABLED=1`, when `TYPO3_OBJECT_STORAGE_DRIVER` is set,
+or when a connected Vercel Blob store provides credentials. An explicit
+`TYPO3_OBJECT_STORAGE_ENABLED=0` disables it.
 
-- checks that `sys_file_storage` exists
-- creates or updates storage uid `2`
-- sets the driver to `vercel_blob` or `vercel_s3`
+`docker/entrypoint.sh` then runs `scripts/apply-object-storage.php`, which:
+
+- creates or updates `sys_file_storage` uid `2` with driver `vercel_blob` or
+  `vercel_s3` and makes it the default writable upload storage
 - stores non-secret driver settings in TYPO3's FlexForm configuration
-- makes uid `2` the default writable upload storage
-- verifies the configured storage (unless `TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=0`)
-  when the record is created or its configuration changes, and skips the check on
-  unchanged boots
 - creates `user_upload/`, `_processed_/`, and `_temp_/` in object storage
-- leaves the committed Camino seed files on the local storage uid `1`
+- verifies storage access (unless `TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=0`)
+  when the record is created or its configuration changes; unchanged boots
+  skip both the database write and the network check to keep cold starts cheap
+- fails the container loudly when verification runs and does not pass, so
+  uploads cannot silently fall back to the temporary filesystem
+- leaves the committed Camino seed files on local storage uid `1`, so demo
+  records that reference local files keep working
 
-Keeping the Camino seed assets on uid `1` avoids breaking the demo records that
-already reference local files.
-
-The image also contains the generated responsive derivatives needed by Camino's
-seed pages. A Linux symlink covers one mixed-case filename in the upstream
-Camino database so fresh containers can generate additional sizes on a
-case-sensitive filesystem. These baked files are only demo fixtures. New
-uploads and their processed derivatives belong on Blob/S3 storage uid `2`.
+The image also ships the responsive derivatives Camino's seed pages need;
+these baked files are demo fixtures. New uploads and their derivatives belong
+on storage uid `2`.
 
 ## Vercel Blob Setup
 
-This is the all-Vercel durable upload path.
-
 ### Easiest path: Deploy Button
 
-Use the Deploy Button in the README and keep the public Vercel Blob store
-enabled. The button uses Vercel's `stores` parameter to create the Blob store.
-Vercel then adds `BLOB_READ_WRITE_TOKEN` to the project environment. This
-starter sees that token and automatically uses the `vercel_blob` FAL driver.
+Use the README Deploy Button and keep the public Blob store enabled. Vercel
+creates the store and its credentials (request OIDC with `BLOB_STORE_ID`, or
+`BLOB_READ_WRITE_TOKEN` on older connections); the starter detects them and
+enables the `vercel_blob` driver automatically. No Blob fields to fill in,
+and no secrets ever belong in a Deploy Button URL.
 
-No Blob settings are required for the normal Deploy Button path.
-
-These are the default values used by the starter:
+The defaults used by the starter:
 
 ```dotenv
 TYPO3_OBJECT_STORAGE_ENABLED=1
@@ -139,20 +64,10 @@ TYPO3_BLOB_ACCESS=public
 TYPO3_BLOB_PREFIX=typo3/
 ```
 
-You still need to type your own TYPO3 admin password and encryption key. The
-Blob token is created by Vercel and is not placed in the Deploy Button URL.
-
-To turn this off in a disposable test project, set:
-
-```dotenv
-TYPO3_OBJECT_STORAGE_ENABLED=0
-```
+To turn automatic Blob storage off in a disposable test project, set
+`TYPO3_OBJECT_STORAGE_ENABLED=0`.
 
 ### Manual path: Vercel CLI
-
-1. Create a public Vercel Blob store connected to the project.
-2. Enable TYPO3 object storage with the Blob driver.
-3. Redeploy production.
 
 ```bash
 vercel blob create-store typo3-camino-uploads --access public --environment production --yes
@@ -164,16 +79,14 @@ vercel env add TYPO3_BLOB_PREFIX production --value typo3/ --yes
 vercel deploy --prod
 ```
 
-New connected stores can use request-scoped OIDC and `BLOB_STORE_ID`; older
-connections may provide `BLOB_READ_WRITE_TOKEN`. The driver supports both.
+Keep the explicit enable/driver variables for manual setups so the template
+never switches storage drivers merely because a token exists.
 
-Optional Blob variables:
+### Optional Blob variables
 
 ```dotenv
 TYPO3_BLOB_STORE_ID=<store-id-if-not-provided-by-vercel>
 TYPO3_BLOB_TOKEN_ENV_NAME=BLOB_READ_WRITE_TOKEN
-TYPO3_BLOB_ACCESS=public
-TYPO3_BLOB_PREFIX=typo3/
 TYPO3_BLOB_PUBLIC_BASE_URL=
 TYPO3_BLOB_API_URL=https://vercel.com/api/blob
 TYPO3_BLOB_DEFAULT_FOLDER=user_upload
@@ -183,49 +96,31 @@ TYPO3_BLOB_STORAGE_UID=2
 TYPO3_BLOB_STORAGE_NAME=Vercel Blob uploads
 ```
 
-Use a public Blob store for normal TYPO3 images and downloads. Private Blob
-stores do not produce public FAL URLs and are not the right default for public
-frontend assets.
-
-### Upload Size
-
-Vercel Functions reject complete request bodies above 4.5 MB before PHP runs.
-The container therefore sets `post_max_size` and `upload_max_filesize` to 4 MB.
-This is independent of Blob capacity: a normal TYPO3 backend upload still
-passes through PHP before the FAL driver writes it to Blob.
-
-For larger media, use **Media > Large upload** or the **Large upload to Vercel
-Blob** toolbar button. If the bundled Camino folder is currently selected, the
-module automatically switches to the editor's writable Blob folder and shows
-the real destination before it uploads. The implemented flow is:
-
-1. TYPO3 checks the backend user, file mount, folder permissions, name, type,
-   and configured size limit.
-2. Vercel returns a short-lived upload token scoped to that exact Blob path,
-   content type, and size. Overwrite and random suffixes are disabled.
-3. The browser uploads directly to Blob. Files above 100 MB use multipart upload.
-4. TYPO3 verifies the resulting remote object and registers it in FAL without
-   downloading the complete file into PHP.
-
-The default direct-upload limit is 5 GiB. Change it only when needed:
+Shared object-storage overrides:
 
 ```dotenv
-TYPO3_BLOB_DIRECT_UPLOAD_MAX_BYTES=5368709120
-TYPO3_BLOB_DIRECT_UPLOAD_TOKEN_TTL=14400
+TYPO3_OBJECT_STORAGE_STORAGE_UID=2
+TYPO3_OBJECT_STORAGE_STORAGE_NAME=Vercel Blob uploads
+TYPO3_OBJECT_STORAGE_MAKE_DEFAULT=1
+TYPO3_OBJECT_STORAGE_PROCESSING_FOLDER=_processed_
 ```
 
-The size is capped at Vercel Blob's 5 TB platform limit, and token lifetime is
-bounded between five minutes and 24 hours. Active web formats such as HTML,
-JavaScript, SVG, and XML are blocked because this path cannot safely run
-content inspection on a local upload first.
+Use a public Blob store: private stores do not produce public FAL URLs and
+are not the right default for frontend assets.
 
-This large-upload module is specific to `vercel_blob`. The S3-compatible driver
-still uses TYPO3's normal uploader and therefore remains subject to the 4 MB
-request limit unless a separate direct-to-S3 integration is added.
+### Upload size
+
+Vercel rejects request bodies above 4.5 MB, so normal TYPO3 uploads are
+capped at 4 MB. Larger files use the **Media > Large upload**
+browser-to-Blob flow (default limit 5 GiB); see the
+[driver manual](vercel-blob-fal-driver.md) for the validation steps and
+security trade-offs. The large-upload module is specific to `vercel_blob`;
+the S3 driver uses TYPO3's normal uploader and stays subject to the 4 MB
+limit.
 
 ## S3-Compatible Setup
 
-Set these in Vercel for Production, Preview, and Development as needed:
+Set these in Vercel for each environment that accepts uploads:
 
 ```dotenv
 TYPO3_OBJECT_STORAGE_ENABLED=1
@@ -253,89 +148,37 @@ TYPO3_S3_SIGNED_URL_TTL=0
 TYPO3_S3_PROCESSING_FOLDER=_processed_
 ```
 
-Use a public base URL for normal TYPO3 images and downloads. Signed URLs are
-available as a fallback for private buckets, but public content and cacheable
-images are simpler with a public bucket domain or CDN domain.
+Use a public base URL for normal images and downloads; signed URLs remain a
+fallback for private buckets. Add secrets through interactive
+`vercel env add TYPO3_S3_ACCESS_KEY_ID production` prompts so they stay out
+of shell history.
 
-## Cloudflare R2 Setup
+### Cloudflare R2
 
-1. Create a Cloudflare R2 bucket.
-2. Create an R2 API token with object read/write access for that bucket.
-3. Enable a public bucket URL or attach a custom public domain.
-4. Add the Vercel env vars:
+1. Create an R2 bucket and an API token with object read/write access.
+2. Enable a public bucket URL or attach a custom domain.
+3. Set the S3 variables above with
+   `TYPO3_S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com`,
+   `TYPO3_S3_REGION=auto`, and `TYPO3_S3_PATH_STYLE_ENDPOINT=1`.
+4. Redeploy; the container creates the TYPO3 storage record on boot.
 
-```dotenv
-TYPO3_OBJECT_STORAGE_ENABLED=1
-TYPO3_S3_BUCKET=<r2-bucket-name>
-TYPO3_S3_REGION=auto
-TYPO3_S3_ENDPOINT=https://<cloudflare-account-id>.r2.cloudflarestorage.com
-TYPO3_S3_ACCESS_KEY_ID=<r2-access-key-id>
-TYPO3_S3_SECRET_ACCESS_KEY=<r2-secret-access-key>
-TYPO3_S3_PUBLIC_BASE_URL=https://<public-r2-domain>/
-TYPO3_S3_PREFIX=typo3/
-TYPO3_S3_PATH_STYLE_ENDPOINT=1
-```
+### AWS S3
 
-Then redeploy. On boot, the container creates the TYPO3 storage record. New
-backend uploads should go to storage uid `2`.
-
-## Add S3 Variables With Vercel CLI
-
-Run these from the repository root. Use interactive prompts for secrets so they
-do not land in shell history:
-
-```bash
-vercel env add TYPO3_OBJECT_STORAGE_ENABLED production --value 1 --yes
-vercel env add TYPO3_OBJECT_STORAGE_DRIVER production --value vercel_s3 --yes
-vercel env add TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT production --value 1 --yes
-vercel env add TYPO3_S3_BUCKET production --value "<bucket>" --yes
-vercel env add TYPO3_S3_REGION production --value "auto" --yes
-vercel env add TYPO3_S3_ENDPOINT production --value "https://<account-id>.r2.cloudflarestorage.com" --yes
-vercel env add TYPO3_S3_PUBLIC_BASE_URL production --value "https://<public-r2-domain>/" --yes
-vercel env add TYPO3_S3_PREFIX production --value "typo3/" --yes
-vercel env add TYPO3_S3_PATH_STYLE_ENDPOINT production --value 1 --yes
-vercel env add TYPO3_S3_ACCESS_KEY_ID production
-vercel env add TYPO3_S3_SECRET_ACCESS_KEY production
-vercel deploy --prod
-```
-
-Repeat the same variables for `preview` if editors should test uploads on
-Preview deployments too.
-
-## AWS S3 Setup
-
-For AWS S3, the endpoint can be empty:
-
-```dotenv
-TYPO3_OBJECT_STORAGE_ENABLED=1
-TYPO3_S3_BUCKET=<bucket>
-TYPO3_S3_REGION=eu-central-1
-TYPO3_S3_ENDPOINT=
-TYPO3_S3_ACCESS_KEY_ID=<iam-access-key-id>
-TYPO3_S3_SECRET_ACCESS_KEY=<iam-secret-access-key>
-TYPO3_S3_PUBLIC_BASE_URL=https://<bucket-or-cdn-domain>/
-TYPO3_S3_PATH_STYLE_ENDPOINT=0
-```
-
-Use an IAM user or role with the smallest practical permissions for the bucket
-prefix TYPO3 uses.
+Leave `TYPO3_S3_ENDPOINT` empty, set the real region (for example
+`eu-central-1`) and `TYPO3_S3_PATH_STYLE_ENDPOINT=0`, and use an IAM user or
+role with the smallest practical permissions for the bucket prefix.
 
 ## Verification
 
 After deployment:
 
-1. Open `/typo3`.
-2. Go to **Filelist**.
-3. Confirm there is an object-storage volume using `vercel_blob` or `vercel_s3`.
-4. Upload a small image.
-5. Confirm it appears in Blob/S3 under the configured prefix.
-6. Insert the image on a page.
-7. Confirm the frontend image URL uses the Blob public URL or
-   `TYPO3_S3_PUBLIC_BASE_URL`.
-8. Redeploy the Vercel project.
-9. Confirm the uploaded file is still available.
+1. Open `/typo3` > **Filelist** and confirm the object-storage volume exists.
+2. Upload a small image and confirm it appears in Blob/S3 under the prefix.
+3. Insert it on a page and confirm the frontend URL uses the public
+   Blob/S3 base URL.
+4. Redeploy and confirm the file is still available.
 
-An operator can also run the authenticated write health probe:
+Or run the authenticated write probe (put, read, delete):
 
 ```bash
 curl -fsS \
@@ -343,39 +186,25 @@ curl -fsS \
   'https://your-project.vercel.app/api/health.php?deep=1&write=1'
 ```
 
-The Blob check performs put, read, and delete and removes its test object. A
-read-only deep check lists the configured prefix without writing.
-
-You can also confirm the storage record from the database:
+The storage record can also be checked directly:
 
 ```sql
 SELECT uid, name, driver, is_default, processingfolder
 FROM sys_file_storage
-WHERE driver = 'vercel_s3';
-```
-
-For Blob, use:
-
-```sql
-SELECT uid, name, driver, is_default, processingfolder
-FROM sys_file_storage
-WHERE driver = 'vercel_blob';
+WHERE driver IN ('vercel_blob', 'vercel_s3');
 ```
 
 ## Security Notes
 
-- Do not commit access keys.
-- Set object-storage env vars in Vercel's encrypted environment variable UI or
-  through `vercel env add`.
-- Prefer a dedicated bucket or prefix for each TYPO3 project.
-- Restrict write credentials to the project store, bucket, or prefix.
+- Do not commit access keys; use Vercel's encrypted environment variables.
+- Prefer a dedicated bucket/store or prefix per TYPO3 project, and restrict
+  write credentials to it.
 - Use a public read domain only for files intended to be public.
-- Keep TYPO3's allowed file extension checks enabled.
-- Scan or moderate uploads if untrusted users can upload files.
+- Keep TYPO3's allowed file extension checks enabled; scan or moderate
+  uploads from untrusted users.
 
 ## What This Does Not Solve
 
-- It does not make SQLite durable.
-- It does not persist `var/` cache files.
-- It does not provide virus scanning.
-- It does not migrate existing files from local storage uid `1` into the bucket.
+Object storage does not make SQLite durable, does not persist `var/` caches,
+does not provide virus scanning, and does not migrate existing local files
+from storage uid `1` into the bucket.

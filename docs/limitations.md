@@ -111,43 +111,24 @@ cache behavior, but it is not an always-on runtime control.
 
 ## Cold Starts
 
-The Pro profile calls TYPO3 frontend/backend and Solr every three minutes, and
-the smaller images reduce activation work. This often keeps a selected TYPO3
-instance active, but it does not reserve a minimum instance and cannot guarantee
-zero cold starts during deploys, scale-out, eviction, or delayed cron. Hobby
-cannot run the frequent cron.
-
-Production validation observed one `/typo3/` request at 8.85 seconds after the
-protected warmer had already succeeded; immediate repeats were about 0.2
-seconds. The warmer reduces the common idle case, but Vercel can still select or
-create another instance. Public pages can use edge caching. The private backend
-needs a platform minimum-instance guarantee or an always-on host for a hard
-latency SLO.
-
-The limitation is stronger for the separate Solr service. After roughly 13
-hours with the three-minute schedule registered, three consecutive warm-ups
-still spent 14.553-16.989 seconds in Solr startup. Cron is therefore not a
-reliable Solr residency control in this deployment.
+The Pro warmer and the small image reduce activation work, but Vercel offers
+no minimum-instance guarantee: cold starts remain possible during deploys,
+scale-out, eviction, or delayed cron. Production validation observed one
+`/typo3/` request at 8.85 seconds even after the warmer had succeeded, with
+0.2-second repeats. Public pages can use edge caching; a backend with a hard
+latency SLO needs an always-on host. Cron is also not a reliable residency
+control for the separate Solr service, which repeatedly spent 15-17 seconds in
+startup despite the three-minute schedule. Details in
+[performance](performance.md).
 
 ## Solr
 
-EXT:solr is installed as a Composer package, but no Vercel-managed Apache Solr
-product was documented in the sources reviewed for this starter. The repo
-includes an internal Vercel Solr container Service for demos and experiments,
-but production search
-should use an external managed Solr 10 service. The Vercel Solr container still
-needs durable index state and operational protection before it can be considered
-production-safe. Large indexing jobs should run as chunked scheduler batches or
-on an external worker, not as one long Vercel invocation.
-
-The internal demo Solr service has an extra Vercel-specific cold-start problem:
-the internal service gateway can return HTTP `500 Starting...` or a temporary
-`502/503/504` before the Solr container has received the request. The repo works
-around that for demos by routing TYPO3/EXT:solr through a loopback-only app
-proxy, reusing one service connection, and waiting within a bounded 20-25
-second window. This turns most cold failures into one slow successful request;
-it does not make Solr always-on or durable and is not a replacement for managed
-Solr.
+Vercel offers no managed Solr product, so production search should use an
+external managed Solr 10 service; the internal Vercel Solr container is a
+demo. Its index is not durable, and its cold start is bridged — not removed —
+by a bounded 20-25 second loopback retry proxy. Large indexing jobs must run
+as chunked Scheduler batches or on an external worker
+(see [Solr](solr.md) and [long-running jobs](long-running-jobs.md)).
 
 ## Marketplace Status
 

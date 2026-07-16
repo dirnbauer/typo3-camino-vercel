@@ -3,7 +3,7 @@
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fdirnbauer%2Ftypo3-camino-vercel&project-name=typo3-camino-vercel&repository-name=typo3-camino-vercel&demo-title=TYPO3+Camino+on+Vercel&demo-description=Community+Vercel+container+starter+for+TYPO3+14.3+using+the+TYPO3+Camino+distribution.+Not+an+official+TYPO3+package.&demo-url=https%3A%2F%2Ftypo3-camino-vercel.vercel.app&demo-image=https%3A%2F%2Ftypo3-camino-vercel.vercel.app%2Ftemplate-preview.png&from=templates&env=TYPO3_SETUP_ADMIN_USERNAME%2CTYPO3_SETUP_ADMIN_PASSWORD%2CTYPO3_ENCRYPTION_KEY&envDefaults=%7B%22TYPO3_SETUP_ADMIN_USERNAME%22%3A%22admin%22%7D&envDescription=Choose+a+backend+username%2C+set+a+strong+random+backend+password%2C+and+paste+a+stable+96-character+hex+TYPO3+encryption+key.+The+Deploy+Button+creates+a+public+Vercel+Blob+store+for+durable+uploaded+files.+Add+a+real+database+later+for+stable+backend+login+and+durable+content.&envLink=https%3A%2F%2Fgithub.com%2Fdirnbauer%2Ftypo3-camino-vercel%2Fblob%2Fmain%2Fdocs%2Fquickstart.md&stores=%5B%7B%22type%22%3A%22blob%22%2C%22access%22%3A%22public%22%7D%5D)
 
 Community starter for running TYPO3 14.3 with the official Camino distribution
-as a PHP 8.4 nginx/PHP-FPM container on Vercel Services. It is not an official
+as a PHP 8.5 nginx/PHP-FPM container on Vercel Services. It is not an official
 TYPO3 package, and Vercel currently labels Services as Beta.
 
 Live demo: [typo3-camino-vercel.vercel.app](https://typo3-camino-vercel.vercel.app)
@@ -96,7 +96,8 @@ first-request latency is contractual.
 
 ## Included Integrations
 
-- strict German, Spanish, Simplified Chinese, and Hungarian Camino content
+- German, Spanish, Simplified Chinese, and Hungarian Camino content with
+  strict (no-fallback) translations
 - `friendsoftypo3/visual-editor` inline editing
 - Vercel Blob and S3-compatible FAL storage
 - direct browser-to-Blob large uploads
@@ -111,7 +112,7 @@ search storage.
 
 ## Local Development
 
-DDEV provides PHP 8.4, MariaDB, and Solr 10:
+DDEV provides PHP 8.5, MariaDB, and Solr 10:
 
 ```bash
 ddev start

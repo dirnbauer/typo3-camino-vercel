@@ -25,7 +25,7 @@ tolerate activation. Use managed, always-on Solr for production search.
 
 ### Runtime Image
 
-The application image uses Alpine, nginx, PHP 8.4 FPM, and a discarded build
+The application image uses Alpine, nginx, PHP 8.5 FPM, and a discarded build
 stage for compiled PHP extensions. Composer development dependencies and build
 tools do not enter the runtime image.
 

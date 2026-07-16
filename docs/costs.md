@@ -43,19 +43,14 @@ demo can be durable, but it cannot use the built-in frequent cold-start warmer.
 | Provider | Type | Free testing note |
 | --- | --- | --- |
 | Seeded SQLite | SQLite | Free, built into this image, not durable |
-| Neon | Postgres | Vercel Marketplace option with free/start plans |
-| Supabase | Postgres | Free project tier, outside/through marketplace depending setup |
-| TiDB Cloud | MySQL-compatible | Vercel integration, free starter quota, good first MySQL-compatible test |
+| Neon | Postgres | Vercel Marketplace, free plan, Frankfurt region |
+| Supabase | Postgres | Free tier; free projects pause after a week of inactivity |
+| TiDB Cloud | MySQL-compatible | Vercel integration with free starter quota |
 | PlanetScale | MySQL-compatible | Vercel integration, no free database plan |
 
-MySQL preference:
-
-- For a free Vercel-integrated MySQL-compatible test, try TiDB Cloud first.
-- For true MySQL, confirm the provider's current free tier yourself before
-  promising a zero-cost path. The Vercel Marketplace option checked here is
-  MySQL-compatible, not classic MySQL.
-- For commercial production, price the database separately from Vercel and
-  confirm backups, region, TLS, and support level.
+For a free MySQL-compatible test, try TiDB Cloud first; classic managed MySQL
+usually starts at a paid tier. For commercial production, price the database
+separately from Vercel and confirm backups, region, TLS, and support level.
 
 ## Redis Cache Options
 

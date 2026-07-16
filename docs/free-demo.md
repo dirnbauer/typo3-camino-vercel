@@ -68,50 +68,25 @@ The first uncached request can still experience a Vercel container cold start.
 
 ## Free Durable Upgrade Path
 
-If users want a more realistic free test, it can still be zero-cost, but only
-while every service stays inside its provider's free quota.
+A more realistic test can still be zero-cost while every service stays inside
+its provider's free quota:
 
-Best practical stack:
-
-- Vercel Hobby for the Dockerfile-backed container Service,
-  personal/non-commercial use only.
-- TiDB Cloud for MySQL-compatible free database testing, or Neon/Supabase for
-  Postgres.
-- Vercel Blob on Hobby within limits, or Cloudflare R2 for free object storage
-  testing.
-- The included `vercel_blob` and `vercel_s3` TYPO3 FAL drivers.
-
-What this means today:
-
-- A fresh one-click clone is free and can have durable uploaded files through
-  the Vercel Blob store created by the Deploy Button.
-- A fully durable TYPO3 demo still needs database setup.
-- Cloudflare R2 can be wired through the included FAL driver.
-- Vercel Blob is wired through the included Blob FAL driver.
-- It stays free only while usage remains inside all free-tier limits.
-
-The public demo deployment at https://typo3-camino-vercel.vercel.app is a
-configured example: it uses a durable database plus Vercel Blob. A clone made
-from the Deploy Button does not inherit those resources, but the button can
-create a new Blob store for the clone.
+- Vercel Hobby for the container Service (personal, non-commercial use only).
+- Neon or Supabase for Postgres, or TiDB Cloud for a MySQL-compatible free
+  quota — a fully durable demo still needs `DATABASE_URL`.
+- The Deploy Button-created Vercel Blob store for uploads, or Cloudflare R2
+  through the included `vercel_s3` driver.
 
 Recommended first-boot flow:
 
-1. Keep Vercel Hobby, if the project is personal/non-commercial.
-2. Keep the Vercel Blob store enabled in the Deploy Button flow.
-3. Add a free/start database provider before first deploy.
-4. Set `DATABASE_URL`.
-5. Set `TYPO3_AUTO_SETUP=1` for the first deploy.
-6. After setup succeeds, set `TYPO3_AUTO_SETUP=0`.
+1. Keep the Blob store enabled in the Deploy Button flow.
+2. Add a free database provider and set `DATABASE_URL` before first deploy.
+3. Set `TYPO3_AUTO_SETUP=1` for the first deploy; after setup succeeds, set it
+   back to `0`.
 
-For MySQL-compatible free testing, TiDB Cloud is the most Vercel-integrated
-option checked for this starter. It exposes database variables to Vercel and
-advertises free starter quota. For Postgres, Neon and Supabase are usually the
-smoother Vercel Marketplace path.
-
-Durable editor uploads need object storage. The simplest path is the Vercel
-Blob store created during the Deploy Button flow. This starter also includes
-`vercel_s3` for Cloudflare R2 or another S3-compatible provider.
+The public demo at https://typo3-camino-vercel.vercel.app is a configured
+example with a durable database plus Vercel Blob. A clone does not inherit
+those resources, but the Deploy Button can create a new Blob store for it.
 
 ## Sources
 

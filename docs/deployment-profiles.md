@@ -24,7 +24,7 @@ required.
 
 The default `vercel.json` deliberately deploys only the TYPO3 application:
 
-- one PHP 8.4/nginx Dockerfile-backed container Service
+- one PHP 8.5/nginx Dockerfile-backed container Service
 - no Solr container
 - no scheduled jobs
 - a pre-seeded Camino SQLite copy in `/tmp`
@@ -56,7 +56,7 @@ for client content or anything that must be retained.
 
 Use this profile for durable content and real editorial work:
 
-1. Use Vercel Pro or Enterprise with Fluid Compute, performance CPU, and one
+1. Use Vercel Pro or Enterprise with the container Service pinned to one
    region close to the database.
 2. Add a pooled external PostgreSQL or MySQL-compatible `DATABASE_URL`.
 3. Connect Vercel Blob or S3/R2 and keep all editor uploads in that FAL storage.

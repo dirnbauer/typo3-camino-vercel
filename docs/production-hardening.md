@@ -14,8 +14,8 @@ public content with a normal editor backend.
 
 Required pieces:
 
-1. **Compute:** a Pro/Enterprise Dockerfile-backed Vercel container Service,
-   Fluid Compute enabled, performance CPU, and a fixed region near the database.
+1. **Compute:** a Pro/Enterprise Dockerfile-backed Vercel container Service in
+   a fixed region near the database.
 2. **Database:** external Postgres or MySQL/MariaDB through `DATABASE_URL`.
    Do not use SQLite for real backend sessions or content.
 3. **Files:** Vercel Blob through the included `vercel_blob` FAL driver, or
@@ -62,9 +62,7 @@ control for this use case.
 Production Vercel project settings:
 
 ```text
-Function CPU: performance
 Region: fra1, or the region closest to the database
-Fluid Compute: enabled
 ```
 
 Production environment, simple default:

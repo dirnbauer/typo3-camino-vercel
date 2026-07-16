@@ -2,7 +2,7 @@
 
 ## Runtime Shape
 
-This project now follows the same safe baseline:
+The runtime follows one safe baseline:
 
 - `var` is symlinked to `/tmp/typo3/var`
 - `public/fileadmin` is copied from the committed Camino seed assets to
@@ -64,12 +64,9 @@ TYPO3_SERVERLESS_FILESYSTEM=0
 
 ## WordPress Template Reference
 
-The Vercel WordPress template that informed this starter does not rely on a
-durable Vercel filesystem either. It treats the repository/container image as
-code, uses a real database for content, and moves media uploads to external
-object storage. This TYPO3 starter follows the same principle: code in the
-image, content in the database, uploaded files in Blob or S3-compatible object
-storage.
+The Vercel WordPress template that informed this starter follows the same
+principle: code in the image, content in the database, uploaded files in
+external object storage.
 
 ## Vercel Blob
 

@@ -70,51 +70,20 @@ DATABASE_URL production --sensitive --force`.
 
 ## Durable Uploads
 
-The README Deploy Button can create a public Vercel Blob store. Keep that store
-enabled for the easiest all-Vercel path. There are no Blob fields to fill in:
-Vercel connects the store through request OIDC on new connections or a
-`BLOB_READ_WRITE_TOKEN` on older connections. This starter supports both and
-automatically enables the `vercel_blob` FAL driver.
+The README Deploy Button can create a public Vercel Blob store. Keep it
+enabled for the easiest all-Vercel path: there are no Blob fields to fill in,
+and this starter automatically enables the `vercel_blob` FAL driver when the
+store credentials exist. The container verifies the storage at startup and
+fails loudly on bad credentials.
 
-For manual setup, add object storage before editors upload files. For an
-all-Vercel trial, use Vercel Blob:
+For manual Blob setup, or for Cloudflare R2, AWS S3, MinIO, and other
+S3-compatible providers through the `vercel_s3` driver, see
+[object storage and durable uploads](object-storage.md).
 
-```dotenv
-TYPO3_OBJECT_STORAGE_ENABLED=1
-TYPO3_OBJECT_STORAGE_DRIVER=vercel_blob
-TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=1
-TYPO3_BLOB_ACCESS=public
-TYPO3_BLOB_PREFIX=typo3/
-```
-
-Vercel supplies `BLOB_STORE_ID` plus request OIDC, or a compatibility
-`BLOB_READ_WRITE_TOKEN`, when a Blob store is connected. For Cloudflare R2, AWS
-S3, MinIO, or another S3-compatible provider, use the S3 driver:
-
-```dotenv
-TYPO3_OBJECT_STORAGE_ENABLED=1
-TYPO3_OBJECT_STORAGE_DRIVER=vercel_s3
-TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=1
-TYPO3_S3_BUCKET=<bucket>
-TYPO3_S3_REGION=auto
-TYPO3_S3_ENDPOINT=<s3-compatible-endpoint>
-TYPO3_S3_ACCESS_KEY_ID=<access-key>
-TYPO3_S3_SECRET_ACCESS_KEY=<secret-key>
-TYPO3_S3_PUBLIC_BASE_URL=<public-bucket-or-cdn-url>
-```
-
-See [Object storage and durable uploads](object-storage.md).
-
-When these variables are present, the Vercel container verifies the bucket at
-startup and creates the TYPO3 upload and processed-file folders in object
-storage. Bad credentials fail the deployment loudly.
-
-Normal TYPO3 backend uploads are limited to 4 MB because Vercel Functions
-reject total request bodies above 4.5 MB. For larger files, open **Media > Large
-upload**, or select a Vercel Blob folder and use its **Large upload** toolbar
-button. The browser sends the file directly to Blob; TYPO3 still checks the
-logged-in editor, destination, filename, type, and size. The default limit is
-5 GiB.
+Normal TYPO3 backend uploads are limited to 4 MB because Vercel rejects
+request bodies above 4.5 MB. For larger files, open **Media > Large upload**:
+the browser sends the file directly to Blob (default limit 5 GiB) while TYPO3
+still checks the editor, destination, filename, type, and size.
 
 ## Optional Redis Cache
 

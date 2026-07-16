@@ -2,9 +2,9 @@
 
 .. _adr-005:
 
-========================================
+==========================================
 ADR-005: Cache public HTML conservatively
-========================================
+==========================================
 
 Status
 ======
@@ -39,8 +39,8 @@ Cache so a filesystem fallback cannot bypass private-response rules. Durable
 sites opt in to a TTL explicitly; the disposable SQLite demo receives a short
 automatic TTL for eligible public pages.
 
-Invalidate by deployment-scoped tag after publishing and warm only routes that
-pass the same eligibility rules.
+Tag every published response ``typo3-public``, invalidate that tag after
+publishing, and warm only routes that pass the same eligibility rules.
 
 Consequences
 ============
