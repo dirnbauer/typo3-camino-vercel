@@ -5,7 +5,7 @@
     "license": "GPL-2.0-or-later",
     "require": {
         "guzzlehttp/guzzle": "^7.4",
-        "php": "^8.4",
+        "php": "^8.5",
         "symfony/mime": "^7.4 || ^8.0",
         "typo3/cms-backend": "^14.3",
         "typo3/cms-core": "^14.3",

@@ -1,6 +1,6 @@
-# Alpine keeps the runtime image small enough to materially reduce Vercel
-# Container Image activation time. Build tools remain in this discarded stage.
-FROM php:8.4-fpm-alpine AS php-extensions
+# Alpine keeps the runtime image small, which lowers registry cost and
+# activation work. Build tools remain in this discarded stage.
+FROM php:8.5-fpm-alpine AS php-extensions
 
 RUN apk add --no-cache --virtual .build-deps \
         $PHPIZE_DEPS \
@@ -26,7 +26,7 @@ RUN apk add --no-cache --virtual .build-deps \
     && docker-php-ext-enable redis \
     && rm -rf /tmp/pear
 
-FROM php:8.4-fpm-alpine
+FROM php:8.5-fpm-alpine
 
 ENV COMPOSER_ALLOW_SUPERUSER=1 \
     LANG=C.UTF-8 \

@@ -652,7 +652,7 @@ final class SolrSearchContent
         ]);
 
         $body = @file_get_contents($url, false, $context);
-        $headers = $http_response_header;
+        $headers = http_get_last_response_headers() ?? [];
         $status = 0;
         foreach ($headers as $header) {
             if (preg_match('/^HTTP\/\S+\s+(\d+)/', $header, $match) === 1) {

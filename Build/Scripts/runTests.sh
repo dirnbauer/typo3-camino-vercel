@@ -19,6 +19,27 @@ run_phpstan() {
   "${root}/vendor/bin/phpstan" analyse --no-progress --memory-limit=1G
 }
 
+# macOS ships bash 3.2, which lacks mapfile and namerefs; fill one global
+# array with NUL-delimited paths instead.
+collect_files() {
+  collected_files=()
+  while IFS= read -r -d '' file; do
+    collected_files+=("${file}")
+  done < <("$@")
+}
+
+find_tracked() {
+  find "${root}" \
+    \( \
+      -path "${root}/.git" \
+      -o -path "${root}/.vercel" \
+      -o -path "${root}/node_modules" \
+      -o -path "${root}/var" \
+      -o -path "${root}/vendor" \
+    \) -prune \
+    -o -type f "$@" -print0
+}
+
 run_lint() {
   grep -Fq 'return typo3_vercel_settings();' "${root}/config/system/settings.php"
   php "${root}/scripts/restore-project-files.php" --check
@@ -39,51 +60,21 @@ run_lint() {
     "${root}/scripts/deploy-pro.sh" \
     "${root}/services/solr/start-vercel-solr.sh"
 
-  mapfile -d '' json_files < <(
-    find "${root}" \
-      \( \
-        -path "${root}/.git" \
-        -o -path "${root}/.vercel" \
-        -o -path "${root}/node_modules" \
-        -o -path "${root}/var" \
-        -o -path "${root}/vendor" \
-      \) -prune \
-      -o -type f -name '*.json' -print0
-  )
+  collect_files find_tracked -name '*.json'
   # PHP, not the shell, expands $argv and $file.
   # shellcheck disable=SC2016
-  php -r 'foreach (array_slice($argv, 1) as $file) { json_decode(file_get_contents($file), true, 512, JSON_THROW_ON_ERROR); }' "${json_files[@]}"
+  php -r 'foreach (array_slice($argv, 1) as $file) { json_decode(file_get_contents($file), true, 512, JSON_THROW_ON_ERROR); }' "${collected_files[@]}"
 
-  mapfile -d '' xml_files < <(
-    find "${root}" \
-      \( \
-        -path "${root}/.git" \
-        -o -path "${root}/.vercel" \
-        -o -path "${root}/node_modules" \
-        -o -path "${root}/var" \
-        -o -path "${root}/vendor" \
-      \) -prune \
-      -o -type f \( -name '*.xml' -o -name '*.xlf' \) -print0
-  )
+  collect_files find_tracked \( -name '*.xml' -o -name '*.xlf' \)
   # PHP, not the shell, expands $dom, $argv, and $file.
   # shellcheck disable=SC2016
-  php -r '$dom = new DOMDocument(); foreach (array_slice($argv, 1) as $file) { if (!$dom->load($file)) { exit(1); } }' "${xml_files[@]}"
+  php -r '$dom = new DOMDocument(); foreach (array_slice($argv, 1) as $file) { if (!$dom->load($file)) { exit(1); } }' "${collected_files[@]}"
 
-  mapfile -d '' yaml_files < <(
-    find "${root}" \
-      \( \
-        -path "${root}/.git" \
-        -o -path "${root}/.vercel" \
-        -o -path "${root}/node_modules" \
-        -o -path "${root}/var" \
-        -o -path "${root}/vendor" \
-      \) -prune \
-      -o -type f \( -name '*.yaml' -o -name '*.yml' \) -print0
-  )
+  collect_files find_tracked \( -name '*.yaml' -o -name '*.yml' \)
   # PHP, not the shell, expands $argv and $file.
   # shellcheck disable=SC2016
   php -r 'require $argv[1]; foreach (array_slice($argv, 2) as $file) { Symfony\Component\Yaml\Yaml::parseFile($file); }' \
-    "${root}/vendor/autoload.php" "${yaml_files[@]}"
+    "${root}/vendor/autoload.php" "${collected_files[@]}"
 
   composer validate --strict --no-interaction
 }

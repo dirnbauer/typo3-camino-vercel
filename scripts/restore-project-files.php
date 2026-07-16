@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 $root = dirname(__DIR__);
-$checkOnly = in_array('--check', $argv, true);
+$checkOnly = in_array('--check', $_SERVER['argv'] ?? [], true);
 $projectFiles = [
     'Build/ProjectFiles/config/system/settings.php' => 'config/system/settings.php',
     'Build/ProjectFiles/public/index.php' => 'public/index.php',

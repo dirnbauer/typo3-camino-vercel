@@ -494,7 +494,7 @@ function typo3_solr_benchmark_request(string $url, string $method, ?string $body
     ]);
     $responseBody = @file_get_contents($url, false, $context);
     $status = 'n/a';
-    foreach ($http_response_header as $header) {
+    foreach (http_get_last_response_headers() ?? [] as $header) {
         if (preg_match('/^HTTP\/\S+\s+(\d+)/', $header, $match) === 1) {
             $status = (int)$match[1];
             break;
@@ -593,7 +593,7 @@ function typo3_solr_probe_request(string $url, float $timeout): array
     $started = microtime(true);
     $body = @file_get_contents($url, false, $context);
     $time = microtime(true) - $started;
-    $headers = $http_response_header;
+    $headers = http_get_last_response_headers() ?? [];
     $status = 'n/a';
 
     foreach ($headers as $header) {

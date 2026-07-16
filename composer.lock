@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1298441941d21e86f2f7a4e1d33c9d71",
+    "content-hash": "4074e34ccf068a16f21aa7a50a04866e",
     "packages": [
         {
             "name": "apache-solr-for-typo3/solr",
@@ -9118,11 +9118,11 @@
             "dist": {
                 "type": "path",
                 "url": "./packages/typo3-camino-demo",
-                "reference": "3b70084a55fe9eda88d0ce04c88b5af11a2f8c83"
+                "reference": "f744f07fc8f171d1f6a880ba6f0719183e748f1c"
             },
             "require": {
                 "friendsoftypo3/visual-editor": "^1.8",
-                "php": "^8.4",
+                "php": "^8.5",
                 "symfony/console": "^7.4 || ^8.0",
                 "typo3/cms-core": "^14.3",
                 "typo3/cms-fluid": "^14.3",
@@ -9154,11 +9154,11 @@
             "dist": {
                 "type": "path",
                 "url": "./packages/typo3-vercel-blob-storage",
-                "reference": "a9f90eb7994f59940f8a4e371cd1f03a41dc73f6"
+                "reference": "8dece9f24300949021521f3d2356fbd721ae7f7d"
             },
             "require": {
                 "guzzlehttp/guzzle": "^7.4",
-                "php": "^8.4",
+                "php": "^8.5",
                 "symfony/mime": "^7.4 || ^8.0",
                 "typo3/cms-backend": "^14.3",
                 "typo3/cms-core": "^14.3",
@@ -9189,11 +9189,11 @@
             "dist": {
                 "type": "path",
                 "url": "./packages/typo3-vercel-solr-demo",
-                "reference": "e975978e4176965faa9f8bfb8bd16415db0b2f16"
+                "reference": "a25606a5711e1f0d2e29d57ec4ef94b0f56e1cdd"
             },
             "require": {
                 "apache-solr-for-typo3/solr": "^14.0@beta",
-                "php": "^8.4",
+                "php": "^8.5",
                 "symfony/console": "^7.4 || ^8.0",
                 "typo3/cms-core": "^14.3",
                 "typo3/cms-scheduler": "^14.3"
@@ -9223,11 +9223,11 @@
             "dist": {
                 "type": "path",
                 "url": "./packages/typo3-vercel-storage",
-                "reference": "bc28807fcc3b0a5f90612f403f54a62c77ba50d0"
+                "reference": "6e47e175118907b8b2f17e490f93f06376653505"
             },
             "require": {
                 "aws/aws-sdk-php": "^3.369",
-                "php": "^8.4",
+                "php": "^8.5",
                 "symfony/mime": "^7.4 || ^8.0",
                 "typo3/cms-core": "^14.3"
             },
@@ -11255,7 +11255,7 @@
     "platform": {},
     "platform-dev": {},
     "platform-overrides": {
-        "php": "8.4.1"
+        "php": "8.5.0"
     },
     "plugin-api-version": "2.9.0"
 }
