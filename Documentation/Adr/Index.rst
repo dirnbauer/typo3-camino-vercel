@@ -112,6 +112,13 @@ Services and operations
       .. card-footer:: :ref:`Read <adr-008>`
          :button-style: btn btn-secondary stretched-link
 
+   .. card:: ADR-009: Pro releases from CI
+
+      Deploy the Pro profile automatically after green checks on ``main``.
+
+      .. card-footer:: :ref:`Read <adr-009>`
+         :button-style: btn btn-secondary stretched-link
+
 .. toctree::
    :hidden:
 
@@ -124,3 +131,4 @@ Services and operations
    Adr006DemoOnlyInternalSolr
    Adr007BoundedProtectedJobs
    Adr008EnvironmentBackedSecurity
+   Adr009CiProReleases
