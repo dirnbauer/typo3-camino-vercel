@@ -56,7 +56,6 @@ if ($handle !== null) {
         usleep(min($remainingMicroseconds, (int)($retryDelay * 1_000_000)));
     } while (microtime(true) < $deadline);
 
-    curl_close($handle);
 }
 
 error_log(json_encode([

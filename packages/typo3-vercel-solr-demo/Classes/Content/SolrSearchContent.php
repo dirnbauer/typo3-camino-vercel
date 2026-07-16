@@ -564,7 +564,6 @@ final class SolrSearchContent
             $this->pauseBeforeRetry($deadline, $attempts);
         } while (microtime(true) < $deadline);
 
-        curl_close($handle);
 
         if ($attempts > 1) {
             error_log((string)json_encode([
@@ -627,7 +626,6 @@ final class SolrSearchContent
 
         $body = curl_exec($handle);
         $status = (int)curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
-        curl_close($handle);
 
         return ['status' => $status, 'body' => is_string($body) ? $body : ''];
     }

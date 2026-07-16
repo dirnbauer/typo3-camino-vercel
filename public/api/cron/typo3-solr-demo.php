@@ -473,7 +473,6 @@ function typo3_solr_benchmark_request(string $url, string $method, ?string $body
         $responseBody = curl_exec($handle);
         $status = (int)curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
         $error = curl_error($handle);
-        curl_close($handle);
 
         return [
             'status' => $status,

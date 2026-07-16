@@ -230,7 +230,6 @@ function typo3_vercel_health_http(string $url, float $timeout, array $headers = 
         $body = curl_exec($handle);
         $status = (int)curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
         $error = curl_error($handle);
-        curl_close($handle);
         if ($body === false || $status < 200 || $status >= 400) {
             throw new RuntimeException(sprintf('HTTP probe failed with status %d%s.', $status, $error !== '' ? ': ' . $error : ''));
         }
@@ -297,7 +296,6 @@ function typo3_vercel_health_http_with_retry(string $url, float $timeout, array 
             usleep(min($remainingMicroseconds, $backoffMicroseconds));
         } while (microtime(true) < $deadline);
 
-        curl_close($handle);
 
         if ($successful) {
             return [
