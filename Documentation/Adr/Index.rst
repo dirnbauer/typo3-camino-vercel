@@ -96,6 +96,13 @@ State and delivery
       .. card-footer:: :ref:`Read <adr-011>`
          :button-style: btn btn-secondary stretched-link
 
+   .. card:: ADR-012: Backend hot-path tuning
+
+      Move uncached backend costs to Redis and persistent connections.
+
+      .. card-footer:: :ref:`Read <adr-012>`
+         :button-style: btn btn-secondary stretched-link
+
 Services and operations
 -----------------------
 
@@ -148,3 +155,4 @@ Services and operations
    Adr009CiProReleases
    Adr010DurableProcessedImages
    Adr011AuditedRequestPathTuning
+   Adr012BackendHotPathTuning
