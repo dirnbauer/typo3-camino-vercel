@@ -533,12 +533,18 @@ function typo3_vercel_redis_cache_configuration(
     $prefix = typo3_vercel_env('TYPO3_REDIS_PREFIX', 'typo3-camino-vercel:') ?? 'typo3-camino-vercel:';
     $keyPrefix = $prefix . $cacheName . ':';
     if ($deploymentScoped) {
-        $deployment = typo3_vercel_env('VERCEL_GIT_COMMIT_SHA');
+        // CLI deployments never set VERCEL_GIT_COMMIT_SHA, which once left
+        // every deployment sharing one page cache (stale rendered HTML
+        // survived every redeploy). Fall back to the revision the deploy
+        // script exports, then to the per-deployment VERCEL_URL.
+        $deployment = typo3_vercel_env('VERCEL_GIT_COMMIT_SHA')
+            ?? typo3_vercel_env('TYPO3_DEPLOYMENT_REVISION')
+            ?? typo3_vercel_env('VERCEL_URL');
         $deployment = is_string($deployment)
             ? preg_replace('/[^a-zA-Z0-9_-]/', '', $deployment)
             : null;
         if (is_string($deployment) && $deployment !== '') {
-            $keyPrefix .= 'deploy-' . substr($deployment, 0, 12) . ':';
+            $keyPrefix .= 'deploy-' . substr($deployment, 0, 32) . ':';
         }
     }
     $options['keyPrefix'] = $keyPrefix;
