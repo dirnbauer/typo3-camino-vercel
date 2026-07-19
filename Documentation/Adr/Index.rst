@@ -82,6 +82,13 @@ State and delivery
       .. card-footer:: :ref:`Read <adr-005>`
          :button-style: btn btn-secondary stretched-link
 
+   .. card:: ADR-010: Durable processed images
+
+      Keep image derivatives on object storage so cached URLs stay valid.
+
+      .. card-footer:: :ref:`Read <adr-010>`
+         :button-style: btn btn-secondary stretched-link
+
 Services and operations
 -----------------------
 
@@ -132,3 +139,4 @@ Services and operations
    Adr007BoundedProtectedJobs
    Adr008EnvironmentBackedSecurity
    Adr009CiProReleases
+   Adr010DurableProcessedImages
