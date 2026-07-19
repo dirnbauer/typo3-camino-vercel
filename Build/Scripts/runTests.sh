@@ -32,6 +32,7 @@ find_tracked() {
   find "${root}" \
     \( \
       -path "${root}/.git" \
+      -o -path "${root}/.claude" \
       -o -path "${root}/.vercel" \
       -o -path "${root}/node_modules" \
       -o -path "${root}/var" \
