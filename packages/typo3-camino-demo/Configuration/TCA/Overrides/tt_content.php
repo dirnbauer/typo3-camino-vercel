@@ -14,12 +14,12 @@ ExtensionManagementUtility::addTcaSelectItem(
     [
         'label' => $label,
         'value' => 'typo3_camino_visual_editor_demo',
-        'icon' => 'module-page-edit',
+        'icon' => 'content-typo3-camino-visual-editor',
         'group' => 'special',
     ],
 );
 
-$GLOBALS['TCA']['tt_content']['ctrl']['typeicon_classes']['typo3_camino_visual_editor_demo'] = 'module-page-edit';
+$GLOBALS['TCA']['tt_content']['ctrl']['typeicon_classes']['typo3_camino_visual_editor_demo'] = 'content-typo3-camino-visual-editor';
 $GLOBALS['TCA']['tt_content']['types']['typo3_camino_visual_editor_demo'] = [
     'showitem' => '
         --palette--;;general,

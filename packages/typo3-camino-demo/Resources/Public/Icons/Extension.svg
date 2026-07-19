@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <path fill="var(--icon-color-accent, #ff8700)" opacity=".4" d="M16 8h26l10 10v38H16z"/>
+  <g fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="4">
+    <path d="M16 8h26l10 10v38H16z"/>
+    <path d="M42 8v12h10"/>
+  </g>
+  <g fill="none" stroke="var(--icon-color-accent, #ff8700)" stroke-linecap="round" stroke-width="4">
+    <path d="m31 46-9-13"/>
+    <path d="M31 46V29"/>
+    <path d="m31 46 9-13"/>
+    <path d="m31 46 14-7"/>
+  </g>
+  <circle cx="31" cy="47" r="4" fill="currentColor"/>
+</svg>

@@ -10,7 +10,7 @@ return [
         'position' => ['after' => 'media_management'],
         'access' => 'user',
         'path' => '/module/file/vercel-blob-upload',
-        'iconIdentifier' => 'actions-upload',
+        'iconIdentifier' => 'module-typo3-vercel-blob-upload',
         'labels' => 'typo3_vercel_blob_storage.module',
         'routes' => [
             '_default' => [

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g fill="none" stroke="currentColor" stroke-width="4">
+    <ellipse cx="31" cy="15" rx="18" ry="7"/>
+    <path d="M13 15v32c0 4 8 7 18 7s18-3 18-7V15M13 31c0 4 8 7 18 7 4.6 0 8.8-.7 12-2"/>
+  </g>
+  <path fill="var(--icon-color-accent, #ff8700)" d="m48 29 10 18H38z"/>
+</svg>

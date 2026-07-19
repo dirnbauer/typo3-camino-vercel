@@ -12,12 +12,12 @@ ExtensionManagementUtility::addTcaSelectItem(
     [
         'label' => 'Vercel Solr Demo Results',
         'value' => 'vercel_solr_demo_results',
-        'icon' => 'content-plugin',
+        'icon' => 'content-typo3-vercel-solr-results',
         'group' => 'plugins',
     ],
 );
 
-$GLOBALS['TCA']['tt_content']['ctrl']['typeicon_classes']['vercel_solr_demo_results'] = 'content-plugin';
+$GLOBALS['TCA']['tt_content']['ctrl']['typeicon_classes']['vercel_solr_demo_results'] = 'content-typo3-vercel-solr-results';
 $GLOBALS['TCA']['tt_content']['types']['vercel_solr_demo_results'] = [
     'showitem' => '
             --palette--;;general,
