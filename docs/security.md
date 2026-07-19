@@ -53,6 +53,19 @@ used by authenticated System modules. Disable `TYPO3_INSTALL_TOOL_ENABLED` again
 after standalone maintenance, while keeping the hash configured for backend
 verification.
 
+Authenticated System modules first enter with `install[context]=backend`. Their
+JavaScript then sends follow-up requests without that context parameter. The
+Vercel entry point accepts those follow-ups only when TYPO3's strict
+`Typo3InstallTool` session cookie is present; TYPO3 still validates the session,
+expiry, referrer, and form token. A direct standalone initialization remains
+blocked.
+
+When Redis is configured, TYPO3 14's official Redis Install Tool session handler
+is selected automatically. This prevents a valid short-lived maintenance
+session from disappearing when consecutive requests reach different Vercel
+instances. Without Redis, the handler falls back to runtime-local files, which
+is suitable only for local or single-instance use.
+
 ## Backend Security
 
 Do:

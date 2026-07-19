@@ -42,7 +42,7 @@ call_user_func(static function () {
     // Install Tool entry point. Allow TYPO3's authenticated backend-module
     // context, while standalone public access remains an explicit opt-in.
     $isInstallToolDirectAccess = class_exists(\TYPO3\CMS\Install\Http\Application::class)
-        && typo3_vercel_install_tool_direct_access($_GET);
+        && typo3_vercel_install_tool_direct_access($_GET, $_COOKIE, $_POST);
 
     $container = \TYPO3\CMS\Core\Core\Bootstrap::init($classLoader, $isInstallToolDirectAccess);
 

@@ -98,6 +98,21 @@ not make uploaded files durable. TYPO3 editor uploads still need object storage:
 use `vercel_blob` with Vercel Blob, or `vercel_s3` with Cloudflare R2, AWS S3,
 MinIO, Spaces, or another S3-compatible provider.
 
+## System Module Stuck On "Initializing"
+
+TYPO3's System modules run through the Install application. The first request
+uses the authenticated backend context, while its JavaScript loads labels and
+actions through follow-up requests that no longer include that context. An
+earlier Vercel security guard rejected those follow-ups with HTTP 404, leaving
+the module on its gray `Initializing` screen.
+
+The entry point now accepts only follow-up actions carrying TYPO3's strict
+`Typo3InstallTool` session cookie. TYPO3 remains responsible for validating the
+authorized session, expiry, referrer, and form token. Standalone public access
+is still disabled. With Redis configured, the official TYPO3 Redis Install Tool
+session handler also keeps that short-lived session available across Vercel
+instances.
+
 ## Sources
 
 - Vercel Docker deployments: https://vercel.com/kb/guide/does-vercel-support-docker-deployments

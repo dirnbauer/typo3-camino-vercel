@@ -28,7 +28,11 @@ function typo3_vercel_int_env(string $name, int $default, int $min, int $max): i
     return max($min, min($max, (int)$value));
 }
 
-function typo3_vercel_install_tool_direct_access(array $query): bool
+function typo3_vercel_install_tool_direct_access(
+    array $query,
+    array $cookies = [],
+    array $body = [],
+): bool
 {
     if (!array_key_exists('__typo3_install', $query)) {
         return false;
@@ -41,7 +45,21 @@ function typo3_vercel_install_tool_direct_access(array $query): bool
         return true;
     }
 
-    return typo3_vercel_bool_env('TYPO3_INSTALL_TOOL_ENABLED', false);
+    if (typo3_vercel_bool_env('TYPO3_INSTALL_TOOL_ENABLED', false)) {
+        return true;
+    }
+
+    // Install Tool JavaScript follow-up requests do not repeat the backend
+    // context parameter. Admit them only when a strict Install Tool session ID
+    // is present; TYPO3 still validates authorization, expiry and form tokens.
+    $action = $body['install']['action'] ?? $query['install']['action'] ?? null;
+    $sessionId = $cookies['Typo3InstallTool'] ?? null;
+
+    return is_string($action)
+        && $action !== ''
+        && $action !== 'init'
+        && is_string($sessionId)
+        && preg_match('/^[a-zA-Z0-9,-]{16,256}$/D', $sessionId) === 1;
 }
 
 /** @return list<int> */
@@ -433,6 +451,36 @@ function typo3_vercel_redis_cache_base_options(): ?array
     return $options;
 }
 
+function typo3_vercel_install_tool_session_handler_configuration(): ?array
+{
+    if (!extension_loaded('redis')) {
+        return null;
+    }
+
+    $redis = typo3_vercel_redis_cache_base_options();
+    if ($redis === null) {
+        return null;
+    }
+
+    $authentication = [];
+    if (isset($redis['username'])) {
+        $authentication['user'] = $redis['username'];
+    }
+    if (isset($redis['password'])) {
+        $authentication['pass'] = $redis['password'];
+    }
+
+    return [
+        'className' => 'TYPO3\\CMS\\Install\\Service\\Session\\RedisSessionHandler',
+        'options' => [
+            'host' => $redis['hostname'],
+            'port' => $redis['port'],
+            'database' => $redis['database'],
+            'authentication' => $authentication,
+        ],
+    ];
+}
+
 function typo3_vercel_redis_component_options(): ?array
 {
     $host = typo3_vercel_env('TYPO3_REDIS_HOST')
@@ -700,6 +748,9 @@ function typo3_vercel_settings(): array
         'BE' => [
             'debug' => $debug,
             'installToolPassword' => typo3_vercel_env('TYPO3_INSTALL_TOOL_PASSWORD_HASH', ''),
+            'installToolSessionHandler' => typo3_vercel_install_tool_session_handler_configuration() ?? [
+                'className' => 'TYPO3\\CMS\\Install\\Service\\Session\\FileSessionHandler',
+            ],
             'passwordHashing' => [
                 'className' => 'TYPO3\\CMS\\Core\\Crypto\\PasswordHashing\\Argon2iPasswordHash',
                 'options' => [],
