@@ -89,6 +89,13 @@ State and delivery
       .. card-footer:: :ref:`Read <adr-010>`
          :button-style: btn btn-secondary stretched-link
 
+   .. card:: ADR-011: Audited request-path tuning
+
+      Carry recurring round trips in caches and persistent connections.
+
+      .. card-footer:: :ref:`Read <adr-011>`
+         :button-style: btn btn-secondary stretched-link
+
 Services and operations
 -----------------------
 
@@ -140,3 +147,4 @@ Services and operations
    Adr008EnvironmentBackedSecurity
    Adr009CiProReleases
    Adr010DurableProcessedImages
+   Adr011AuditedRequestPathTuning
