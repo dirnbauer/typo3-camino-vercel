@@ -12,17 +12,7 @@ function typo3_vercel_health_authorized(): bool
         return false;
     }
 
-    $authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
-    if ($authorization === '' && function_exists('getallheaders')) {
-        foreach ((array)getallheaders() as $name => $value) {
-            if (strcasecmp((string)$name, 'Authorization') === 0) {
-                $authorization = (string)$value;
-                break;
-            }
-        }
-    }
-
-    return hash_equals('Bearer ' . $secret, (string)$authorization);
+    return hash_equals('Bearer ' . $secret, typo3_vercel_authorization_header());
 }
 
 /**
@@ -55,12 +45,7 @@ function typo3_vercel_health_database(): array
 {
     return typo3_vercel_health_measure(static function (): array {
         $database = typo3_vercel_database_config();
-        $pdo = new PDO(
-            typo3_vercel_pdo_dsn($database),
-            (string)($database['user'] ?? ''),
-            (string)($database['password'] ?? ''),
-            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 5],
-        );
+        $pdo = typo3_vercel_pdo($database, [PDO::ATTR_TIMEOUT => 5]);
         $statement = $pdo->query('SELECT 1');
         if ($statement === false || $statement->fetchColumn() === false) {
             throw new RuntimeException('Database probe did not return a row.');
@@ -120,18 +105,14 @@ function typo3_vercel_health_redis(): array
  */
 function typo3_vercel_health_blob(bool $writeProbe = false): array
 {
-    $driver = strtolower((string)(getenv('TYPO3_OBJECT_STORAGE_DRIVER') ?: ''));
-    $enabled = typo3_vercel_bool_env('TYPO3_OBJECT_STORAGE_ENABLED', false)
-        || in_array($driver, ['vercel_blob', 'blob', 'vercel-blob'], true)
-        || getenv('BLOB_STORE_ID') !== false
-        || getenv('BLOB_READ_WRITE_TOKEN') !== false;
-    if (!$enabled || in_array($driver, ['vercel_s3', 's3', 's3-compatible'], true)) {
+    if (!typo3_vercel_object_storage_enabled() || typo3_vercel_object_storage_driver() !== 'vercel_blob') {
         return ['status' => 'skipped', 'reason' => 'Vercel Blob is not enabled.'];
     }
 
     return typo3_vercel_health_measure(static function () use ($writeProbe): array {
-        $tokenEnvName = (string)(getenv('TYPO3_BLOB_TOKEN_ENV_NAME') ?: 'BLOB_READ_WRITE_TOKEN');
-        $storeId = BlobCredentials::resolveStoreId(getenv('TYPO3_BLOB_STORE_ID'), $tokenEnvName);
+        $configuration = typo3_vercel_blob_object_storage_configuration();
+        $tokenEnvName = (string)($configuration['tokenEnvName'] ?? 'BLOB_READ_WRITE_TOKEN');
+        $storeId = BlobCredentials::resolveStoreId($configuration['storeId'], $tokenEnvName);
         if ($storeId === null) {
             throw new RuntimeException('Blob store id is unavailable.');
         }
@@ -140,10 +121,9 @@ function typo3_vercel_health_blob(bool $writeProbe = false): array
             throw new RuntimeException('Blob authentication token is unavailable.');
         }
 
-        $access = strtolower((string)(getenv('TYPO3_BLOB_ACCESS') ?: 'public')) === 'private' ? 'private' : 'public';
-        $prefix = trim((string)(getenv('TYPO3_BLOB_PREFIX') ?: 'typo3/'), '/') . '/';
-        $apiUrl = (string)(getenv('TYPO3_BLOB_API_URL') ?: getenv('VERCEL_BLOB_API_URL') ?: 'https://vercel.com/api/blob');
-        $client = new VercelBlobClient($storeId, $access, $token, $apiUrl, 1, 10);
+        $access = (string)$configuration['access'];
+        $prefix = trim((string)$configuration['prefix'], '/') . '/';
+        $client = new VercelBlobClient($storeId, $access, $token, (string)$configuration['apiUrl'], 1, 10);
         $client->listPathnames($prefix, 1);
 
         if ($writeProbe) {
@@ -172,13 +152,10 @@ function typo3_vercel_health_blob(bool $writeProbe = false): array
  */
 function typo3_vercel_health_solr(float $timeout = 20.0): array
 {
-    $serviceUrl = getenv('TYPO3_SOLR_SERVICE_URL')
-        ?: getenv('SOLR_SERVICE_URL')
-        ?: getenv('TYPO3_SOLR_INTERNAL_URL')
-        ?: getenv('SOLR_INTERNAL_URL');
+    $serviceUrl = typo3_vercel_solr_service_url();
     $core = (string)(getenv('TYPO3_SOLR_CORE') ?: getenv('SOLR_CORE') ?: 'core_en');
 
-    if (is_string($serviceUrl) && $serviceUrl !== '') {
+    if ($serviceUrl !== null) {
         $url = rtrim($serviceUrl, '/') . '/solr/' . rawurlencode($core) . '/admin/ping?wt=json';
     } else {
         $externalUrl = getenv('TYPO3_SOLR_URL') ?: getenv('SOLR_URL');
@@ -203,39 +180,10 @@ function typo3_vercel_health_typo3_loopback(float $timeout = 20.0, string $path 
 
     $path = '/' . ltrim($path, '/');
 
-    return typo3_vercel_health_http('http://127.0.0.1:' . $port . $path, $timeout, [
+    return typo3_vercel_health_http_with_retry('http://127.0.0.1:' . $port . $path, $timeout, [
         'Host: ' . $host,
         'X-Forwarded-Proto: https',
     ]);
-}
-
-/**
- * @param list<string> $headers
- * @return array<string, mixed>
- */
-function typo3_vercel_health_http(string $url, float $timeout, array $headers = []): array
-{
-    return typo3_vercel_health_measure(static function () use ($url, $timeout, $headers): array {
-        $handle = curl_init($url);
-        if ($handle === false) {
-            throw new RuntimeException('Could not initialize cURL.');
-        }
-        curl_setopt_array($handle, [
-            CURLOPT_CONNECTTIMEOUT_MS => min(3000, (int)($timeout * 1000)),
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_HTTPHEADER => $headers,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT_MS => (int)($timeout * 1000),
-        ]);
-        $body = curl_exec($handle);
-        $status = (int)curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
-        $error = curl_error($handle);
-        if ($body === false || $status < 200 || $status >= 400) {
-            throw new RuntimeException(sprintf('HTTP probe failed with status %d%s.', $status, $error !== '' ? ': ' . $error : ''));
-        }
-
-        return ['http_status' => $status];
-    });
 }
 
 /**

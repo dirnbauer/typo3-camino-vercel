@@ -10,7 +10,7 @@ require_once $root . '/scripts/runtime-health.php';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
-$deep = isset($_GET['deep']) && in_array(strtolower((string)$_GET['deep']), ['1', 'true', 'yes', 'on'], true);
+$deep = isset($_GET['deep']) && typo3_vercel_truthy((string)$_GET['deep']);
 $revision = getenv('TYPO3_DEPLOYMENT_REVISION') ?: getenv('VERCEL_GIT_COMMIT_SHA') ?: 'local';
 $response = [
     'status' => 'ok',
@@ -28,7 +28,7 @@ if ($deep) {
     }
 
     typo3_vercel_export_request_oidc_token();
-    $writeProbe = isset($_GET['write']) && in_array(strtolower((string)$_GET['write']), ['1', 'true', 'yes', 'on'], true);
+    $writeProbe = isset($_GET['write']) && typo3_vercel_truthy((string)$_GET['write']);
     $checks = [
         'database' => typo3_vercel_health_database(),
         'redis' => typo3_vercel_health_redis(),

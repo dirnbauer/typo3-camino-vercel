@@ -5,6 +5,8 @@ declare(strict_types=1);
 
 use Symfony\Component\Yaml\Yaml;
 
+require __DIR__ . '/typo3-env.php';
+
 $root = dirname(__DIR__);
 $autoload = $root . '/vendor/autoload.php';
 if (!is_file($autoload)) {
@@ -14,14 +16,14 @@ if (!is_file($autoload)) {
 
 require $autoload;
 
-if (!solr_bool_env('TYPO3_SOLR_ENABLED', solr_has_connection_env())) {
+if (!typo3_vercel_bool_env('TYPO3_SOLR_ENABLED', solr_has_connection_env())) {
     fwrite(STDOUT, "TYPO3 Solr is not enabled; skipping Solr site config.\n");
     exit(0);
 }
 
 $read = solr_connection_from_env('TYPO3_SOLR', 'SOLR');
 $write = solr_connection_from_env('TYPO3_SOLR_WRITE', 'SOLR_WRITE', $read);
-$useWriteConnection = solr_bool_env('TYPO3_SOLR_USE_WRITE_CONNECTION', $write !== $read);
+$useWriteConnection = typo3_vercel_bool_env('TYPO3_SOLR_USE_WRITE_CONNECTION', $write !== $read);
 $siteConfigPaths = solr_site_config_paths($root);
 
 foreach ($siteConfigPaths as $siteConfigPath) {
@@ -36,7 +38,7 @@ foreach ($siteConfigPaths as $siteConfigPath) {
         exit(1);
     }
 
-    $applySiteSet = solr_bool_env('TYPO3_SOLR_APPLY_SITE_SET', false);
+    $applySiteSet = typo3_vercel_bool_env('TYPO3_SOLR_APPLY_SITE_SET', false);
     if ($applySiteSet) {
         solr_apply_site_dependencies($site);
     }
@@ -67,33 +69,17 @@ foreach ($siteConfigPaths as $siteConfigPath) {
     ));
 }
 
-function solr_env(string $name, ?string $default = null): ?string
-{
-    $value = getenv($name);
-    return $value === false || $value === '' ? $default : $value;
-}
-
-function solr_bool_env(string $name, bool $default): bool
-{
-    $value = solr_env($name);
-    if ($value === null) {
-        return $default;
-    }
-
-    return in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
-}
-
 function solr_has_connection_env(): bool
 {
-    return solr_env('TYPO3_SOLR_URL') !== null
-        || solr_env('SOLR_URL') !== null
-        || solr_env('TYPO3_SOLR_HOST') !== null
-        || solr_env('SOLR_HOST') !== null;
+    return typo3_vercel_env('TYPO3_SOLR_URL') !== null
+        || typo3_vercel_env('SOLR_URL') !== null
+        || typo3_vercel_env('TYPO3_SOLR_HOST') !== null
+        || typo3_vercel_env('SOLR_HOST') !== null;
 }
 
 function solr_connection_from_env(string $prefix, string $fallbackPrefix, ?array $fallback = null): array
 {
-    $url = solr_env($prefix . '_URL') ?? solr_env($fallbackPrefix . '_URL');
+    $url = typo3_vercel_env($prefix . '_URL') ?? typo3_vercel_env($fallbackPrefix . '_URL');
     $usesServiceBinding = false;
     if ($url === null) {
         $url = solr_service_url_from_env($prefix, $fallbackPrefix);
@@ -101,25 +87,25 @@ function solr_connection_from_env(string $prefix, string $fallbackPrefix, ?array
     }
     $parsed = $url !== null ? solr_parse_url($url) : [];
 
-    $scheme = solr_env($prefix . '_SCHEME') ?? solr_env($fallbackPrefix . '_SCHEME') ?? ($parsed['scheme'] ?? $fallback['scheme'] ?? 'https');
-    $host = solr_env($prefix . '_HOST') ?? solr_env($fallbackPrefix . '_HOST') ?? ($parsed['host'] ?? $fallback['host'] ?? null);
+    $scheme = typo3_vercel_env($prefix . '_SCHEME') ?? typo3_vercel_env($fallbackPrefix . '_SCHEME') ?? ($parsed['scheme'] ?? $fallback['scheme'] ?? 'https');
+    $host = typo3_vercel_env($prefix . '_HOST') ?? typo3_vercel_env($fallbackPrefix . '_HOST') ?? ($parsed['host'] ?? $fallback['host'] ?? null);
     if ($host === null) {
         fwrite(STDERR, sprintf("%s_HOST or %s_URL is required when TYPO3 Solr is enabled.\n", $prefix, $prefix));
         exit(1);
     }
 
     $defaultPort = $usesServiceBinding ? ($scheme === 'https' ? 443 : 80) : ($scheme === 'https' ? 443 : 8983);
-    $port = solr_env($prefix . '_PORT') ?? solr_env($fallbackPrefix . '_PORT') ?? ($parsed['port'] ?? $fallback['port'] ?? $defaultPort);
-    $path = solr_env($prefix . '_PATH') ?? solr_env($fallbackPrefix . '_PATH') ?? ($parsed['path'] ?? $fallback['path'] ?? '/');
-    $core = solr_env($prefix . '_CORE') ?? solr_env($fallbackPrefix . '_CORE') ?? ($parsed['core'] ?? $fallback['core'] ?? 'core_en');
-    $username = solr_env($prefix . '_USERNAME') ?? solr_env($fallbackPrefix . '_USERNAME') ?? ($parsed['username'] ?? $fallback['username'] ?? null);
-    $password = solr_env($prefix . '_PASSWORD') ?? solr_env($fallbackPrefix . '_PASSWORD') ?? ($parsed['password'] ?? $fallback['password'] ?? null);
+    $port = typo3_vercel_env($prefix . '_PORT') ?? typo3_vercel_env($fallbackPrefix . '_PORT') ?? ($parsed['port'] ?? $fallback['port'] ?? $defaultPort);
+    $path = typo3_vercel_env($prefix . '_PATH') ?? typo3_vercel_env($fallbackPrefix . '_PATH') ?? ($parsed['path'] ?? $fallback['path'] ?? '/');
+    $core = typo3_vercel_env($prefix . '_CORE') ?? typo3_vercel_env($fallbackPrefix . '_CORE') ?? ($parsed['core'] ?? $fallback['core'] ?? 'core_en');
+    $username = typo3_vercel_env($prefix . '_USERNAME') ?? typo3_vercel_env($fallbackPrefix . '_USERNAME') ?? ($parsed['username'] ?? $fallback['username'] ?? null);
+    $password = typo3_vercel_env($prefix . '_PASSWORD') ?? typo3_vercel_env($fallbackPrefix . '_PASSWORD') ?? ($parsed['password'] ?? $fallback['password'] ?? null);
 
-    if ($usesServiceBinding && solr_bool_env('TYPO3_SOLR_APP_PROXY_ENABLED', true)) {
+    if ($usesServiceBinding && typo3_vercel_bool_env('TYPO3_SOLR_APP_PROXY_ENABLED', true)) {
         return [
             'scheme' => 'http',
             'host' => '127.0.0.1',
-            'port' => (int)(solr_env('TYPO3_SOLR_APP_PROXY_PORT') ?? solr_env('PORT', '80')),
+            'port' => (int)(typo3_vercel_env('TYPO3_SOLR_APP_PROXY_PORT') ?? typo3_vercel_env('PORT', '80')),
             'path' => '/api/solr-proxy.php/',
             'core' => $core,
             'username' => null,
@@ -140,21 +126,25 @@ function solr_connection_from_env(string $prefix, string $fallbackPrefix, ?array
 
 function solr_service_url_from_env(string $prefix, string $fallbackPrefix): ?string
 {
-    if (solr_env($prefix . '_HOST') !== null || solr_env($fallbackPrefix . '_HOST') !== null) {
+    if (typo3_vercel_env($prefix . '_HOST') !== null || typo3_vercel_env($fallbackPrefix . '_HOST') !== null) {
         return null;
     }
 
-    $serviceUrl = solr_env($prefix . '_SERVICE_URL')
-        ?? solr_env($fallbackPrefix . '_SERVICE_URL')
-        ?? solr_env('TYPO3_SOLR_INTERNAL_URL')
-        ?? solr_env('SOLR_INTERNAL_URL');
+    // The read prefix collapses to the shared alias cascade; the write prefix
+    // consults its own *_SERVICE_URL aliases before the internal-URL fallback.
+    $serviceUrl = $prefix === 'TYPO3_SOLR'
+        ? typo3_vercel_solr_service_url()
+        : (typo3_vercel_env($prefix . '_SERVICE_URL')
+            ?? typo3_vercel_env($fallbackPrefix . '_SERVICE_URL')
+            ?? typo3_vercel_env('TYPO3_SOLR_INTERNAL_URL')
+            ?? typo3_vercel_env('SOLR_INTERNAL_URL'));
 
     if ($serviceUrl === null) {
         return null;
     }
 
-    $path = solr_env($prefix . '_PATH') ?? solr_env($fallbackPrefix . '_PATH') ?? '/';
-    $core = solr_env($prefix . '_CORE') ?? solr_env($fallbackPrefix . '_CORE') ?? 'core_en';
+    $path = typo3_vercel_env($prefix . '_PATH') ?? typo3_vercel_env($fallbackPrefix . '_PATH') ?? '/';
+    $core = typo3_vercel_env($prefix . '_CORE') ?? typo3_vercel_env($fallbackPrefix . '_CORE') ?? 'core_en';
 
     return rtrim($serviceUrl, '/') . solr_normalize_path($path) . rawurlencode($core);
 }
@@ -219,7 +209,7 @@ function solr_normalize_site_path(string $path): string
 
 function solr_site_config_paths(string $root): array
 {
-    $identifier = solr_env('TYPO3_SOLR_SITE_IDENTIFIER', 'camino');
+    $identifier = typo3_vercel_env('TYPO3_SOLR_SITE_IDENTIFIER', 'camino');
     if ($identifier === 'all') {
         return glob($root . '/config/sites/*/config.yaml') ?: [];
     }
@@ -228,8 +218,8 @@ function solr_site_config_paths(string $root): array
 
 function solr_apply_site_dependencies(array &$site): void
 {
-    $siteSet = solr_env('TYPO3_SOLR_SITE_SET', 'webconsulting/typo3-vercel-solr-demo');
-    $stylesheetSiteSet = solr_env('TYPO3_SOLR_STYLESHEET_SITE_SET', 'webconsulting/typo3-vercel-solr-demo-stylesheets');
+    $siteSet = typo3_vercel_env('TYPO3_SOLR_SITE_SET', 'webconsulting/typo3-vercel-solr-demo');
+    $stylesheetSiteSet = typo3_vercel_env('TYPO3_SOLR_STYLESHEET_SITE_SET', 'webconsulting/typo3-vercel-solr-demo-stylesheets');
     $dependencies = array_values(array_filter(
         (array)($site['dependencies'] ?? []),
         static fn (mixed $dependency): bool => !in_array((string)$dependency, [
@@ -238,7 +228,7 @@ function solr_apply_site_dependencies(array &$site): void
         ], true),
     ));
     $dependencies[] = $siteSet;
-    if (solr_bool_env('TYPO3_SOLR_INCLUDE_STYLESHEETS', true)) {
+    if (typo3_vercel_bool_env('TYPO3_SOLR_INCLUDE_STYLESHEETS', true)) {
         $dependencies[] = $stylesheetSiteSet;
     }
     $site['dependencies'] = array_values(array_unique(array_filter($dependencies, static fn (mixed $dependency): bool => (string)$dependency !== '')));
@@ -246,7 +236,7 @@ function solr_apply_site_dependencies(array &$site): void
 
 function solr_apply_site_base(array &$site): void
 {
-    $base = solr_env('TYPO3_SOLR_SITE_BASE');
+    $base = typo3_vercel_env('TYPO3_SOLR_SITE_BASE');
     if ($base !== null) {
         $site['base'] = rtrim($base, '/') . '/';
     }
@@ -264,10 +254,7 @@ function solr_apply_credentials(array &$site, array $connection, string $scope):
 
 function solr_apply_language_cores(array $languages, string $defaultCore): array
 {
-    $internalService = solr_env('TYPO3_SOLR_SERVICE_URL') !== null
-        || solr_env('SOLR_SERVICE_URL') !== null
-        || solr_env('TYPO3_SOLR_INTERNAL_URL') !== null
-        || solr_env('SOLR_INTERNAL_URL') !== null;
+    $internalService = typo3_vercel_solr_service_url() !== null;
     $internalCores = [
         '0' => 'core_en',
         '1' => 'core_de',
@@ -281,8 +268,8 @@ function solr_apply_language_cores(array $languages, string $defaultCore): array
             continue;
         }
         $languageId = (string)($language['languageId'] ?? $index);
-        $specificCore = solr_env('TYPO3_SOLR_CORE_LANGUAGE_' . $languageId)
-            ?? solr_env('SOLR_CORE_LANGUAGE_' . $languageId);
+        $specificCore = typo3_vercel_env('TYPO3_SOLR_CORE_LANGUAGE_' . $languageId)
+            ?? typo3_vercel_env('SOLR_CORE_LANGUAGE_' . $languageId);
         $language['solr_core_read'] = $specificCore
             ?? ($internalService ? ($internalCores[$languageId] ?? null) : null)
             ?? $language['solr_core_read']

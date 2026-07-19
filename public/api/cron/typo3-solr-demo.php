@@ -6,32 +6,7 @@ $root = dirname(__DIR__, 3);
 require_once $root . '/scripts/typo3-env.php';
 typo3_vercel_export_request_oidc_token();
 
-$secret = getenv('CRON_SECRET');
-$authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
-
-if ($authorization === '' && function_exists('getallheaders')) {
-    $headers = getallheaders();
-    if (is_array($headers)) {
-        foreach ($headers as $name => $value) {
-            if (strcasecmp((string)$name, 'Authorization') === 0) {
-                $authorization = (string)$value;
-                break;
-            }
-        }
-    }
-}
-
-if ($secret === false || $secret === '') {
-    http_response_code(503);
-    echo "CRON_SECRET is not configured.\n";
-    exit;
-}
-
-if (!hash_equals('Bearer ' . $secret, $authorization)) {
-    http_response_code(401);
-    echo "Unauthorized.\n";
-    exit;
-}
+typo3_vercel_require_cron_secret();
 
 $action = isset($_GET['action']) ? (string)$_GET['action'] : 'setup';
 
@@ -71,8 +46,7 @@ $rootPageId = getenv('TYPO3_SOLR_ROOT_PAGE_ID') ?: '1';
 $slug = getenv('TYPO3_SOLR_SEARCH_SLUG') ?: '/search';
 $title = getenv('TYPO3_SOLR_SEARCH_TITLE') ?: 'Search';
 
-$command = [
-    $root . '/vendor/bin/typo3',
+$arguments = [
     'webconsulting:solr-demo:setup',
     '--limit=' . $limit,
     '--site-identifier=' . $siteIdentifier,
@@ -82,48 +56,33 @@ $command = [
 ];
 
 if ($action === 'setup') {
-    $command[] = '--flush-caches';
-    $command[] = '--normalize-demo-pages';
+    $arguments[] = '--flush-caches';
+    $arguments[] = '--normalize-demo-pages';
     if (typo3_solr_should_index_on_setup()) {
-        $command[] = '--index';
+        $arguments[] = '--index';
     }
     if (typo3_solr_should_create_scheduler_task()) {
-        $command[] = '--scheduler-task';
-        $command[] = '--scheduler-interval=' . $schedulerInterval;
+        $arguments[] = '--scheduler-task';
+        $arguments[] = '--scheduler-interval=' . $schedulerInterval;
     }
 }
 
 if ($action === 'diagnose') {
-    $command[] = '--diagnose';
+    $arguments[] = '--diagnose';
 }
 
-$process = proc_open(
-    $command,
-    // @phpstan-ignore argument.type (PHP supports ['redirect', 1] descriptors.)
-    [
-        0 => ['pipe', 'r'],
-        1 => ['pipe', 'w'],
-        2 => ['redirect', 1],
-    ],
-    $pipes,
-    $root,
-);
-
-if (!is_resource($process)) {
+try {
+    ['output' => $output, 'exitCode' => $exitCode] = typo3_vercel_run_typo3_command($arguments);
+} catch (RuntimeException) {
     http_response_code(500);
     echo "Failed to start TYPO3 Solr demo setup.\n";
     exit;
 }
 
-fclose($pipes[0]);
-$output = stream_get_contents($pipes[1]);
-fclose($pipes[1]);
-
-$exitCode = proc_close($process);
 http_response_code($exitCode === 0 ? 200 : 500);
 header('Content-Type: text/plain; charset=utf-8');
 
-if ($output !== false && $output !== '') {
+if ($output !== '') {
     echo $output;
 } else {
     echo $exitCode === 0 ? "TYPO3 Solr demo setup finished.\n" : "TYPO3 Solr demo setup failed.\n";
@@ -137,57 +96,38 @@ if ($exitCode === 0 && $action === 'setup' && !typo3_solr_should_index_on_setup(
 function typo3_solr_should_index_on_setup(): bool
 {
     if (isset($_GET['index'])) {
-        return typo3_solr_truthy((string)$_GET['index']);
+        return typo3_vercel_truthy((string)$_GET['index']);
     }
 
-    $explicit = getenv('TYPO3_SOLR_INDEX_ON_SETUP');
-    if ($explicit !== false && $explicit !== '') {
-        return typo3_solr_truthy((string)$explicit);
+    $explicit = typo3_vercel_env('TYPO3_SOLR_INDEX_ON_SETUP');
+    if ($explicit !== null) {
+        return typo3_vercel_truthy($explicit);
     }
 
-    $externalConnection = typo3_solr_env_present('TYPO3_SOLR_URL')
-        || typo3_solr_env_present('SOLR_URL')
-        || typo3_solr_env_present('TYPO3_SOLR_HOST')
-        || typo3_solr_env_present('SOLR_HOST');
+    $externalConnection = typo3_vercel_env('TYPO3_SOLR_URL') !== null
+        || typo3_vercel_env('SOLR_URL') !== null
+        || typo3_vercel_env('TYPO3_SOLR_HOST') !== null
+        || typo3_vercel_env('SOLR_HOST') !== null;
 
     if ($externalConnection) {
         return true;
     }
 
-    return !typo3_solr_has_internal_service_url();
+    return typo3_vercel_solr_service_url() === null;
 }
 
 function typo3_solr_should_create_scheduler_task(): bool
 {
     if (isset($_GET['scheduler'])) {
-        return typo3_solr_truthy((string)$_GET['scheduler']);
+        return typo3_vercel_truthy((string)$_GET['scheduler']);
     }
 
-    $explicit = getenv('TYPO3_SOLR_SCHEDULER_TASK');
-    if ($explicit !== false && $explicit !== '') {
-        return typo3_solr_truthy((string)$explicit);
+    $explicit = typo3_vercel_env('TYPO3_SOLR_SCHEDULER_TASK');
+    if ($explicit !== null) {
+        return typo3_vercel_truthy($explicit);
     }
 
-    return typo3_solr_should_index_on_setup() && !typo3_solr_has_internal_service_url();
-}
-
-function typo3_solr_has_internal_service_url(): bool
-{
-    return typo3_solr_env_present('TYPO3_SOLR_SERVICE_URL')
-        || typo3_solr_env_present('SOLR_SERVICE_URL')
-        || typo3_solr_env_present('TYPO3_SOLR_INTERNAL_URL')
-        || typo3_solr_env_present('SOLR_INTERNAL_URL');
-}
-
-function typo3_solr_truthy(string $value): bool
-{
-    return in_array(strtolower(trim($value)), ['1', 'true', 'yes', 'on'], true);
-}
-
-function typo3_solr_env_present(string $name): bool
-{
-    $value = getenv($name);
-    return $value !== false && $value !== '';
+    return typo3_solr_should_index_on_setup() && typo3_vercel_solr_service_url() === null;
 }
 
 function typo3_solr_probe(): void
@@ -195,20 +135,17 @@ function typo3_solr_probe(): void
     header('Content-Type: text/plain; charset=utf-8');
 
     $target = isset($_GET['target']) ? strtolower((string)$_GET['target']) : 'all';
-    $usesAppProxy = typo3_solr_has_internal_service_url() && typo3_solr_app_proxy_enabled();
+    $usesAppProxy = typo3_vercel_solr_service_url() !== null && typo3_solr_app_proxy_enabled();
     $defaultTimeout = $usesAppProxy ? 45.0 : 3.0;
     $maxTimeout = $usesAppProxy ? 90.0 : 10.0;
     $timeout = isset($_GET['timeout']) && is_numeric($_GET['timeout']) ? (float)$_GET['timeout'] : $defaultTimeout;
     $timeout = max(1.0, min($maxTimeout, $timeout));
 
-    $serviceUrl = getenv('TYPO3_SOLR_SERVICE_URL')
-        ?: getenv('SOLR_SERVICE_URL')
-        ?: getenv('TYPO3_SOLR_INTERNAL_URL')
-        ?: getenv('SOLR_INTERNAL_URL')
-        ?: getenv('TYPO3_SOLR_URL')
-        ?: getenv('SOLR_URL');
+    $serviceUrl = typo3_vercel_solr_service_url()
+        ?? typo3_vercel_env('TYPO3_SOLR_URL')
+        ?? typo3_vercel_env('SOLR_URL');
 
-    if ($serviceUrl === false || $serviceUrl === '') {
+    if ($serviceUrl === null) {
         http_response_code(503);
         echo "No Solr service URL is configured.\n";
         return;
@@ -261,7 +198,7 @@ function typo3_solr_probe(): void
 
 function typo3_solr_probe_base_url(string $serviceUrl): string
 {
-    if (typo3_solr_has_internal_service_url() && typo3_solr_app_proxy_enabled()) {
+    if (typo3_vercel_solr_service_url() !== null && typo3_solr_app_proxy_enabled()) {
         $port = getenv('TYPO3_SOLR_APP_PROXY_PORT') ?: getenv('PORT') ?: '80';
         return 'http://127.0.0.1:' . (int)$port . '/api/solr-proxy.php';
     }
@@ -271,26 +208,20 @@ function typo3_solr_probe_base_url(string $serviceUrl): string
 
 function typo3_solr_app_proxy_enabled(): bool
 {
-    $value = getenv('TYPO3_SOLR_APP_PROXY_ENABLED');
-    if ($value === false || $value === '') {
-        return true;
-    }
+    $value = typo3_vercel_env('TYPO3_SOLR_APP_PROXY_ENABLED');
 
-    return typo3_solr_truthy((string)$value);
+    return $value === null || typo3_vercel_truthy($value);
 }
 
 function typo3_solr_benchmark(): void
 {
     header('Content-Type: text/plain; charset=utf-8');
 
-    $serviceUrl = getenv('TYPO3_SOLR_SERVICE_URL')
-        ?: getenv('SOLR_SERVICE_URL')
-        ?: getenv('TYPO3_SOLR_INTERNAL_URL')
-        ?: getenv('SOLR_INTERNAL_URL')
-        ?: getenv('TYPO3_SOLR_URL')
-        ?: getenv('SOLR_URL');
+    $serviceUrl = typo3_vercel_solr_service_url()
+        ?? typo3_vercel_env('TYPO3_SOLR_URL')
+        ?? typo3_vercel_env('SOLR_URL');
 
-    if ($serviceUrl === false || $serviceUrl === '') {
+    if ($serviceUrl === null) {
         http_response_code(503);
         echo "No Solr service URL is configured.\n";
         return;

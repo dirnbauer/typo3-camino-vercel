@@ -17,24 +17,11 @@ $adminUsername = typo3_vercel_env('TYPO3_SETUP_ADMIN_USERNAME', 'admin') ?? 'adm
 $database = typo3_vercel_database_config();
 
 try {
-    if (($database['driver'] ?? '') === 'pdo_sqlite') {
-        $directory = dirname((string)$database['path']);
-        if (!is_dir($directory)) {
-            mkdir($directory, 0775, true);
-        }
-    }
-
-    $pdo = new PDO(
-        typo3_vercel_pdo_dsn($database),
-        (string)($database['user'] ?? null),
-        (string)($database['password'] ?? null),
-        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION],
-    );
-
+    $pdo = typo3_vercel_pdo($database);
     $pdo->query('SELECT 1 FROM be_users LIMIT 1');
 } catch (PDOException $exception) {
     $message = $exception->getMessage();
-    if (str_contains($message, 'no such table') || str_contains($message, 'does not exist') || str_contains($message, "doesn't exist")) {
+    if (typo3_vercel_is_missing_table_error($message)) {
         fwrite(STDOUT, "TYPO3 backend user table is not available; skipping admin password update.\n");
         exit(0);
     }
