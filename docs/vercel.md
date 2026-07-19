@@ -1,5 +1,20 @@
 # Vercel Deployment Notes
 
+## Install In Short
+
+1. **Evaluation:** click the README Deploy Button, enter admin username, a
+   strong password, and a 96-hex `TYPO3_ENCRYPTION_KEY`
+   (`openssl rand -hex 48`), keep the Blob store enabled, wait for
+   **Ready**, open `/typo3/`. Nothing else required; content is disposable.
+2. **Durable site:** add `DATABASE_URL` (Neon/Supabase/MySQL-compatible near
+   `fra1`) with `TYPO3_AUTO_SETUP=1` for the first deploy, then set the
+   one-shot flags back to `0` ([database](database.md)). Keep the Blob store
+   for uploads ([object storage](object-storage.md)).
+3. **Production operations:** set `CRON_SECRET`, deploy the Pro profile
+   (`scripts/deploy-pro.sh`, or add the `VERCEL_TOKEN` repository secret so
+   every push to `main` deploys it through CI), then review
+   [production hardening](production-hardening.md).
+
 ## How This Project Runs
 
 Vercel builds `Dockerfile.vercel` as an OCI image for a Dockerfile-backed
@@ -174,6 +189,32 @@ vercel env add TYPO3_ENCRYPTION_KEY production --scope webconsulting
 vercel deploy --prod --scope webconsulting --regions fra1
 vercel crons ls --scope webconsulting
 ```
+
+## Open Platform Requests
+
+Everything in this section works today through a repository-side workaround,
+and each workaround exists only because the platform lacks one capability.
+These are the technical changes Vercel could ship to remove them
+(status rechecked 2026-07-19; Services is Beta, so items may resolve):
+
+| Workaround in this starter | Vercel change that would remove it |
+|---|---|
+| Three-minute cron warmer, baked DI/Fluid caches, bounded Solr retry proxy — and cold requests still reach ~10 s | Minimum-instances / keep-warm option for container Services |
+| Custom browser-to-Blob large-upload module; normal uploads capped at 4 MB | Raise or stream the 4.5 MB request-body limit for container Services |
+| Internal Solr is a self-seeding demo; production search must be external managed Solr | Attachable persistent volumes for container Services |
+| Blob boot verification is deferred unless a read/write token exists (request OIDC only exists per request) | Workload OIDC available to the container process at boot |
+| `scripts/deploy-pro.sh` + CI deploys because Git deployments read only `vercel.json` (ADR-009); the project is not Git-connected | Per-environment configuration file selection for Git deployments |
+| Two deployment profiles, because Hobby cron is daily-only and cannot warm the free demo (ADR-002) | A modest keep-warm or hourly cron allowance on Hobby |
+| The warm-up script treats `x-vercel-mitigated: challenge` as "skip" because managed bot protection challenges the project's own automation | A first-party bypass (scoped token) for a project's own probes across bot protection |
+| Incident forensics raced the 1-day Pro runtime-log retention | Longer retention or included log drains on Pro |
+
+CLI paper cut observed on 2026-07-19: `vercel env add --force` did not
+persist an overwrite (`vercel env ls` kept the old timestamp and the old
+value stayed live); `vercel env rm` + `add` worked. Worth a bug report.
+
+Known issues on the starter side (not Vercel's): the Blob driver's
+cross-storage processed-images path (ADR-010, defaults to local processing
+until fixed) and a `sys_file` data anomaly for the demo homepage hero.
 
 ## Sources
 

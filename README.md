@@ -154,8 +154,10 @@ Available selectors are `all`, `lint`, `phpstan`, `unit`, and `containers`.
 
 Start with the [documentation index](docs/README.md). The operational guides
 cover Vercel, security, state, caching, search, background work, limitations,
-and costs. Architecture decisions and their Git-history evidence are recorded
-in the [ADR chapter](Documentation/Adr/Index.rst).
+and costs. Installation steps and the list of current workarounds that only a
+Vercel platform change can remove live in the
+[Vercel guide](docs/vercel.md). Architecture decisions and their Git-history
+evidence are recorded in the [ADR chapter](Documentation/Adr/Index.rst).
 
 Platform limits and product status can change. Recheck the official
 [Services](https://vercel.com/docs/services),

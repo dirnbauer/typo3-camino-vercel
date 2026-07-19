@@ -33,9 +33,10 @@ or when a connected Vercel Blob store provides credentials. An explicit
 - stores non-secret driver settings in TYPO3's FlexForm configuration
 - creates `user_upload/`, `_processed_/`, `_processed_local_/`, and `_temp_/`
   in object storage
-- points local storages' `processingfolder` at `2:/_processed_local_/` and
-  purges their stale processed-file records once, so image derivatives are
-  durable instead of dying with an instance
+- points local storages' `processingfolder` at `2:/_processed_local_/` (S3
+  driver default; the Blob driver defaults to local processing until its
+  cross-storage path is fixed, see ADR-010) and purges stale processed-file
+  records once on every switch
 - verifies storage access (unless `TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=0`)
   when a record is created or its configuration changes; unchanged boots
   skip both the database writes and the network check to keep cold starts cheap

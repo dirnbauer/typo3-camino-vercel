@@ -116,7 +116,7 @@ if (!$objectStorageChanged) {
     }
 }
 
-$localProcessingTarget = typo3_vercel_local_storage_processing_target($storageUid);
+$localProcessingTarget = typo3_vercel_local_storage_processing_target($storageUid, $driverName);
 $localStorageChanged = typo3_vercel_apply_local_storage_processing_folder($pdo, $storageUid, $localProcessingTarget);
 
 if (!$objectStorageChanged && !$localStorageChanged) {

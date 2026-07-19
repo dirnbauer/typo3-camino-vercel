@@ -11,7 +11,7 @@ when the deployment becomes more than a disposable demo.
 | [Choose one of two setups](deployment-profiles.md) | One-click evaluation versus professional hosting |
 | [Quickstart](quickstart.md) | One-click and first durable deployment |
 | [Configuration](configuration.md) | Canonical environment and profile reference |
-| [Vercel deployment](vercel.md) | CLI, environment, regions, and deployment lifecycle |
+| [Vercel deployment](vercel.md) | Install steps, CLI, regions, and open platform requests |
 | [Costs](costs.md) | Hobby, Pro, databases, Blob, Redis, and Solr cost shape |
 | [Free demo](free-demo.md) | Exactly what can remain free and what is temporary |
 

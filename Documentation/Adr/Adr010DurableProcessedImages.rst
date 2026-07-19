@@ -10,9 +10,9 @@ Status
 ======
 
 **Accepted.** Recorded on 2026-07-19. The mechanism is verified with the
-S3-compatible driver; the public demo temporarily runs the documented
-``local`` override until the Blob driver's cross-storage processing path is
-fixed.
+S3-compatible driver, which therefore defaults to durable processing. The
+Blob driver defaults to local processing until its cross-storage path is
+fixed; the public demo currently runs that local default.
 
 Context
 =======
