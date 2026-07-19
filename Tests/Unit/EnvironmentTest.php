@@ -113,7 +113,7 @@ final class EnvironmentTest extends TestCase
         $pages = \typo3_vercel_redis_cache_configuration('pages', true, [], true);
         $hash = \typo3_vercel_redis_cache_configuration('hash');
 
-        self::assertSame('camino:pages:deploy-0123456789ab:', $pages['options']['keyPrefix']);
+        self::assertSame('camino:pages:deploy-0123456789abcdef0123456789abcdef:', $pages['options']['keyPrefix']);
         self::assertSame('camino:hash:', $hash['options']['keyPrefix']);
     }
 
