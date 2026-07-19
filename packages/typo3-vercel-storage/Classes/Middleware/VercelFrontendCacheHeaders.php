@@ -15,7 +15,8 @@ final class VercelFrontendCacheHeaders implements MiddlewareInterface
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $response = $handler->handle($request);
-        $ttl = (new FrontendEdgeCachePolicy())->ttl();
+        $policy = new FrontendEdgeCachePolicy();
+        $ttl = $policy->ttl();
 
         if ($ttl <= 0) {
             return $response;
@@ -32,12 +33,11 @@ final class VercelFrontendCacheHeaders implements MiddlewareInterface
             return $response;
         }
 
-        $staleWhileRevalidate = $this->positiveIntEnv(
-            'TYPO3_VERCEL_EDGE_CACHE_STALE_WHILE_REVALIDATE',
-            min($ttl * 5, 300),
+        $cdnCacheControl = sprintf(
+            's-maxage=%d, stale-while-revalidate=%d',
+            $ttl,
+            $policy->staleWhileRevalidate($ttl),
         );
-
-        $cdnCacheControl = sprintf('s-maxage=%d, stale-while-revalidate=%d', $ttl, $staleWhileRevalidate);
 
         return $response
             ->withHeader('Cache-Control', 'public, max-age=0')
@@ -119,15 +119,5 @@ final class VercelFrontendCacheHeaders implements MiddlewareInterface
         }
 
         return implode(', ', $vary);
-    }
-
-    private function positiveIntEnv(string $name, int $default): int
-    {
-        $value = getenv($name);
-        if ($value === false || $value === '') {
-            return $default;
-        }
-
-        return max(0, (int)$value);
     }
 }

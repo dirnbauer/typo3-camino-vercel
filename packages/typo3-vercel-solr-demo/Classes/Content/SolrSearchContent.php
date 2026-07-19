@@ -483,11 +483,7 @@ final class SolrSearchContent
      */
     private function request(string $url, float $timeout): array
     {
-        if (function_exists('curl_init')) {
-            return $this->curlRequest($url, $timeout);
-        }
-
-        return $this->streamRequest($url, $timeout);
+        return $this->curlRequest($url, $timeout);
     }
 
     /**
@@ -501,23 +497,8 @@ final class SolrSearchContent
     private function requestInternalServiceWithRetry(string $url, float $attemptTimeout): array
     {
         $deadline = microtime(true) + $this->internalStartupTimeout();
-        if (function_exists('curl_init')) {
-            return $this->curlRequestWithRetry($url, $attemptTimeout, $deadline);
-        }
 
-        $attempts = 0;
-        $lastResponse = ['status' => 0, 'body' => ''];
-        do {
-            ++$attempts;
-            $remaining = max(0.001, $deadline - microtime(true));
-            $lastResponse = $this->streamRequest($url, min($attemptTimeout, $remaining));
-            if (!$this->isTemporaryServiceResponse($lastResponse)) {
-                break;
-            }
-            $this->pauseBeforeRetry($deadline, $attempts);
-        } while (microtime(true) < $deadline);
-
-        return $lastResponse;
+        return $this->curlRequestWithRetry($url, $attemptTimeout, $deadline);
     }
 
     /**
@@ -628,38 +609,6 @@ final class SolrSearchContent
         $status = (int)curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
 
         return ['status' => $status, 'body' => is_string($body) ? $body : ''];
-    }
-
-    /**
-     * @return array{status:int,body:string}
-     */
-    private function streamRequest(string $url, float $timeout): array
-    {
-        $context = stream_context_create([
-            'http' => [
-                'ignore_errors' => true,
-                'method' => 'GET',
-                'header' => "Accept: application/json\r\n",
-                'protocol_version' => 1.1,
-                'timeout' => $timeout,
-            ],
-            'ssl' => [
-                'verify_peer' => true,
-                'verify_peer_name' => true,
-            ],
-        ]);
-
-        $body = @file_get_contents($url, false, $context);
-        $headers = http_get_last_response_headers() ?? [];
-        $status = 0;
-        foreach ($headers as $header) {
-            if (preg_match('/^HTTP\/\S+\s+(\d+)/', $header, $match) === 1) {
-                $status = (int)$match[1];
-                break;
-            }
-        }
-
-        return ['status' => $status, 'body' => $body === false ? '' : (string)$body];
     }
 
     /**

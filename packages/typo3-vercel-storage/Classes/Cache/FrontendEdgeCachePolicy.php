@@ -11,6 +11,14 @@ final class FrontendEdgeCachePolicy
         return $this->positiveIntEnv('TYPO3_VERCEL_EDGE_CACHE_TTL', $this->defaultTtl());
     }
 
+    public function staleWhileRevalidate(int $ttl): int
+    {
+        return $this->positiveIntEnv(
+            'TYPO3_VERCEL_EDGE_CACHE_STALE_WHILE_REVALIDATE',
+            min($ttl * 5, 300),
+        );
+    }
+
     private function positiveIntEnv(string $name, int $default): int
     {
         $value = getenv($name);
