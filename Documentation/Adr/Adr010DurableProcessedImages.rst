@@ -38,6 +38,10 @@ History evidence
   replacement, each triggering a full TYPO3 render.
 - ``616fb44`` (2026-07-19) pointed local processing folders at object
   storage and purged stale processed-file records.
+- ``3d3d53d`` (2026-07-19) fixed the upload-stream double-close that
+  aborted processing after every successful Blob upload.
+- ``eb823fe`` (2026-07-19) scoped the shared Redis page cache to CLI
+  deployments, so stale rendered HTML no longer outlives redeploys.
 
 Decision
 ========
