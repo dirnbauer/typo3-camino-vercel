@@ -47,8 +47,9 @@ Consequences
 
 **Negative:**
 
-- The deploy job fails until a valid ``VERCEL_TOKEN`` secret exists, and the
-  token must be rotated like any other credential.
+- The deploy job skips itself with a visible notice until a valid
+  ``VERCEL_TOKEN`` secret exists, and the token must be rotated like any
+  other credential.
 - A production release now depends on GitHub Actions availability; the
   manual script remains the fallback.
 

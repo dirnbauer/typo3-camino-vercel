@@ -85,20 +85,27 @@ jobs:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Require deploy secrets
+      - name: Check deploy readiness
+        id: gate
         run: |
-          test -n "$VERCEL_TOKEN" || {
-            echo '::error::VERCEL_TOKEN secret is missing. Create a token at https://vercel.com/account/tokens (scope: webconsulting) and add it with: gh secret set VERCEL_TOKEN'
-            exit 1
-          }
-          test -n "$VERCEL_ORG_ID" && test -n "$VERCEL_PROJECT_ID" || {
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo '::notice::Deploy skipped: the VERCEL_TOKEN secret is missing. Create a token at https://vercel.com/account/tokens (scope: webconsulting) and add it with: gh secret set VERCEL_TOKEN'
+            exit 0
+          fi
+          if [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
             echo '::error::VERCEL_ORG_ID / VERCEL_PROJECT_ID secrets are missing (values from .vercel/project.json).'
             exit 1
-          }
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.ready == 'true'
       - uses: actions/setup-node@v4
+        if: steps.gate.outputs.ready == 'true'
         with:
           node-version: '22'
       - run: npm install --global vercel@^54
+        if: steps.gate.outputs.ready == 'true'
       - name: Deploy Pro profile to production
+        if: steps.gate.outputs.ready == 'true'
         run: scripts/deploy-pro.sh
