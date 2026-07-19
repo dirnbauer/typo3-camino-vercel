@@ -30,17 +30,10 @@ final class LocalStorageProcessingFolderTest extends TestCase
         }
     }
 
-    public function testDefaultsToCombinedIdentifierForTheS3Driver(): void
+    public function testDefaultsToCombinedIdentifierOnTheObjectStorage(): void
     {
         self::assertSame('2:/_processed_local_/', \typo3_vercel_local_storage_processing_target(2));
         self::assertSame('7:/_processed_local_/', \typo3_vercel_local_storage_processing_target(7, 'vercel_s3'));
-    }
-
-    public function testDefaultsToLocalProcessingForTheBlobDriver(): void
-    {
-        self::assertSame('', \typo3_vercel_local_storage_processing_target(2, 'vercel_blob'));
-
-        $this->setEnv('2:/_processed_local_/');
         self::assertSame('2:/_processed_local_/', \typo3_vercel_local_storage_processing_target(2, 'vercel_blob'));
     }
 

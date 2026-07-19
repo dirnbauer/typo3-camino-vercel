@@ -9,10 +9,10 @@ ADR-010: Store processed images durably
 Status
 ======
 
-**Accepted.** Recorded on 2026-07-19. The mechanism is verified with the
-S3-compatible driver, which therefore defaults to durable processing. The
-Blob driver defaults to local processing until its cross-storage path is
-fixed; the public demo currently runs that local default.
+**Accepted.** Recorded on 2026-07-19. Verified end-to-end with the
+S3-compatible driver. The initial Blob rollout failed silently because the
+Blob client read ``store_not_found`` auth errors as "object not found"; the
+client now fails loudly and both drivers default to durable processing.
 
 Context
 =======
