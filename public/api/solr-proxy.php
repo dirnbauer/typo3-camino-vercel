@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+require __DIR__ . '/../../scripts/typo3-env.php';
+
 $remoteAddress = $_SERVER['REMOTE_ADDR'] ?? '';
 $host = $_SERVER['HTTP_HOST'] ?? '';
-$publicProxy = typo3_solr_proxy_truthy(getenv('TYPO3_SOLR_APP_PROXY_PUBLIC') ?: '');
+$publicProxy = typo3_vercel_truthy(getenv('TYPO3_SOLR_APP_PROXY_PUBLIC') ?: '');
 $loopbackAddress = in_array($remoteAddress, ['127.0.0.1', '::1', '::ffff:127.0.0.1'], true);
 $loopbackHost = preg_match('/^(127\.0\.0\.1|localhost)(:[0-9]+)?$/', $host) === 1;
 
@@ -14,12 +16,9 @@ if (!$publicProxy && (!$loopbackAddress || !$loopbackHost)) {
     exit;
 }
 
-$serviceUrl = getenv('TYPO3_SOLR_SERVICE_URL')
-    ?: getenv('SOLR_SERVICE_URL')
-    ?: getenv('TYPO3_SOLR_INTERNAL_URL')
-    ?: getenv('SOLR_INTERNAL_URL');
+$serviceUrl = typo3_vercel_solr_service_url();
 
-if (!is_string($serviceUrl) || $serviceUrl === '') {
+if ($serviceUrl === null) {
     http_response_code(503);
     echo "No internal Solr service URL is configured.\n";
     exit;
@@ -252,9 +251,4 @@ function typo3_solr_proxy_float_env(string $name, float $default, float $min, fl
     }
 
     return max($min, min($max, (float)$value));
-}
-
-function typo3_solr_proxy_truthy(string $value): bool
-{
-    return in_array(strtolower(trim($value)), ['1', 'true', 'yes', 'on'], true);
 }

@@ -180,12 +180,7 @@ function typo3_vercel_acquire_bootstrap_lock(array $database): ?PDO
     }
 
     try {
-        $pdo = new PDO(
-            typo3_vercel_pdo_dsn($database),
-            (string)($database['user'] ?? null),
-            (string)($database['password'] ?? null),
-            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION],
-        );
+        $pdo = typo3_vercel_pdo($database);
     } catch (PDOException $exception) {
         // The database itself may not exist yet (e.g. MySQL error 1049). In that
         // case there is nothing to lock; fall back to lock-free bootstrap.
@@ -231,18 +226,7 @@ function typo3_vercel_has_backend_admin_user(array $database): bool
 
     for ($attempt = 1; $attempt <= $retries; $attempt++) {
         try {
-            if (($database['driver'] ?? '') === 'pdo_sqlite') {
-                $directory = dirname((string)$database['path']);
-                if (!is_dir($directory)) {
-                    mkdir($directory, 0775, true);
-                }
-            }
-            $pdo = new PDO(
-                typo3_vercel_pdo_dsn($database),
-                (string)($database['user'] ?? null),
-                (string)($database['password'] ?? null),
-                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION],
-            );
+            $pdo = typo3_vercel_pdo($database);
             $result = $pdo->query("SELECT 1 FROM be_users WHERE username <> '_cli_' AND admin = 1 AND deleted = 0 LIMIT 1");
             return $result !== false && $result->fetchColumn() !== false;
         } catch (PDOException $exception) {
@@ -267,7 +251,11 @@ function typo3_vercel_has_backend_admin_user(array $database): bool
  */
 function typo3_vercel_is_empty_database_error(string $message): bool
 {
-    foreach (['no such table', 'does not exist', "doesn't exist", 'Unknown database', 'Base table or view not found'] as $needle) {
+    if (typo3_vercel_is_missing_table_error($message)) {
+        return true;
+    }
+
+    foreach (['Unknown database', 'Base table or view not found'] as $needle) {
         if (stripos($message, $needle) !== false) {
             return true;
         }

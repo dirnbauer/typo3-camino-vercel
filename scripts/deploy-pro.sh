@@ -30,7 +30,6 @@ if [[ -f "${root}/.vercel/project.json" ]]; then
   cp "${root}/.vercel/project.json" "${stage}/.vercel/project.json"
 fi
 
-cmp -s "${stage}/vercel.pro.json" "${stage}/vercel.json"
 echo "Staged Pro deployment for ${project} at ${revision}."
 
 if [[ "${VERCEL_DEPLOY_DRY_RUN:-0}" == "1" ]]; then

@@ -135,6 +135,36 @@ final class EnvironmentTest extends TestCase
         self::assertSame(5, \typo3_vercel_int_env('MISSING_INTEGER', 5, 1, 20));
     }
 
+    public function testTruthyAcceptsTheCanonicalTokensOnly(): void
+    {
+        foreach (['1', 'true', 'YES', 'On', ' 1 '] as $value) {
+            self::assertTrue(\typo3_vercel_truthy($value));
+        }
+        foreach (['', '0', 'false', 'no', 'off', 'enabled', '2'] as $value) {
+            self::assertFalse(\typo3_vercel_truthy($value));
+        }
+    }
+
+    public function testDetectsMissingTableErrorsAcrossDatabaseEngines(): void
+    {
+        self::assertTrue(\typo3_vercel_is_missing_table_error('SQLSTATE[HY000]: General error: 1 no such table: be_users'));
+        self::assertTrue(\typo3_vercel_is_missing_table_error('SQLSTATE[42P01]: relation "be_users" does not exist'));
+        self::assertTrue(\typo3_vercel_is_missing_table_error("SQLSTATE[42S02]: Table 'typo3.be_users' doesn't exist"));
+        self::assertFalse(\typo3_vercel_is_missing_table_error('SQLSTATE[HY000] [1045] Access denied for user'));
+        self::assertFalse(\typo3_vercel_is_missing_table_error('SQLSTATE[HY000] [1049] Unknown database'));
+    }
+
+    public function testResolvesTheFirstConfiguredSolrServiceUrlAlias(): void
+    {
+        self::assertNull(\typo3_vercel_solr_service_url());
+
+        $this->setEnv('SOLR_INTERNAL_URL', 'http://internal.example.test');
+        self::assertSame('http://internal.example.test', \typo3_vercel_solr_service_url());
+
+        $this->setEnv('TYPO3_SOLR_SERVICE_URL', 'http://service.example.test');
+        self::assertSame('http://service.example.test', \typo3_vercel_solr_service_url());
+    }
+
     public function testInstallToolAllowsOnlyBackendContextOrExplicitOptIn(): void
     {
         self::assertFalse(\typo3_vercel_install_tool_direct_access([]));
@@ -214,6 +244,10 @@ final class EnvironmentTest extends TestCase
             'TEST_BOOLEAN',
             'TEST_INTEGER',
             'MISSING_INTEGER',
+            'TYPO3_SOLR_SERVICE_URL',
+            'SOLR_SERVICE_URL',
+            'TYPO3_SOLR_INTERNAL_URL',
+            'SOLR_INTERNAL_URL',
             'TYPO3_SYSTEM_MAINTAINERS',
             'TYPO3_INSTALL_TOOL_ENABLED',
             'TYPO3_INSTALL_TOOL_PASSWORD_HASH',

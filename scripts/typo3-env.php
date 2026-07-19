@@ -18,6 +18,25 @@ function typo3_vercel_bool_env(string $name, bool $default): bool
     return in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
 }
 
+function typo3_vercel_truthy(string $value): bool
+{
+    return in_array(strtolower(trim($value)), ['1', 'true', 'yes', 'on'], true);
+}
+
+/**
+ * @param list<string> $names
+ */
+function typo3_vercel_first_env(array $names, string $default): string
+{
+    foreach ($names as $name) {
+        $value = typo3_vercel_env($name);
+        if ($value !== null) {
+            return $value;
+        }
+    }
+    return $default;
+}
+
 function typo3_vercel_int_env(string $name, int $default, int $min, int $max): int
 {
     $value = typo3_vercel_env($name);
@@ -70,12 +89,7 @@ function typo3_vercel_system_maintainers(): array
 /** @return list<int> */
 function typo3_vercel_resolve_system_maintainers(array $database, string $username): array
 {
-    $pdo = new PDO(
-        typo3_vercel_pdo_dsn($database),
-        (string)($database['user'] ?? null),
-        (string)($database['password'] ?? null),
-        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION],
-    );
+    $pdo = typo3_vercel_pdo($database);
     $statement = $pdo->prepare(
         'SELECT uid
            FROM be_users
@@ -136,6 +150,79 @@ function typo3_vercel_export_request_oidc_token(): bool
     return false;
 }
 
+function typo3_vercel_authorization_header(): string
+{
+    $authorization = (string)($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
+    if ($authorization === '' && function_exists('getallheaders')) {
+        foreach ((array)getallheaders() as $name => $value) {
+            if (strcasecmp((string)$name, 'Authorization') === 0) {
+                return (string)$value;
+            }
+        }
+    }
+
+    return $authorization;
+}
+
+/**
+ * Gate a maintenance/cron endpoint on the CRON_SECRET Bearer token, ending
+ * the request on failure.
+ */
+function typo3_vercel_require_cron_secret(): void
+{
+    $secret = getenv('CRON_SECRET');
+    if (!is_string($secret) || $secret === '') {
+        http_response_code(503);
+        echo "CRON_SECRET is not configured.\n";
+        exit;
+    }
+
+    if (!hash_equals('Bearer ' . $secret, typo3_vercel_authorization_header())) {
+        http_response_code(401);
+        echo "Unauthorized.\n";
+        exit;
+    }
+}
+
+/**
+ * Run a TYPO3 CLI command from the project root and capture its combined
+ * output. stderr is redirected into stdout so a single blocking read cannot
+ * deadlock: reading one pipe to EOF while the child fills a second, unread
+ * pipe past its ~64 KB buffer (e.g. a large task stack trace) would otherwise
+ * hang the request until the Vercel function times out.
+ *
+ * @param list<string> $arguments
+ * @return array{output: string, exitCode: int}
+ */
+function typo3_vercel_run_typo3_command(array $arguments): array
+{
+    $root = dirname(__DIR__);
+    $process = proc_open(
+        [$root . '/vendor/bin/typo3', ...$arguments],
+        // @phpstan-ignore argument.type (PHP supports ['redirect', 1] descriptors.)
+        [
+            0 => ['pipe', 'r'],
+            1 => ['pipe', 'w'],
+            2 => ['redirect', 1],
+        ],
+        $pipes,
+        $root,
+    );
+
+    if (!is_resource($process)) {
+        throw new RuntimeException('Failed to start TYPO3 CLI command.');
+    }
+
+    fclose($pipes[0]);
+    $output = stream_get_contents($pipes[1]);
+    fclose($pipes[1]);
+
+    return [
+        'output' => is_string($output) ? $output : '',
+        'exitCode' => proc_close($process),
+    ];
+}
+
 /**
  * Processing-folder target for local-driver storages while object storage is
  * enabled. Default: a combined identifier on the object storage, so image
@@ -144,7 +231,7 @@ function typo3_vercel_export_request_oidc_token(): bool
  * 'local' reverts to TYPO3's local default folder (''), 'unmanaged' means
  * "never touch the rows" (null).
  */
-function typo3_vercel_local_storage_processing_target(int $objectStorageUid, string $driverName = 'vercel_s3'): ?string
+function typo3_vercel_local_storage_processing_target(int $objectStorageUid): ?string
 {
     $value = typo3_vercel_env('TYPO3_LOCAL_STORAGE_PROCESSING_FOLDER');
     if ($value === null) {
@@ -177,6 +264,130 @@ function typo3_vercel_combined_folder_on_storage(?string $target, int $storageUi
 
     $folder = trim($match[2], '/');
     return $folder === '' ? null : '/' . $folder . '/';
+}
+
+function typo3_vercel_object_storage_enabled(): bool
+{
+    $explicit = typo3_vercel_env('TYPO3_OBJECT_STORAGE_ENABLED');
+    if ($explicit !== null) {
+        return typo3_vercel_bool_env('TYPO3_OBJECT_STORAGE_ENABLED', false);
+    }
+    return typo3_vercel_env('TYPO3_OBJECT_STORAGE_DRIVER') !== null
+        || typo3_vercel_env('TYPO3_S3_BUCKET') !== null
+        || typo3_vercel_bool_env('TYPO3_BLOB_ENABLED', false)
+        || typo3_vercel_env('BLOB_READ_WRITE_TOKEN') !== null
+        || typo3_vercel_env('BLOB_STORE_ID') !== null;
+}
+
+function typo3_vercel_object_storage_driver(): string
+{
+    $driver = strtolower((string)typo3_vercel_env('TYPO3_OBJECT_STORAGE_DRIVER', ''));
+    if (in_array($driver, ['vercel_blob', 'blob', 'vercel-blob'], true)) {
+        return 'vercel_blob';
+    }
+    if (in_array($driver, ['vercel_s3', 's3', 's3-compatible'], true)) {
+        return 'vercel_s3';
+    }
+    if (typo3_vercel_bool_env('TYPO3_BLOB_ENABLED', false)
+        || typo3_vercel_env('BLOB_READ_WRITE_TOKEN') !== null
+        || typo3_vercel_env('BLOB_STORE_ID') !== null
+    ) {
+        return 'vercel_blob';
+    }
+    return 'vercel_s3';
+}
+
+function typo3_vercel_object_storage_setup(): array
+{
+    $driverName = typo3_vercel_object_storage_driver();
+    $configuration = match ($driverName) {
+        'vercel_blob' => typo3_vercel_blob_object_storage_configuration(),
+        'vercel_s3' => typo3_vercel_s3_object_storage_configuration(),
+        default => throw new RuntimeException('Unsupported object storage driver: ' . $driverName),
+    };
+
+    return [
+        'driver' => $driverName,
+        'configuration' => $configuration,
+        'storageUid' => (int)typo3_vercel_first_env(['TYPO3_OBJECT_STORAGE_STORAGE_UID', 'TYPO3_BLOB_STORAGE_UID', 'TYPO3_S3_STORAGE_UID'], '2'),
+        'storageName' => typo3_vercel_first_env(
+            ['TYPO3_OBJECT_STORAGE_STORAGE_NAME', 'TYPO3_BLOB_STORAGE_NAME', 'TYPO3_S3_STORAGE_NAME'],
+            $driverName === 'vercel_blob' ? 'Vercel Blob uploads' : 'Object storage uploads'
+        ),
+        'makeDefault' => typo3_vercel_bool_env('TYPO3_OBJECT_STORAGE_MAKE_DEFAULT', typo3_vercel_bool_env('TYPO3_S3_MAKE_DEFAULT', true)),
+        'processingFolder' => typo3_vercel_first_env(
+            ['TYPO3_OBJECT_STORAGE_PROCESSING_FOLDER', 'TYPO3_BLOB_PROCESSING_FOLDER', 'TYPO3_S3_PROCESSING_FOLDER'],
+            '_processed_'
+        ),
+        'label' => $driverName === 'vercel_blob'
+            ? 'Vercel Blob'
+            : 'S3-compatible bucket ' . ($configuration['bucket'] ?? ''),
+    ];
+}
+
+function typo3_vercel_s3_object_storage_configuration(): array
+{
+    $bucket = typo3_vercel_env('TYPO3_S3_BUCKET');
+    if ($bucket === null) {
+        fwrite(STDERR, "TYPO3_S3_BUCKET is required when object storage is enabled.\n");
+        exit(1);
+    }
+
+    $accessKey = typo3_vercel_env('TYPO3_S3_ACCESS_KEY_ID') ?? typo3_vercel_env('AWS_ACCESS_KEY_ID');
+    $secretKey = typo3_vercel_env('TYPO3_S3_SECRET_ACCESS_KEY') ?? typo3_vercel_env('AWS_SECRET_ACCESS_KEY');
+    $useInstanceCredentials = typo3_vercel_bool_env('TYPO3_S3_USE_INSTANCE_CREDENTIALS', false);
+    if (!$useInstanceCredentials && ($accessKey === null || $secretKey === null)) {
+        fwrite(STDERR, "TYPO3_S3_ACCESS_KEY_ID and TYPO3_S3_SECRET_ACCESS_KEY are required unless TYPO3_S3_USE_INSTANCE_CREDENTIALS=1.\n");
+        exit(1);
+    }
+
+    $publicBaseUrl = typo3_vercel_env('TYPO3_S3_PUBLIC_BASE_URL');
+    $signedUrlTtl = (int)typo3_vercel_env('TYPO3_S3_SIGNED_URL_TTL', '0');
+    if ($publicBaseUrl === null && $signedUrlTtl <= 0) {
+        fwrite(STDERR, "TYPO3_S3_PUBLIC_BASE_URL is required for public TYPO3 assets. Alternatively set TYPO3_S3_SIGNED_URL_TTL for private signed URLs.\n");
+        exit(1);
+    }
+
+    return [
+        'bucket' => $bucket,
+        'region' => typo3_vercel_env('TYPO3_S3_REGION', 'auto'),
+        'endpoint' => typo3_vercel_env('TYPO3_S3_ENDPOINT', ''),
+        'accessKey' => $accessKey ?? '',
+        'secretKey' => $secretKey ?? '',
+        'prefix' => typo3_vercel_env('TYPO3_S3_PREFIX', ''),
+        'publicBaseUrl' => $publicBaseUrl ?? '',
+        'signedUrlTtl' => (string)$signedUrlTtl,
+        'pathStyleEndpoint' => typo3_vercel_bool_env('TYPO3_S3_PATH_STYLE_ENDPOINT', true) ? '1' : '0',
+        'defaultFolder' => typo3_vercel_env('TYPO3_S3_DEFAULT_FOLDER', 'user_upload'),
+        'cacheControl' => typo3_vercel_env('TYPO3_S3_CACHE_CONTROL', 'public, max-age=31536000, immutable'),
+        'caseSensitive' => typo3_vercel_bool_env('TYPO3_S3_CASE_SENSITIVE', true) ? '1' : '0',
+    ];
+}
+
+function typo3_vercel_blob_object_storage_configuration(): array
+{
+    $access = strtolower((string)typo3_vercel_env('TYPO3_BLOB_ACCESS', 'public'));
+    if (!in_array($access, ['public', 'private'], true)) {
+        fwrite(STDERR, "TYPO3_BLOB_ACCESS must be public or private.\n");
+        exit(1);
+    }
+
+    return [
+        'storeId' => typo3_vercel_env('TYPO3_BLOB_STORE_ID') ?? typo3_vercel_env('BLOB_STORE_ID', ''),
+        'access' => $access,
+        'tokenEnvName' => typo3_vercel_env('TYPO3_BLOB_TOKEN_ENV_NAME', 'BLOB_READ_WRITE_TOKEN'),
+        'prefix' => typo3_vercel_env('TYPO3_BLOB_PREFIX', 'typo3/'),
+        'publicBaseUrl' => typo3_vercel_env('TYPO3_BLOB_PUBLIC_BASE_URL', ''),
+        'apiUrl' => typo3_vercel_env('TYPO3_BLOB_API_URL') ?? typo3_vercel_env('VERCEL_BLOB_API_URL', 'https://vercel.com/api/blob'),
+        'defaultFolder' => typo3_vercel_env('TYPO3_BLOB_DEFAULT_FOLDER', 'user_upload'),
+        'cacheControlMaxAge' => typo3_vercel_env('TYPO3_BLOB_CACHE_CONTROL_MAX_AGE', '3600'),
+        'processedCacheControlMaxAge' => typo3_vercel_env('TYPO3_BLOB_PROCESSED_CACHE_CONTROL_MAX_AGE', '31536000'),
+        'processingFolder' => typo3_vercel_first_env(
+            ['TYPO3_OBJECT_STORAGE_PROCESSING_FOLDER', 'TYPO3_BLOB_PROCESSING_FOLDER'],
+            '_processed_'
+        ),
+        'caseSensitive' => typo3_vercel_bool_env('TYPO3_BLOB_CASE_SENSITIVE', true) ? '1' : '0',
+    ];
 }
 
 function typo3_vercel_database_config(): array
@@ -354,6 +565,45 @@ function typo3_vercel_pgsql_dsn(array $database): string
     }
 
     return $dsn;
+}
+
+/**
+ * Exception-mode PDO connection for the configured database. SQLite parent
+ * directories are created first because the runtime /tmp tree may not exist
+ * yet on a fresh instance.
+ *
+ * @param array<int, mixed> $options
+ */
+function typo3_vercel_pdo(array $database, array $options = []): PDO
+{
+    if (($database['driver'] ?? '') === 'pdo_sqlite') {
+        $directory = dirname((string)($database['path'] ?? ''));
+        if (!is_dir($directory)) {
+            mkdir($directory, 0775, true);
+        }
+    }
+
+    return new PDO(
+        typo3_vercel_pdo_dsn($database),
+        (string)($database['user'] ?? null),
+        (string)($database['password'] ?? null),
+        $options + [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION],
+    );
+}
+
+/**
+ * Detect the "table is missing" family of driver messages across SQLite,
+ * Postgres, and MySQL/MariaDB.
+ */
+function typo3_vercel_is_missing_table_error(string $message): bool
+{
+    foreach (['no such table', 'does not exist', "doesn't exist"] as $needle) {
+        if (stripos($message, $needle) !== false) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function typo3_vercel_cache_backend(): string
@@ -657,6 +907,22 @@ function typo3_vercel_locking_configuration(bool $isVercelRuntime): array
     ];
 }
 
+/**
+ * First configured alias of the internal Solr service URL, or null when the
+ * deployment has no internal Solr service.
+ */
+function typo3_vercel_solr_service_url(): ?string
+{
+    foreach (['TYPO3_SOLR_SERVICE_URL', 'SOLR_SERVICE_URL', 'TYPO3_SOLR_INTERNAL_URL', 'SOLR_INTERNAL_URL'] as $name) {
+        $value = typo3_vercel_env($name);
+        if ($value !== null) {
+            return $value;
+        }
+    }
+
+    return null;
+}
+
 function typo3_vercel_internal_solr_proxy_enabled(): bool
 {
     if (!typo3_vercel_bool_env('TYPO3_SOLR_ENABLED', false)) {
@@ -667,13 +933,7 @@ function typo3_vercel_internal_solr_proxy_enabled(): bool
         return false;
     }
 
-    foreach (['TYPO3_SOLR_SERVICE_URL', 'SOLR_SERVICE_URL', 'TYPO3_SOLR_INTERNAL_URL', 'SOLR_INTERNAL_URL'] as $name) {
-        if (typo3_vercel_env($name) !== null) {
-            return true;
-        }
-    }
-
-    return false;
+    return typo3_vercel_solr_service_url() !== null;
 }
 
 function typo3_vercel_http_configuration(): array
