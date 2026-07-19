@@ -9,11 +9,6 @@ export TMP="${TMP:-$TMPDIR}"
 export TEMP="${TEMP:-$TMPDIR}"
 export MAGICK_TEMPORARY_PATH="${MAGICK_TEMPORARY_PATH:-/tmp/typo3/gm}"
 
-if [ -f /etc/apache2/ports.conf ]; then
-  sed -ri "s/^Listen .*/Listen ${PORT}/" /etc/apache2/ports.conf
-  sed -ri "s/<VirtualHost \*:[0-9]+>/<VirtualHost *:${PORT}>/" /etc/apache2/sites-available/*.conf
-fi
-
 if [ -f /etc/nginx/nginx.conf ]; then
   sed -ri "s/listen [0-9]+ default_server;/listen ${PORT} default_server;/" /etc/nginx/nginx.conf
 fi
@@ -35,15 +30,20 @@ prepare_runtime_directory() {
 }
 
 restore_release_cache() {
-  local source_root="/usr/local/share/typo3-cache/code"
-  local target_root="/tmp/typo3/var/cache/code"
-  local cache_name
+  local source_root="/usr/local/share/typo3-cache"
+  local target_root="/tmp/typo3/var/cache"
+  local kind entry name
 
-  mkdir -p "$target_root"
-  for cache_name in di fluid_template; do
-    if [ -d "${source_root}/${cache_name}" ] && [ ! -e "${target_root}/${cache_name}" ]; then
-      cp -a "${source_root}/${cache_name}" "${target_root}/${cache_name}"
-    fi
+  for kind in code data; do
+    [ -d "${source_root}/${kind}" ] || continue
+    mkdir -p "${target_root}/${kind}"
+    for entry in "${source_root}/${kind}"/*; do
+      [ -e "$entry" ] || continue
+      name="$(basename "$entry")"
+      if [ ! -e "${target_root}/${kind}/${name}" ]; then
+        cp -a "$entry" "${target_root}/${kind}/${name}"
+      fi
+    done
   done
 }
 
@@ -208,7 +208,19 @@ fix_runtime_permissions() {
     /tmp/typo3/php-sessions \
     config \
     config/system 2>/dev/null || true
-  chmod -R a+rwX /tmp/typo3 2>/dev/null || true
+  # Content modes are baked world-writable at image build; only the top-level
+  # runtime directories need fixing here (recursive walks cost 100-500 ms).
+  chmod a+rwX \
+    /tmp/typo3 \
+    /tmp/typo3/var \
+    /tmp/typo3/var/cache \
+    /tmp/typo3/var/lock \
+    /tmp/typo3/var/log \
+    /tmp/typo3/fileadmin \
+    /tmp/typo3/typo3temp \
+    /tmp/typo3/tmp \
+    /tmp/typo3/gm \
+    /tmp/typo3/php-sessions 2>/dev/null || true
   chown -h www-data:www-data var public/fileadmin public/typo3temp 2>/dev/null || true
 
   if [ "${TYPO3_DB_DRIVER:-}" = "pdo_sqlite" ] && [ -n "${TYPO3_DB_DBNAME:-}" ]; then
@@ -251,7 +263,7 @@ configure_frontend_shared_cache_headers
 prepare_runtime_directory var /tmp/typo3/var
 mkdir -p /tmp/typo3/var/cache /tmp/typo3/var/lock /tmp/typo3/var/log
 restore_release_cache
-chmod -R a+rwX /tmp/typo3 2>/dev/null || true
+chmod a+rwX /tmp/typo3 /tmp/typo3/var /tmp/typo3/var/cache 2>/dev/null || true
 
 if [ "$TYPO3_SERVERLESS_FILESYSTEM" != "0" ]; then
   prepare_runtime_directory public/fileadmin /tmp/typo3/fileadmin

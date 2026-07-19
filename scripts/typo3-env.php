@@ -420,7 +420,7 @@ function typo3_vercel_redis_cache_base_options(): ?array
         'port' => (int)($parts['port'] ?? ($scheme === 'rediss' ? 6380 : 6379)),
         'database' => $database,
         'connectionTimeout' => typo3_vercel_int_env('TYPO3_REDIS_CONNECTION_TIMEOUT', 1, 0, 10),
-        'persistentConnection' => typo3_vercel_bool_env('TYPO3_REDIS_PERSISTENT_CONNECTION', false),
+        'persistentConnection' => typo3_vercel_bool_env('TYPO3_REDIS_PERSISTENT_CONNECTION', true),
     ];
 
     if (isset($parts['user']) && $parts['user'] !== '') {
@@ -497,7 +497,7 @@ function typo3_vercel_redis_component_options(): ?array
         'port' => (int)$port,
         'database' => $database,
         'connectionTimeout' => typo3_vercel_int_env('TYPO3_REDIS_CONNECTION_TIMEOUT', 1, 0, 10),
-        'persistentConnection' => typo3_vercel_bool_env('TYPO3_REDIS_PERSISTENT_CONNECTION', false),
+        'persistentConnection' => typo3_vercel_bool_env('TYPO3_REDIS_PERSISTENT_CONNECTION', true),
     ];
 
     $username = typo3_vercel_env('TYPO3_REDIS_USERNAME')
@@ -549,9 +549,10 @@ function typo3_vercel_redis_cache_configuration(
     }
     $options['keyPrefix'] = $keyPrefix;
     $options['compression'] = $compression;
+    $options['readTimeout'] = typo3_vercel_int_env('TYPO3_REDIS_READ_TIMEOUT', 2, 1, 30);
 
     return [
-        'backend' => 'TYPO3\\CMS\\Core\\Cache\\Backend\\RedisBackend',
+        'backend' => 'Webconsulting\\Typo3VercelStorage\\Cache\\Backend\\VercelRedisBackend',
         'options' => array_replace($options, $extraOptions),
     ];
 }
@@ -628,6 +629,11 @@ function typo3_vercel_log_configuration(): array
 
     if ($logToPhpErrorLog) {
         $configuration['writerConfiguration']['warning'][$phpErrorLogWriter] = [];
+        // Instances are disposable: file logs under /tmp are lost on scale-in
+        // and would duplicate every warning already reaching the platform log.
+        $configuration['writerConfiguration']['warning'][$fileWriter] = [
+            'disabled' => true,
+        ];
         $configuration['ApacheSolrForTypo3']['Solr']['writerConfiguration']['error'][$phpErrorLogWriter] = [];
     }
 

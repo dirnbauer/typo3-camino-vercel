@@ -3,15 +3,14 @@ set -euo pipefail
 
 mkdir -p /tmp/nginx/client_body /tmp/nginx/fastcgi /tmp/nginx/proxy
 chown -R www-data:www-data /tmp/nginx
+rm -f /tmp/php-fpm.sock
 
 php-fpm -F &
 php_fpm_pid="$!"
 
 php_fpm_ready=0
 for _ in $(seq 1 200); do
-  if (exec 3<>/dev/tcp/127.0.0.1/9000) 2>/dev/null; then
-    exec 3>&-
-    exec 3<&-
+  if [ -S /tmp/php-fpm.sock ]; then
     php_fpm_ready=1
     break
   fi

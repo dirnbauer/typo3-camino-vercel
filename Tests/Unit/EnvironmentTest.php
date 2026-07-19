@@ -105,6 +105,24 @@ final class EnvironmentTest extends TestCase
         self::assertSame('p@ss', $options['password']);
     }
 
+    public function testRedisBackendDefaultsToHardenedPersistentConnections(): void
+    {
+        $this->setEnv('REDIS_URL', 'rediss://default:secret@redis.example.test:6380/0');
+
+        $configuration = \typo3_vercel_redis_cache_configuration('pages');
+
+        self::assertSame(
+            'Webconsulting\\Typo3VercelStorage\\Cache\\Backend\\VercelRedisBackend',
+            $configuration['backend'],
+        );
+        self::assertTrue($configuration['options']['persistentConnection']);
+        self::assertSame(2, $configuration['options']['readTimeout']);
+
+        $this->setEnv('TYPO3_REDIS_PERSISTENT_CONNECTION', '0');
+        $configuration = \typo3_vercel_redis_cache_configuration('pages');
+        self::assertFalse($configuration['options']['persistentConnection']);
+    }
+
     public function testScopesRenderedPageCacheToVercelCommit(): void
     {
         $this->setEnv('TYPO3_REDIS_PREFIX', 'camino:');
@@ -207,6 +225,8 @@ final class EnvironmentTest extends TestCase
             'REDIS_URL',
             'TYPO3_REDIS_URL',
             'TYPO3_REDIS_PREFIX',
+            'TYPO3_REDIS_PERSISTENT_CONNECTION',
+            'TYPO3_REDIS_READ_TIMEOUT',
             'VERCEL_GIT_COMMIT_SHA',
             'VERCEL_OIDC_TOKEN',
             'HTTP_X_VERCEL_OIDC_TOKEN',

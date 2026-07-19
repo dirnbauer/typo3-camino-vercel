@@ -107,7 +107,7 @@ RUN set -eu; \
         TYPO3_DB_DRIVER=pdo_sqlite \
         TYPO3_DB_DBNAME=/var/www/html/var/seed/camino.sqlite \
         TYPO3_ENCRYPTION_KEY=000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 \
-        vendor/bin/typo3 cache:warmup --group di; \
+        vendor/bin/typo3 cache:warmup; \
     VERCEL=1 \
         TYPO3_CONTEXT=Production/Vercel \
         TYPO3_CACHE_BACKEND=file \
@@ -115,17 +115,19 @@ RUN set -eu; \
         TYPO3_DB_DBNAME=/var/www/html/var/seed/camino.sqlite \
         TYPO3_ENCRYPTION_KEY=000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 \
         vendor/bin/typo3 fluid:cache:warmup; \
-    mkdir -p /usr/local/share/typo3-seed /usr/local/share/typo3-cache/code; \
+    mkdir -p /usr/local/share/typo3-seed /usr/local/share/typo3-cache; \
     cp /var/www/html/var/seed/camino.sqlite /usr/local/share/typo3-seed/camino.sqlite; \
-    cp -a var/cache/code/di /usr/local/share/typo3-cache/code/di; \
-    cp -a var/cache/code/fluid_template /usr/local/share/typo3-cache/code/fluid_template; \
+    cp -a var/cache/code /usr/local/share/typo3-cache/code; \
+    if [ -d var/cache/data ]; then cp -a var/cache/data /usr/local/share/typo3-cache/data; fi; \
+    chmod -R a+rwX /usr/local/share/typo3-cache /usr/local/share/typo3-seed; \
     rm -rf var/* public/typo3temp/*; \
     php scripts/restore-project-files.php; \
     php scripts/restore-project-files.php --check
 
 RUN chmod +x docker/entrypoint.sh docker/serve.sh scripts/bootstrap-typo3.php scripts/apply-admin-password.php scripts/apply-object-storage.php scripts/apply-solr-config.php scripts/frontend-edge-cache-policy.php scripts/resolve-system-maintainers.php \
     && mkdir -p var public/fileadmin/_temp_ public/fileadmin/user_upload public/typo3temp config/system \
-    && chown -R www-data:www-data var public/fileadmin public/typo3temp config
+    && chown -R www-data:www-data var public/fileadmin public/typo3temp config \
+    && chmod -R a+rwX var public/fileadmin public/typo3temp
 
 EXPOSE 80
 
