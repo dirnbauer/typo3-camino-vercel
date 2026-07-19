@@ -30,16 +30,6 @@ final class VercelBlobClient
         ]);
     }
 
-    public function storeId(): string
-    {
-        return $this->storeId;
-    }
-
-    public function access(): string
-    {
-        return $this->access;
-    }
-
     public function publicUrl(string $pathname): string
     {
         return sprintf(

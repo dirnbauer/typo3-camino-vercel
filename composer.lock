@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4074e34ccf068a16f21aa7a50a04866e",
+    "content-hash": "c5eeca4e394af59b638528a65f289779",
     "packages": [
         {
             "name": "apache-solr-for-typo3/solr",
@@ -9121,7 +9121,7 @@
             "dist": {
                 "type": "path",
                 "url": "./packages/typo3-camino-demo",
-                "reference": "f744f07fc8f171d1f6a880ba6f0719183e748f1c"
+                "reference": "bf55f2c45da7330e223ef837973b138ce2f2d679"
             },
             "require": {
                 "friendsoftypo3/visual-editor": "^1.8",
@@ -9152,12 +9152,39 @@
             }
         },
         {
+            "name": "webconsulting/typo3-object-storage-core",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "./packages/typo3-object-storage-core",
+                "reference": "cf7bcebb3ef56b6cb228c5af4b9f35e2672b9f0a"
+            },
+            "require": {
+                "php": "^8.5",
+                "symfony/mime": "^7.4 || ^8.0",
+                "typo3/cms-core": "^14.3"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Webconsulting\\Typo3ObjectStorageCore\\": "Classes/"
+                }
+            },
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "description": "Shared TYPO3 FAL driver behavior for flat-namespace object storage backends",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
             "name": "webconsulting/typo3-vercel-blob-storage",
             "version": "1.0.0",
             "dist": {
                 "type": "path",
                 "url": "./packages/typo3-vercel-blob-storage",
-                "reference": "8dece9f24300949021521f3d2356fbd721ae7f7d"
+                "reference": "45836fac37b0cd1317710a8267fb50c7d0afb579"
             },
             "require": {
                 "guzzlehttp/guzzle": "^7.4",
@@ -9165,7 +9192,8 @@
                 "symfony/mime": "^7.4 || ^8.0",
                 "typo3/cms-backend": "^14.3",
                 "typo3/cms-core": "^14.3",
-                "typo3/cms-filelist": "^14.3"
+                "typo3/cms-filelist": "^14.3",
+                "webconsulting/typo3-object-storage-core": "^1.0"
             },
             "type": "typo3-cms-extension",
             "extra": {
@@ -9192,7 +9220,7 @@
             "dist": {
                 "type": "path",
                 "url": "./packages/typo3-vercel-solr-demo",
-                "reference": "a25606a5711e1f0d2e29d57ec4ef94b0f56e1cdd"
+                "reference": "68483002fdff7901bc2aa5eaa35f59109f6e2211"
             },
             "require": {
                 "apache-solr-for-typo3/solr": "^14.0@beta",
@@ -9226,13 +9254,14 @@
             "dist": {
                 "type": "path",
                 "url": "./packages/typo3-vercel-storage",
-                "reference": "6e47e175118907b8b2f17e490f93f06376653505"
+                "reference": "e5858ae28f20a1cf29a79cc4e576391061028cde"
             },
             "require": {
                 "aws/aws-sdk-php": "^3.369",
                 "php": "^8.5",
                 "symfony/mime": "^7.4 || ^8.0",
-                "typo3/cms-core": "^14.3"
+                "typo3/cms-core": "^14.3",
+                "webconsulting/typo3-object-storage-core": "^1.0"
             },
             "type": "typo3-cms-extension",
             "extra": {
