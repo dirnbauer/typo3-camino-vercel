@@ -21,5 +21,10 @@ return Map::fromEntries([
             new UriValue('https://vercel.com'),
             new UriValue('https://*.blob.vercel-storage.com'),
         ),
+        new Mutation(
+            MutationMode::Extend,
+            Directive::ImgSrc,
+            new UriValue('https://*.blob.vercel-storage.com'),
+        ),
     ),
 ]);
