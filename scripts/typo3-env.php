@@ -138,19 +138,17 @@ function typo3_vercel_export_request_oidc_token(): bool
 
 /**
  * Processing-folder target for local-driver storages while object storage is
- * enabled. For the S3 driver the default is a combined identifier on the
- * object storage, so image derivatives survive instance replacement. The Blob
- * driver defaults to TYPO3's local folder until its cross-storage processing
- * path is fixed (see ADR-010). 'local' reverts to the local default (''),
- * 'unmanaged' means "never touch the rows" (null).
+ * enabled. Default: a combined identifier on the object storage, so image
+ * derivatives survive instance replacement (ADR-010; the Blob client now
+ * fails loudly on store/auth errors instead of reading them as "not found").
+ * 'local' reverts to TYPO3's local default folder (''), 'unmanaged' means
+ * "never touch the rows" (null).
  */
 function typo3_vercel_local_storage_processing_target(int $objectStorageUid, string $driverName = 'vercel_s3'): ?string
 {
     $value = typo3_vercel_env('TYPO3_LOCAL_STORAGE_PROCESSING_FOLDER');
     if ($value === null) {
-        return $driverName === 'vercel_blob'
-            ? ''
-            : $objectStorageUid . ':/_processed_local_/';
+        return $objectStorageUid . ':/_processed_local_/';
     }
 
     $keyword = strtolower(trim($value));
