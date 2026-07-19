@@ -903,6 +903,64 @@ function typo3_vercel_cache_configurations(): array
     ];
 }
 
+/**
+ * Backend user sessions on Redis instead of the be_sessions table. The
+ * backend can never use the page or edge caches, so every click otherwise
+ * pays the session read/write round trips to the remote SQL database; the
+ * shared Redis keeps sessions durable across instance replacement too.
+ */
+function typo3_vercel_session_configuration(): array
+{
+    if (
+        typo3_vercel_cache_backend() !== 'redis'
+        || !typo3_vercel_bool_env('TYPO3_REDIS_SESSIONS', true)
+    ) {
+        return [];
+    }
+
+    $options = typo3_vercel_redis_cache_base_options();
+    if ($options === null) {
+        return [];
+    }
+
+    $sessionOptions = [
+        'hostname' => $options['hostname'],
+        'port' => $options['port'],
+        'database' => $options['database'],
+    ];
+    if (isset($options['username'])) {
+        $sessionOptions['username'] = $options['username'];
+    }
+    if (isset($options['password'])) {
+        $sessionOptions['password'] = $options['password'];
+    }
+
+    return [
+        'BE' => [
+            'backend' => 'TYPO3\\CMS\\Core\\Session\\Backend\\RedisSessionBackend',
+            'options' => $sessionOptions,
+        ],
+    ];
+}
+
+/**
+ * Connection config for the long-lived FPM runtime: network PDO drivers
+ * keep one connection per worker instead of re-connecting to the pooler on
+ * every request. CLI boot scripts keep plain connections.
+ */
+function typo3_vercel_database_runtime_config(): array
+{
+    $database = typo3_vercel_database_config();
+    if (
+        in_array($database['driver'] ?? '', ['pdo_pgsql', 'pdo_mysql'], true)
+        && typo3_vercel_bool_env('TYPO3_DB_PERSISTENT_CONNECTION', true)
+    ) {
+        $database['driverOptions'][PDO::ATTR_PERSISTENT] = true;
+    }
+
+    return $database;
+}
+
 function typo3_vercel_log_configuration(): array
 {
     $phpErrorLogWriter = 'TYPO3\\CMS\\Core\\Log\\Writer\\PhpErrorLogWriter';
@@ -1006,7 +1064,7 @@ function typo3_vercel_http_configuration(): array
 
 function typo3_vercel_settings(): array
 {
-    $database = typo3_vercel_database_config();
+    $database = typo3_vercel_database_runtime_config();
     $debug = typo3_vercel_env('TYPO3_DEBUG', '0') === '1';
     $isVercelRuntime = typo3_vercel_is_vercel_runtime();
 
@@ -1099,6 +1157,7 @@ function typo3_vercel_settings(): array
             'reverseProxyIP' => typo3_vercel_env('TYPO3_REVERSE_PROXY_IP', $isVercelRuntime ? '*' : ''),
             'reverseProxyHeaderMultiValue' => typo3_vercel_env('TYPO3_REVERSE_PROXY_HEADER_MULTI_VALUE', 'none'),
             'reverseProxySSL' => typo3_vercel_env('TYPO3_REVERSE_PROXY_SSL', ''),
+            'session' => typo3_vercel_session_configuration(),
         ],
     ];
 }

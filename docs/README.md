@@ -59,7 +59,7 @@ when the deployment becomes more than a disposable demo.
 - `vercel.json` is the one-click profile. It deploys only TYPO3, with no Solr
   service and no cron jobs; eligible SQLite demo pages use automatic edge cache.
 - `vercel.pro.json` is the production-latency profile. It warms frontend,
-  backend, DB, Redis, and Solr every three minutes and runs Scheduler every 15
+  backend, DB, Redis, and Solr every minute and runs Scheduler every 15
   minutes.
 - Pushes to `main` deploy the Pro profile through the CI `deploy` job
   (requires the `VERCEL_TOKEN` secret); `scripts/deploy-pro.sh` remains the

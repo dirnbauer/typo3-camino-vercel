@@ -86,7 +86,7 @@ and runs Scheduler every 15 minutes:
   "crons": [
     {
       "path": "/api/cron/typo3-warmup.php",
-      "schedule": "*/3 * * * *"
+      "schedule": "* * * * *"
     },
     {
       "path": "/api/cron/typo3-scheduler.php",

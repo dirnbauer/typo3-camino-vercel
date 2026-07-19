@@ -123,6 +123,49 @@ final class EnvironmentTest extends TestCase
         self::assertFalse($configuration['options']['persistentConnection']);
     }
 
+    public function testMovesBackendSessionsToRedisWithKillSwitch(): void
+    {
+        if (!extension_loaded('redis')) {
+            self::markTestSkipped('The Redis extension is not installed.');
+        }
+
+        $this->setEnv('TYPO3_CACHE_BACKEND', 'redis');
+        $this->setEnv('REDIS_URL', 'rediss://default:p%40ss@redis.example.test:6380/3');
+
+        $session = \typo3_vercel_session_configuration();
+
+        self::assertSame(
+            'TYPO3\\CMS\\Core\\Session\\Backend\\RedisSessionBackend',
+            $session['BE']['backend'],
+        );
+        self::assertSame('tls://redis.example.test', $session['BE']['options']['hostname']);
+        self::assertSame(6380, $session['BE']['options']['port']);
+        self::assertSame(3, $session['BE']['options']['database']);
+        self::assertSame('default', $session['BE']['options']['username']);
+        self::assertSame('p@ss', $session['BE']['options']['password']);
+
+        $this->setEnv('TYPO3_REDIS_SESSIONS', '0');
+        self::assertSame([], \typo3_vercel_session_configuration());
+    }
+
+    public function testPersistsNetworkDatabaseConnectionsForTheRuntimeOnly(): void
+    {
+        $this->setEnv('DATABASE_URL', 'postgresql://typo3:secret@db.example.test:5432/camino');
+
+        $database = \typo3_vercel_database_runtime_config();
+        self::assertTrue($database['driverOptions'][\PDO::ATTR_PERSISTENT]);
+        self::assertArrayNotHasKey('driverOptions', \typo3_vercel_database_config());
+
+        $this->setEnv('TYPO3_DB_PERSISTENT_CONNECTION', '0');
+        $database = \typo3_vercel_database_runtime_config();
+        self::assertArrayNotHasKey('driverOptions', $database);
+
+        $this->setEnv('TYPO3_DB_PERSISTENT_CONNECTION', '1');
+        $this->setEnv('DATABASE_URL', 'sqlite:////tmp/typo3/camino.sqlite');
+        $database = \typo3_vercel_database_runtime_config();
+        self::assertArrayNotHasKey('driverOptions', $database);
+    }
+
     public function testScopesRenderedPageCacheToVercelCommit(): void
     {
         $this->setEnv('TYPO3_REDIS_PREFIX', 'camino:');
@@ -304,6 +347,9 @@ final class EnvironmentTest extends TestCase
             'TYPO3_REDIS_PREFIX',
             'TYPO3_REDIS_PERSISTENT_CONNECTION',
             'TYPO3_REDIS_READ_TIMEOUT',
+            'TYPO3_REDIS_SESSIONS',
+            'TYPO3_CACHE_BACKEND',
+            'TYPO3_DB_PERSISTENT_CONNECTION',
             'VERCEL_GIT_COMMIT_SHA',
             'VERCEL_OIDC_TOKEN',
             'HTTP_X_VERCEL_OIDC_TOKEN',

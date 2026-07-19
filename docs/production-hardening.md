@@ -30,7 +30,7 @@ Required pieces:
 7. **Search:** external managed Apache Solr 10 when EXT:solr search is needed.
    Do not keep production Solr index state inside the TYPO3 Vercel container.
 8. **Cold-start mitigation:** deploy `vercel.pro.json`; its protected warm-up
-   primes frontend, backend, DB, Redis, and Solr every three minutes.
+   primes frontend, backend, DB, Redis, and Solr every minute.
 9. **Scheduler:** TYPO3 Scheduler runs through the protected HTTP cron endpoint,
    not a Linux daemon inside the container.
 
@@ -131,7 +131,7 @@ For Pro projects, use the included profile:
   "crons": [
     {
       "path": "/api/cron/typo3-warmup.php",
-      "schedule": "*/3 * * * *"
+      "schedule": "* * * * *"
     }
   ]
 }

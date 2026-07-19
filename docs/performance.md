@@ -74,7 +74,7 @@ VERCEL_SCOPE=your-team scripts/invalidate-frontend-cache.sh
 
 ### Pro Warm-Up
 
-`vercel.pro.json` calls `/api/cron/typo3-warmup.php` every three minutes. The
+`vercel.pro.json` calls `/api/cron/typo3-warmup.php` every minute. The
 protected request checks frontend, backend, database, Redis, and Solr paths that
 are enabled for the deployment. It is a best-effort latency mitigation, not an
 instance reservation or service-affinity mechanism.

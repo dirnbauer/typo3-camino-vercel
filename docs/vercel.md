@@ -116,7 +116,7 @@ deploy, and use external managed Solr for production search.
 
 `vercel.pro.json` adds the internal Solr demonstration service and:
 
-- `/api/cron/typo3-warmup.php` every three minutes
+- `/api/cron/typo3-warmup.php` every minute
 - `/api/cron/typo3-scheduler.php` every 15 minutes
 
 The warm-up performs local loopback requests to `/` and `/typo3/`, then
@@ -199,7 +199,7 @@ These are the technical changes Vercel could ship to remove them
 
 | Workaround in this starter | Vercel change that would remove it |
 |---|---|
-| Three-minute cron warmer, baked DI/Fluid caches, bounded Solr retry proxy — and cold requests still reach ~10 s | Minimum-instances / keep-warm option for container Services |
+| One-minute cron warmer, baked DI/Fluid caches, bounded Solr retry proxy — and cold requests still reach ~10 s | Minimum-instances / keep-warm option for container Services |
 | Custom browser-to-Blob large-upload module; normal uploads capped at 4 MB | Raise or stream the 4.5 MB request-body limit for container Services |
 | Internal Solr is a self-seeding demo; production search must be external managed Solr | Attachable persistent volumes for container Services |
 | Blob boot verification is deferred unless a read/write token exists (request OIDC only exists per request) | Workload OIDC available to the container process at boot |

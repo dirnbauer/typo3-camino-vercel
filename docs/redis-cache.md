@@ -111,6 +111,12 @@ socket, enables TCP keepalive, and bounds each command with a read timeout
 instead of pinning a worker. Set the variable to `0` as a kill switch if a
 provider still misbehaves.
 
+With the Redis cache backend active, backend user sessions also move from
+the `be_sessions` table to Redis (`TYPO3_REDIS_SESSIONS=0` reverts): the
+backend can never use the page or edge caches, so every click otherwise
+pays session round trips to the remote SQL database. Sessions stay durable
+across instance replacement either way.
+
 ## Important Upstash Note
 
 TYPO3's native Redis backend needs the PHP Redis extension and a real Redis

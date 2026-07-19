@@ -28,6 +28,11 @@ DATABASE_URL=postgres://user:password@host:5432/dbname?sslmode=require
 TYPO3_AUTO_SETUP=1
 ```
 
+The web runtime keeps one persistent connection per PHP-FPM worker for
+network PDO drivers (at most eight per instance), so requests skip the
+per-request TLS connect to the pooler. Set
+`TYPO3_DB_PERSISTENT_CONNECTION=0` to revert to per-request connections.
+
 If the Vercel Marketplace Neon flow shows an error while creating the database,
 use your existing Neon account manually:
 
