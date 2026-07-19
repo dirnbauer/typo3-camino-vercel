@@ -52,8 +52,9 @@ where it would either lack the production context or delay readiness.
 This starter includes TYPO3 14 FAL drivers named `vercel_blob` for Vercel Blob
 and `vercel_s3` for S3-compatible object storage. When
 `TYPO3_OBJECT_STORAGE_ENABLED=1` and a driver is configured, the entrypoint
-creates a default TYPO3 storage record for durable uploads and verifies storage
-unless
+creates a default TYPO3 storage record for durable uploads, points local
+storages' processing folders at the object storage so image derivatives stay
+durable, and verifies storage unless
 `TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=0`.
 
 To disable this behavior for debugging:

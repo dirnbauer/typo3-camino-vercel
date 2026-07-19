@@ -63,56 +63,64 @@ $values = array_intersect_key($values, array_flip($columns));
 $volatileColumns = ['tstamp' => true, 'crdate' => true];
 $comparableValues = array_diff_key($values, $volatileColumns);
 $existingRow = typo3_vercel_existing_storage_row($pdo, $storageUid, array_keys($comparableValues));
-if ($existingRow !== null && typo3_vercel_storage_row_matches($existingRow, $comparableValues)) {
+$objectStorageChanged = !($existingRow !== null && typo3_vercel_storage_row_matches($existingRow, $comparableValues));
+
+if (!$objectStorageChanged) {
     fwrite(STDOUT, sprintf(
         "TYPO3 object storage uid %d already matches the configured %s driver; skipping.\n",
         $storageUid,
         $driverName
     ));
-    exit(0);
-}
+} else {
+    try {
+        $pdo->beginTransaction();
 
-try {
-    $pdo->beginTransaction();
+        if ($makeDefault && in_array('is_default', $columns, true)) {
+            $statement = $pdo->prepare('UPDATE sys_file_storage SET is_default = 0 WHERE uid <> :uid');
+            $statement->execute(['uid' => $storageUid]);
+        }
 
-    if ($makeDefault && in_array('is_default', $columns, true)) {
-        $statement = $pdo->prepare('UPDATE sys_file_storage SET is_default = 0 WHERE uid <> :uid');
-        $statement->execute(['uid' => $storageUid]);
-    }
-
-    if (typo3_vercel_storage_exists($pdo, $storageUid)) {
-        typo3_vercel_update_storage_row($pdo, $values, $storageUid);
-    } else {
-        $statement = $pdo->prepare(
-            'INSERT INTO sys_file_storage (' . implode(', ', array_keys($values)) . ') VALUES (:' . implode(', :', array_keys($values)) . ')'
-        );
-        $statement->execute($values);
-    }
-
-    $pdo->commit();
-} catch (PDOException $exception) {
-    if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
-    // A concurrent cold start may have inserted uid first. Converge to the same
-    // configuration with a plain UPDATE instead of failing this instance's boot.
-    if (typo3_vercel_is_duplicate_key_error($exception)) {
-        try {
+        if (typo3_vercel_storage_exists($pdo, $storageUid)) {
             typo3_vercel_update_storage_row($pdo, $values, $storageUid);
-        } catch (Throwable $updateException) {
-            fwrite(STDERR, sprintf("Applying TYPO3 object storage failed: %s\n", $updateException->getMessage()));
+        } else {
+            $statement = $pdo->prepare(
+                'INSERT INTO sys_file_storage (' . implode(', ', array_keys($values)) . ') VALUES (:' . implode(', :', array_keys($values)) . ')'
+            );
+            $statement->execute($values);
+        }
+
+        $pdo->commit();
+    } catch (PDOException $exception) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        // A concurrent cold start may have inserted uid first. Converge to the same
+        // configuration with a plain UPDATE instead of failing this instance's boot.
+        if (typo3_vercel_is_duplicate_key_error($exception)) {
+            try {
+                typo3_vercel_update_storage_row($pdo, $values, $storageUid);
+            } catch (Throwable $updateException) {
+                fwrite(STDERR, sprintf("Applying TYPO3 object storage failed: %s\n", $updateException->getMessage()));
+                exit(1);
+            }
+        } else {
+            fwrite(STDERR, sprintf("Applying TYPO3 object storage failed: %s\n", $exception->getMessage()));
             exit(1);
         }
-    } else {
+    } catch (Throwable $exception) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         fwrite(STDERR, sprintf("Applying TYPO3 object storage failed: %s\n", $exception->getMessage()));
         exit(1);
     }
-} catch (Throwable $exception) {
-    if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
-    fwrite(STDERR, sprintf("Applying TYPO3 object storage failed: %s\n", $exception->getMessage()));
-    exit(1);
+}
+
+$localProcessingTarget = typo3_vercel_local_storage_processing_target($storageUid);
+$localStorageChanged = typo3_vercel_apply_local_storage_processing_folder($pdo, $storageUid, $localProcessingTarget);
+
+if (!$objectStorageChanged && !$localStorageChanged) {
+    exit(0);
 }
 
 if (typo3_vercel_bool_env('TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT', true)
@@ -122,7 +130,8 @@ if (typo3_vercel_bool_env('TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT', true)
         $driverName,
         $configuration,
         $storageUid,
-        $processingFolder
+        $processingFolder,
+        $localProcessingTarget
     );
 } elseif ($driverName === 'vercel_blob' && !typo3_vercel_blob_boot_token_available($configuration)) {
     fwrite(STDOUT, "Vercel Blob uses request-scoped OIDC; remote verification is deferred until an HTTP request supplies the OIDC header.\n");
@@ -273,7 +282,86 @@ function typo3_vercel_blob_boot_token_available(array $configuration): bool
     return false;
 }
 
-function typo3_vercel_verify_object_storage(string $driverName, array $configuration, int $storageUid, string $processingFolder): void
+/**
+ * Point every local-driver storage's processed-files folder at the durable
+ * object storage, and purge the stale sys_file_processedfile rows of a
+ * storage whose folder actually changed. Without the purge, rows recorded
+ * for the previous (per-instance, ephemeral) local folder keep their old
+ * storage reference and fail regeneration against the new processing target.
+ */
+function typo3_vercel_apply_local_storage_processing_folder(PDO $pdo, int $objectStorageUid, ?string $target): bool
+{
+    if ($target === null) {
+        return false;
+    }
+
+    try {
+        $columns = typo3_vercel_table_columns($pdo, 'sys_file_storage');
+        $where = "driver = 'Local' AND uid <> :uid";
+        if (in_array('deleted', $columns, true)) {
+            $where .= ' AND deleted = 0';
+        }
+
+        $statement = $pdo->prepare('SELECT uid, processingfolder FROM sys_file_storage WHERE ' . $where);
+        $statement->execute(['uid' => $objectStorageUid]);
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        if ($rows === []) {
+            fwrite(STDOUT, "No local sys_file_storage rows yet; the durable processing folder is applied after TYPO3 setup.\n");
+            return false;
+        }
+
+        $changed = false;
+        $update = $pdo->prepare(
+            'UPDATE sys_file_storage SET processingfolder = :processingfolder, tstamp = :tstamp WHERE uid = :uid'
+        );
+        foreach ($rows as $row) {
+            $localUid = (int)$row['uid'];
+            if ((string)($row['processingfolder'] ?? '') === $target) {
+                continue;
+            }
+
+            $update->execute(['processingfolder' => $target, 'tstamp' => time(), 'uid' => $localUid]);
+            typo3_vercel_purge_stale_processed_files($pdo, $localUid);
+            $changed = true;
+            fwrite(STDOUT, sprintf(
+                "Local storage uid %d processing folder now %s.\n",
+                $localUid,
+                $target === '' ? 'the TYPO3 local default' : $target
+            ));
+        }
+
+        return $changed;
+    } catch (PDOException $exception) {
+        fwrite(STDERR, sprintf("Applying the local storage processing folder failed: %s\n", $exception->getMessage()));
+        exit(1);
+    }
+}
+
+function typo3_vercel_purge_stale_processed_files(PDO $pdo, int $localStorageUid): void
+{
+    try {
+        $statement = $pdo->prepare('DELETE FROM sys_file_processedfile WHERE storage = :storage');
+        $statement->execute(['storage' => $localStorageUid]);
+        $purged = $statement->rowCount();
+        if ($purged > 0) {
+            fwrite(STDOUT, sprintf(
+                "Purged %d stale processed-file records of storage uid %d; derivatives regenerate on the new processing target.\n",
+                $purged,
+                $localStorageUid
+            ));
+        }
+    } catch (PDOException $exception) {
+        // A database without the table yet (fresh setup order) is fine.
+        $message = strtolower($exception->getMessage());
+        if (str_contains($message, 'no such table') || str_contains($message, 'does not exist') || str_contains($message, "doesn't exist")) {
+            return;
+        }
+        throw $exception;
+    }
+}
+
+function typo3_vercel_verify_object_storage(string $driverName, array $configuration, int $storageUid, string $processingFolder, ?string $localProcessingTarget = null): void
 {
     try {
         $driverClass = match ($driverName) {
@@ -287,7 +375,7 @@ function typo3_vercel_verify_object_storage(string $driverName, array $configura
         $driver->initialize();
         $driver->getDefaultFolder();
 
-        foreach (typo3_vercel_required_object_storage_folders($configuration, $processingFolder) as $folderIdentifier) {
+        foreach (typo3_vercel_required_object_storage_folders($configuration, $processingFolder, $storageUid, $localProcessingTarget) as $folderIdentifier) {
             if (!$driver->folderExists($folderIdentifier)) {
                 $driver->createFolder(trim($folderIdentifier, '/'), '/', true);
             }
@@ -311,8 +399,12 @@ function typo3_vercel_first_env(array $names, string $default): string
     return $default;
 }
 
-function typo3_vercel_required_object_storage_folders(array $configuration, string $processingFolder): array
-{
+function typo3_vercel_required_object_storage_folders(
+    array $configuration,
+    string $processingFolder,
+    int $storageUid = 0,
+    ?string $localProcessingTarget = null,
+): array {
     $folders = [
         '/' . trim((string)($configuration['defaultFolder'] ?? 'user_upload'), '/') . '/',
         '/_temp_/',
@@ -320,6 +412,11 @@ function typo3_vercel_required_object_storage_folders(array $configuration, stri
 
     if (!str_contains($processingFolder, ':')) {
         $folders[] = '/' . trim($processingFolder, '/') . '/';
+    }
+
+    $localFolder = typo3_vercel_combined_folder_on_storage($localProcessingTarget, $storageUid);
+    if ($localFolder !== null) {
+        $folders[] = $localFolder;
     }
 
     return array_values(array_unique(array_filter(

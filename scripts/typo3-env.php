@@ -136,6 +136,47 @@ function typo3_vercel_export_request_oidc_token(): bool
     return false;
 }
 
+/**
+ * Processing-folder target for local-driver storages while object storage is
+ * enabled. Default: a combined identifier on the object storage, so image
+ * derivatives survive instance replacement. 'local' reverts to TYPO3's local
+ * default folder (''), 'unmanaged' means "never touch the rows" (null).
+ */
+function typo3_vercel_local_storage_processing_target(int $objectStorageUid): ?string
+{
+    $value = typo3_vercel_env('TYPO3_LOCAL_STORAGE_PROCESSING_FOLDER');
+    if ($value === null) {
+        return $objectStorageUid . ':/_processed_local_/';
+    }
+
+    $keyword = strtolower(trim($value));
+    if ($keyword === 'unmanaged') {
+        return null;
+    }
+    if ($keyword === 'local') {
+        return '';
+    }
+
+    return $value;
+}
+
+/**
+ * Folder part of a "storageUid:/folder/" combined identifier when it points
+ * at the given storage; null for other storages or plain folder names.
+ */
+function typo3_vercel_combined_folder_on_storage(?string $target, int $storageUid): ?string
+{
+    if ($target === null || preg_match('/^(\d+):(.+)$/', $target, $match) !== 1) {
+        return null;
+    }
+    if ((int)$match[1] !== $storageUid) {
+        return null;
+    }
+
+    $folder = trim($match[2], '/');
+    return $folder === '' ? null : '/' . $folder . '/';
+}
+
 function typo3_vercel_database_config(): array
 {
     $url = typo3_vercel_env('DATABASE_URL')

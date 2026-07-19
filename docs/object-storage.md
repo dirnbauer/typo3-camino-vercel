@@ -31,18 +31,22 @@ or when a connected Vercel Blob store provides credentials. An explicit
 - creates or updates `sys_file_storage` uid `2` with driver `vercel_blob` or
   `vercel_s3` and makes it the default writable upload storage
 - stores non-secret driver settings in TYPO3's FlexForm configuration
-- creates `user_upload/`, `_processed_/`, and `_temp_/` in object storage
+- creates `user_upload/`, `_processed_/`, `_processed_local_/`, and `_temp_/`
+  in object storage
+- points local storages' `processingfolder` at `2:/_processed_local_/` and
+  purges their stale processed-file records once, so image derivatives are
+  durable instead of dying with an instance
 - verifies storage access (unless `TYPO3_OBJECT_STORAGE_VERIFY_ON_BOOT=0`)
-  when the record is created or its configuration changes; unchanged boots
-  skip both the database write and the network check to keep cold starts cheap
+  when a record is created or its configuration changes; unchanged boots
+  skip both the database writes and the network check to keep cold starts cheap
 - fails the container loudly when verification runs and does not pass, so
   uploads cannot silently fall back to the temporary filesystem
 - leaves the committed Camino seed files on local storage uid `1`, so demo
   records that reference local files keep working
 
-The image also ships the responsive derivatives Camino's seed pages need;
-these baked files are demo fixtures. New uploads and their derivatives belong
-on storage uid `2`.
+The image also ships baked derivatives for Camino's seed pages; they cover
+first renders and previously cached HTML. All newly generated derivatives —
+for seed files and uploads alike — live on object storage.
 
 ## Vercel Blob Setup
 
@@ -103,6 +107,8 @@ TYPO3_OBJECT_STORAGE_STORAGE_UID=2
 TYPO3_OBJECT_STORAGE_STORAGE_NAME=Vercel Blob uploads
 TYPO3_OBJECT_STORAGE_MAKE_DEFAULT=1
 TYPO3_OBJECT_STORAGE_PROCESSING_FOLDER=_processed_
+# Derivatives of local storages; "local" reverts, "unmanaged" leaves rows alone
+TYPO3_LOCAL_STORAGE_PROCESSING_FOLDER=2:/_processed_local_/
 ```
 
 Use a public Blob store: private stores do not produce public FAL URLs and

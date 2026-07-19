@@ -13,7 +13,9 @@ Impact:
   sessions are database-backed and Vercel can run parallel requests on separate
   instances.
 - `fileadmin` is copied to `/tmp` at container start. Uploads are durable only
-  when Vercel Blob or S3-compatible object storage is configured.
+  when Vercel Blob or S3-compatible object storage is configured; with object
+  storage enabled, processed image derivatives are written there too and
+  survive instance replacement.
 - generated cache files should be treated as disposable.
 - Redis can share TYPO3 cache entries across runtime instances, but it is still
   cache storage only. It does not make SQLite, backend sessions, or uploaded
