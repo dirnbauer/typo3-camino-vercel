@@ -101,7 +101,10 @@ automatically during startup.
 3. Select the page in the page tree.
 4. Choose a language in the top-right language menu.
 5. Select **Multi language** to compare English and the translation side by
-   side, or keep **Single language** for more space.
+   side, or keep **Single language** for more space. Multi language renders
+   one full uncached frontend preview per language (five on this site) and
+   the choice persists across sessions, so switch back to Single language
+   when you are done comparing.
 6. Select an editable text area, make the change, and save.
 
 Use a real PostgreSQL or MySQL-compatible database before editorial work. The

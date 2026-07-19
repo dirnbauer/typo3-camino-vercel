@@ -216,9 +216,9 @@ CLI paper cuts observed on 2026-07-19, worth bug reports: `vercel env add
 repository loops forever — its `action_required` output suggests running
 exactly the command that produced it.
 
-Known issues on the starter side (not Vercel's): the Blob driver's
-cross-storage processed-images path (ADR-010, defaults to local processing
-until fixed) and a `sys_file` data anomaly for the demo homepage hero.
+Known issue on the starter side (not Vercel's): a `sys_file` data anomaly
+for the demo homepage hero. The cross-storage processed-images path is fixed
+and live (ADR-010).
 
 ## Sources
 

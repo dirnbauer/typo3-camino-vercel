@@ -102,10 +102,14 @@ aliases. If the provider gives separate fields instead of one URL, use
 names are accepted as aliases too. URL variables win; remove them before
 switching to component variables.
 
-`TYPO3_REDIS_PERSISTENT_CONNECTION` defaults to `0`: scale-to-zero containers
-reuse workers whose long-lived socket a cloud Redis may already have closed,
-which surfaces as "read error on connection". Enable it only when your Redis
-and runtime keep connections reliably warm.
+`TYPO3_REDIS_PERSISTENT_CONNECTION` defaults to `1`: without it, every
+request pays a fresh TCP+TLS handshake per cache (hash, pages, rootline are
+three connections). The hardened backend makes this safe where core's is
+not — it retries once over a reconnect when a provider closed an idle
+socket, enables TCP keepalive, and bounds each command with a read timeout
+(`TYPO3_REDIS_READ_TIMEOUT`, default 2 s) so a wedged server degrades fast
+instead of pinning a worker. Set the variable to `0` as a kill switch if a
+provider still misbehaves.
 
 ## Important Upstash Note
 
