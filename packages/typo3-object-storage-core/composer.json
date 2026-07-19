@@ -1,0 +1,16 @@
+{
+    "name": "webconsulting/typo3-object-storage-core",
+    "description": "Shared TYPO3 FAL driver behavior for flat-namespace object storage backends",
+    "type": "library",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": "^8.5",
+        "symfony/mime": "^7.4 || ^8.0",
+        "typo3/cms-core": "^14.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "Webconsulting\\Typo3ObjectStorageCore\\": "Classes/"
+        }
+    }
+}

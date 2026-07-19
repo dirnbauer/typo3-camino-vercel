@@ -7,7 +7,8 @@
         "aws/aws-sdk-php": "^3.369",
         "php": "^8.5",
         "symfony/mime": "^7.4 || ^8.0",
-        "typo3/cms-core": "^14.3"
+        "typo3/cms-core": "^14.3",
+        "webconsulting/typo3-object-storage-core": "^1.0"
     },
     "autoload": {
         "psr-4": {

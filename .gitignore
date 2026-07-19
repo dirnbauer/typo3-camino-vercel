@@ -90,3 +90,4 @@ nbproject/
 /public/fileadmin/user_upload/_temp_/importexport/*
 !/public/fileadmin/user_upload/_temp_/importexport/.htaccess
 !/public/fileadmin/user_upload/_temp_/importexport/index.html
+.claude/
