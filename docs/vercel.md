@@ -207,10 +207,14 @@ These are the technical changes Vercel could ship to remove them
 | Two deployment profiles, because Hobby cron is daily-only and cannot warm the free demo (ADR-002) | A modest keep-warm or hourly cron allowance on Hobby |
 | The warm-up script treats `x-vercel-mitigated: challenge` as "skip" because managed bot protection challenges the project's own automation | A first-party bypass (scoped token) for a project's own probes across bot protection |
 | Incident forensics raced the 1-day Pro runtime-log retention | Longer retention or included log drains on Pro |
+| The Redis page cache is scoped by a custom `TYPO3_DEPLOYMENT_REVISION` env because CLI deployments get no `VERCEL_GIT_COMMIT_SHA` | A deployment-identity runtime variable that exists for every deployment, Git or CLI |
+| Operators must remember `vercel promote` after any `vercel rollback`, because later `--prod` deploys stop promoting silently | A CLI warning (or flag) when deploying to a rollback-pinned production alias |
 
-CLI paper cut observed on 2026-07-19: `vercel env add --force` did not
-persist an overwrite (`vercel env ls` kept the old timestamp and the old
-value stayed live); `vercel env rm` + `add` worked. Worth a bug report.
+CLI paper cuts observed on 2026-07-19, worth bug reports: `vercel env add
+--force` did not persist an overwrite (`vercel env rm` + `add` worked), and
+`vercel env add NAME preview --yes` on a project without a connected Git
+repository loops forever — its `action_required` output suggests running
+exactly the command that produced it.
 
 Known issues on the starter side (not Vercel's): the Blob driver's
 cross-storage processed-images path (ADR-010, defaults to local processing
