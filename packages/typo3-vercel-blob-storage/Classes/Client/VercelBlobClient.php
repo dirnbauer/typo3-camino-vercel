@@ -135,7 +135,13 @@ final class VercelBlobClient
                 'body' => $handle,
             ]);
         } finally {
-            fclose($handle);
+            // Guzzle wraps the resource in a PSR-7 stream and closes it after
+            // the request. Closing it again throws a TypeError on PHP 8 — an
+            // \Error that TYPO3's image processor (catch \Exception) cannot
+            // contain, which aborted processing AFTER a successful upload.
+            if (is_resource($handle)) {
+                fclose($handle);
+            }
         }
     }
 
