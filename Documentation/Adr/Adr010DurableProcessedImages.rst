@@ -9,7 +9,10 @@ ADR-010: Store processed images durably
 Status
 ======
 
-**Accepted.** Recorded on 2026-07-19.
+**Accepted.** Recorded on 2026-07-19. The mechanism is verified with the
+S3-compatible driver; the public demo temporarily runs the documented
+``local`` override until the Blob driver's cross-storage processing path is
+fixed.
 
 Context
 =======
