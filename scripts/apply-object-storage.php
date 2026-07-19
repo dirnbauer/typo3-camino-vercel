@@ -341,8 +341,15 @@ function typo3_vercel_apply_local_storage_processing_folder(PDO $pdo, int $objec
 function typo3_vercel_purge_stale_processed_files(PDO $pdo, int $localStorageUid): void
 {
     try {
-        $statement = $pdo->prepare('DELETE FROM sys_file_processedfile WHERE storage = :storage');
-        $statement->execute(['storage' => $localStorageUid]);
+        // Rows carry the storage of the PROCESSING target, not of the original
+        // file, so a processing-folder switch leaves rows on either side.
+        // Purge by the original file's storage to catch both.
+        $statement = $pdo->prepare(
+            'DELETE FROM sys_file_processedfile
+              WHERE storage = :storage
+                 OR original IN (SELECT uid FROM sys_file WHERE storage = :originalStorage)'
+        );
+        $statement->execute(['storage' => $localStorageUid, 'originalStorage' => $localStorageUid]);
         $purged = $statement->rowCount();
         if ($purged > 0) {
             fwrite(STDOUT, sprintf(
