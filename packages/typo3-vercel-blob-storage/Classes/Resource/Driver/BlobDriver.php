@@ -338,8 +338,17 @@ final class BlobDriver extends AbstractHierarchicalFilesystemDriver implements S
 
     private function cacheControlMaxAgeForIdentifier(string $fileIdentifier): ?int
     {
-        $identifier = ltrim($fileIdentifier, '/');
-        if ($this->processingFolder !== '' && str_starts_with($identifier, $this->processingFolder . '/')) {
+        // Prefix match on the first path segment so the cross-storage
+        // "_processed_local_" folder (ADR-010) also gets the long-lived
+        // policy; processed filenames embed a configuration checksum, so
+        // aggressive caching is safe. A root-level file whose NAME merely
+        // starts with the folder name stays on the default policy.
+        $parts = explode('/', ltrim($fileIdentifier, '/'), 2);
+        if (
+            $this->processingFolder !== ''
+            && isset($parts[1])
+            && str_starts_with($parts[0], $this->processingFolder)
+        ) {
             return $this->processedCacheControlMaxAge;
         }
 

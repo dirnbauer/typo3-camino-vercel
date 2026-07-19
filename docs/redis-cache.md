@@ -22,8 +22,8 @@ TCP/TLS connection exists, startup fails instead of quietly falling back to
 file cache.
 
 The demo resource is the Upstash Marketplace `Free` plan in `fra1` with
-eviction enabled and automatic paid upgrades disabled — suitable for a small
-disposable cache, not a production sizing recommendation.
+eviction disabled and automatic paid upgrades disabled — suitable for a
+small disposable cache, not a production sizing recommendation.
 
 Provider note: the previous Redis Cloud Marketplace endpoint passed local
 `PING` tests but repeatedly failed with read errors from the deployed Vercel
@@ -51,7 +51,7 @@ database is still required for stable login.
 
 1. Project > **Storage**/**Marketplace** > **Upstash for Redis**.
 2. Create a database on the **Free** plan near the compute region (`fra1`
-   here); enable eviction and disable auto-upgrade for a free demo.
+   here); keep eviction disabled and disable auto-upgrade for a free demo.
 3. Connect it to the project and production environment with
    environment-variable prefix `TYPO3_`, so Vercel injects `TYPO3_REDIS_URL`.
 4. Add `TYPO3_CACHE_BACKEND=redis`, `TYPO3_REDIS_REQUIRED=1`, and
@@ -68,7 +68,7 @@ vercel integration add upstash/upstash-kv \
   --prefix TYPO3_ \
   --environment production \
   --metadata primaryRegion=fra1 \
-  --metadata eviction=true \
+  --metadata eviction=false \
   --metadata prodPack=false \
   --metadata autoUpgrade=false \
   --format=json
@@ -116,6 +116,16 @@ the `be_sessions` table to Redis (`TYPO3_REDIS_SESSIONS=0` reverts): the
 backend can never use the page or edge caches, so every click otherwise
 pays session round trips to the remote SQL database. Sessions stay durable
 across instance replacement either way.
+
+Run production Redis with eviction disabled (the Upstash default) plus
+quota monitoring. Upstash eviction is "optimistic-volatile": its no-TTL
+fallback stage may evict cache tag sets (silently breaking
+invalidation-by-tag until TTLs expire) and session keys (random backend
+logouts). At quota with eviction off, cache writes degrade to misses and
+new logins fail loudly — prefer that failure mode, or pair eviction with
+`TYPO3_REDIS_SESSIONS=0`. The warmup probe prunes the previous deployment's
+page-cache keys automatically and reports the connection count against the
+provider's limit.
 
 ## Important Upstash Note
 

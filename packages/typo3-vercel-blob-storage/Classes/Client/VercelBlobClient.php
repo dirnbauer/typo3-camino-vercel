@@ -23,11 +23,48 @@ final class VercelBlobClient
         private readonly string $apiUrl = 'https://vercel.com/api/blob',
         private readonly int $retries = 3,
         private readonly int $timeout = 30,
+        private readonly int $connectTimeout = 5,
     ) {
-        $this->httpClient = new Client([
+        $config = [
             'http_errors' => true,
             'timeout' => $this->timeout,
-        ]);
+            'connect_timeout' => $this->connectTimeout,
+            // Never wait on a 100-continue answer before sending PUT bodies;
+            // retries already rewind the body on failure.
+            'expect' => false,
+            'version' => (\curl_version()['features'] & \CURL_VERSION_HTTP2) !== 0 ? '2.0' : '1.1',
+        ];
+        if (\function_exists('curl_share_init_persistent') && !self::envProxyConfigured()) {
+            // Persistent curl share (PHP 8.5+): DNS entries, TLS sessions,
+            // and connections survive across FPM requests in the same
+            // worker, saving the full handshake on the first Blob call of
+            // each request. Passing CURLOPT_SHARE per-request is deprecated
+            // in Guzzle 7.11+ and rejected by Guzzle 8 — revisit on that
+            // upgrade ('transport_sharing' rejects persistent handles).
+            $config['curl'] = [
+                \CURLOPT_SHARE => \curl_share_init_persistent([
+                    \CURL_LOCK_DATA_DNS,
+                    \CURL_LOCK_DATA_SSL_SESSION,
+                    \CURL_LOCK_DATA_CONNECT,
+                ]),
+            ];
+        }
+        $this->httpClient = new Client($config);
+    }
+
+    /**
+     * Guzzle rejects request-level CURLOPT_SHARE combined with an effective
+     * https proxy tunnel, and it consults all four environment spellings.
+     */
+    private static function envProxyConfigured(): bool
+    {
+        foreach (['https_proxy', 'HTTPS_PROXY', 'all_proxy', 'ALL_PROXY'] as $name) {
+            if (\getenv($name) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function publicUrl(string $pathname): string

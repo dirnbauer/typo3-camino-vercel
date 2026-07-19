@@ -91,13 +91,65 @@ function typo3_vercel_health_redis(): array
             $redis->select((int)$options['database']);
         }
         $pong = $redis->ping();
+        $clients = $redis->info('clients');
+        typo3_vercel_prune_stale_page_cache($redis);
         $redis->close();
         if ($pong !== true && !str_contains(strtoupper((string)$pong), 'PONG')) {
             throw new RuntimeException('Redis ping failed.');
         }
 
-        return ['transport' => str_starts_with((string)$options['hostname'], 'tls://') ? 'tls' : 'tcp'];
+        return [
+            'transport' => str_starts_with((string)$options['hostname'], 'tls://') ? 'tls' : 'tcp',
+            'connectedClients' => (int)($clients['connected_clients'] ?? 0),
+        ];
     });
+}
+
+/**
+ * Deploy-scoped page-cache prefixes leak tag-set keys forever otherwise:
+ * every deployment gets a fresh prefix, and nothing else ever deletes the
+ * previous deployment's keys. Piggybacks on the warmup probe's connection;
+ * a marker key keeps the steady-state cost at one GET per run. A pruning
+ * failure must never fail the health check, and a concurrently-live older
+ * deployment sharing this Redis loses only re-renderable cached HTML.
+ */
+function typo3_vercel_prune_stale_page_cache(Redis $redis): void
+{
+    $segment = typo3_vercel_deployment_segment();
+    if ($segment === null) {
+        return;
+    }
+
+    $prefix = typo3_vercel_env('TYPO3_REDIS_PREFIX', 'typo3-camino-vercel:') ?? 'typo3-camino-vercel:';
+    $current = $prefix . 'pages:deploy-' . $segment . ':';
+    $marker = $prefix . 'pages:current-deploy';
+
+    try {
+        if ($redis->get($marker) === $current) {
+            return;
+        }
+
+        $stale = [];
+        $iterator = null;
+        do {
+            $keys = $redis->scan($iterator, $prefix . 'pages:deploy-*', 1000);
+            if (is_array($keys)) {
+                foreach ($keys as $key) {
+                    if (!str_starts_with((string)$key, $current)) {
+                        $stale[] = (string)$key;
+                    }
+                }
+            }
+        } while (is_int($iterator) && $iterator > 0);
+
+        foreach (array_chunk($stale, 500) as $chunk) {
+            $redis->unlink($chunk);
+        }
+
+        $redis->set($marker, $current);
+    } catch (Throwable) {
+        // Pruning is opportunistic; the probe result stands either way.
+    }
 }
 
 /**

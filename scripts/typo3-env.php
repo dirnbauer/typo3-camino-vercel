@@ -820,6 +820,28 @@ function typo3_vercel_redis_component_options(): ?array
     return $options;
 }
 
+/**
+ * Deployment identity for cache scoping and stale-prefix pruning. CLI
+ * deployments never set VERCEL_GIT_COMMIT_SHA, which once left every
+ * deployment sharing one page cache (stale rendered HTML survived every
+ * redeploy); fall back to the revision the deploy script exports, then to
+ * the per-deployment VERCEL_URL.
+ */
+function typo3_vercel_deployment_segment(): ?string
+{
+    $deployment = typo3_vercel_env('VERCEL_GIT_COMMIT_SHA')
+        ?? typo3_vercel_env('TYPO3_DEPLOYMENT_REVISION')
+        ?? typo3_vercel_env('VERCEL_URL');
+    $deployment = is_string($deployment)
+        ? preg_replace('/[^a-zA-Z0-9_-]/', '', $deployment)
+        : null;
+    if (!is_string($deployment) || $deployment === '') {
+        return null;
+    }
+
+    return substr($deployment, 0, 32);
+}
+
 function typo3_vercel_redis_cache_configuration(
     string $cacheName,
     bool $compression = false,
@@ -831,20 +853,14 @@ function typo3_vercel_redis_cache_configuration(
     $prefix = typo3_vercel_env('TYPO3_REDIS_PREFIX', 'typo3-camino-vercel:') ?? 'typo3-camino-vercel:';
     $keyPrefix = $prefix . $cacheName . ':';
     if ($deploymentScoped) {
-        // CLI deployments never set VERCEL_GIT_COMMIT_SHA, which once left
-        // every deployment sharing one page cache (stale rendered HTML
-        // survived every redeploy). Fall back to the revision the deploy
-        // script exports, then to the per-deployment VERCEL_URL.
-        $deployment = typo3_vercel_env('VERCEL_GIT_COMMIT_SHA')
-            ?? typo3_vercel_env('TYPO3_DEPLOYMENT_REVISION')
-            ?? typo3_vercel_env('VERCEL_URL');
-        $deployment = is_string($deployment)
-            ? preg_replace('/[^a-zA-Z0-9_-]/', '', $deployment)
-            : null;
-        if (is_string($deployment) && $deployment !== '') {
-            $keyPrefix .= 'deploy-' . substr($deployment, 0, 32) . ':';
+        $segment = typo3_vercel_deployment_segment();
+        if ($segment !== null) {
+            $keyPrefix .= 'deploy-' . $segment . ':';
         }
     }
+    // An empty keyPrefix would re-enable core RedisBackend's FLUSHDB path,
+    // which wipes session and install-tool keys in the shared database.
+    unset($extraOptions['keyPrefix']);
     $options['keyPrefix'] = $keyPrefix;
     $options['compression'] = $compression;
     $options['readTimeout'] = typo3_vercel_int_env('TYPO3_REDIS_READ_TIMEOUT', 2, 1, 30);
@@ -923,10 +939,13 @@ function typo3_vercel_session_configuration(): array
         return [];
     }
 
+    $prefix = typo3_vercel_env('TYPO3_REDIS_PREFIX', 'typo3-camino-vercel:') ?? 'typo3-camino-vercel:';
     $sessionOptions = [
         'hostname' => $options['hostname'],
         'port' => $options['port'],
         'database' => $options['database'],
+        // Own namespace: no cache key pattern can ever sweep session keys.
+        'keyPrefix' => $prefix . 'sessions:',
     ];
     if (isset($options['username'])) {
         $sessionOptions['username'] = $options['username'];
@@ -937,7 +956,7 @@ function typo3_vercel_session_configuration(): array
 
     return [
         'BE' => [
-            'backend' => 'TYPO3\\CMS\\Core\\Session\\Backend\\RedisSessionBackend',
+            'backend' => 'Webconsulting\\Typo3VercelStorage\\Session\\Backend\\VercelRedisSessionBackend',
             'options' => $sessionOptions,
         ],
     ];
