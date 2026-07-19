@@ -315,8 +315,10 @@ function typo3_vercel_apply_local_storage_processing_folder(PDO $pdo, int $objec
         $update = $pdo->prepare(
             'UPDATE sys_file_storage SET processingfolder = :processingfolder, tstamp = :tstamp WHERE uid = :uid'
         );
+        $localUids = [];
         foreach ($rows as $row) {
             $localUid = (int)$row['uid'];
+            $localUids[] = $localUid;
             if ((string)($row['processingfolder'] ?? '') === $target) {
                 continue;
             }
@@ -331,10 +333,49 @@ function typo3_vercel_apply_local_storage_processing_folder(PDO $pdo, int $objec
             ));
         }
 
+        typo3_vercel_purge_use_original_rows($pdo, $localUids);
+
         return $changed;
     } catch (PDOException $exception) {
         fwrite(STDERR, sprintf("Applying the local storage processing folder failed: %s\n", $exception->getMessage()));
         exit(1);
+    }
+}
+
+/**
+ * "Use original file" rows carry an empty identifier. Failed processing runs
+ * during past incidents persisted such rows permanently, freezing pages on
+ * unscaled originals. Re-evaluating them costs one processing decision per
+ * affected image and heals automatically, so purge them on every boot.
+ *
+ * @param array<int, int> $localStorageUids
+ */
+function typo3_vercel_purge_use_original_rows(PDO $pdo, array $localStorageUids): void
+{
+    if ($localStorageUids === []) {
+        return;
+    }
+
+    $in = implode(',', array_map('intval', $localStorageUids));
+    try {
+        $statement = $pdo->query(
+            "DELETE FROM sys_file_processedfile
+              WHERE (identifier = '' OR identifier IS NULL)
+                AND original IN (SELECT uid FROM sys_file WHERE storage IN ($in))"
+        );
+        $purged = $statement === false ? 0 : $statement->rowCount();
+        if ($purged > 0) {
+            fwrite(STDOUT, sprintf(
+                "Purged %d use-original processed-file records for re-evaluation.\n",
+                $purged
+            ));
+        }
+    } catch (PDOException $exception) {
+        $message = strtolower($exception->getMessage());
+        if (str_contains($message, 'no such table') || str_contains($message, 'does not exist') || str_contains($message, "doesn't exist")) {
+            return;
+        }
+        throw $exception;
     }
 }
 
