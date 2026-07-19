@@ -106,6 +106,14 @@ dated audit reports tied exact values to individual deployment IDs and quickly
 became stale. Current acceptance evidence should be recorded with the commit,
 deployment, region, time, and request classification instead.
 
+For backend media, an existing processed thumbnail is emitted as a direct
+public Vercel Blob URL and does not pass through PHP. A production sample on
+2026-07-19 returned the uncached Camino thumbnail in about 0.15s; a browser-
+cached repeat was effectively immediate. TYPO3 backend initialization and
+uncached language-domain modules took up to about 0.7s in the same sample. A new
+derivative can take longer because TYPO3 must fetch the original, run
+ImageMagick in `/tmp`, and upload the durable processed file to Blob.
+
 ## Benchmark Procedure
 
 ### Repository Baseline

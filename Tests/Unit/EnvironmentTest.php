@@ -203,6 +203,53 @@ final class EnvironmentTest extends TestCase
         self::assertFalse(\typo3_vercel_install_tool_direct_access(['__typo3_install' => '']));
     }
 
+    public function testInstallToolAllowsOnlySessionBackedFollowUpActions(): void
+    {
+        $query = [
+            '__typo3_install' => '',
+            'install' => ['action' => 'labels'],
+        ];
+        $session = ['Typo3InstallTool' => 'valid-session-id-123456'];
+
+        self::assertFalse(\typo3_vercel_install_tool_direct_access($query));
+        self::assertTrue(\typo3_vercel_install_tool_direct_access($query, $session));
+        self::assertFalse(\typo3_vercel_install_tool_direct_access(
+            ['__typo3_install' => '', 'install' => ['action' => 'init']],
+            $session,
+        ));
+        self::assertFalse(\typo3_vercel_install_tool_direct_access(
+            $query,
+            ['Typo3InstallTool' => 'invalid session'],
+        ));
+        self::assertTrue(\typo3_vercel_install_tool_direct_access(
+            ['__typo3_install' => ''],
+            $session,
+            ['install' => ['action' => 'labels']],
+        ));
+    }
+
+    public function testMapsRedisUrlToInstallToolSessionHandler(): void
+    {
+        if (!extension_loaded('redis')) {
+            self::markTestSkipped('The Redis extension is not installed.');
+        }
+
+        $this->setEnv('REDIS_URL', 'rediss://default:p%40ss@redis.example.test:6380/3');
+
+        self::assertSame([
+            'className' => 'TYPO3\\CMS\\Install\\Service\\Session\\RedisSessionHandler',
+            'options' => [
+                'host' => 'tls://redis.example.test',
+                'port' => 6380,
+                'database' => 3,
+                'authentication' => [
+                    'user' => 'default',
+                    'pass' => 'p@ss',
+                ],
+            ],
+        ], \typo3_vercel_install_tool_session_handler_configuration());
+    }
+
     public function testParsesSystemMaintainerUids(): void
     {
         self::assertSame([1], \typo3_vercel_system_maintainers());
