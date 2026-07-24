@@ -61,7 +61,8 @@ protected endpoint remains available for manual diagnostics.
 `webconsulting-website` used approximately 178h 30m of Turbo build CPU across
 79 deployments. This represented almost all of the $38.12 build charge.
 
-The project has been changed from Turbo to Standard:
+Both `webconsulting-website` and `typo3-camino-vercel` are now explicitly
+fixed to Standard builds:
 
 | Build machine | Resources | Price |
 | --- | --- | ---: |
@@ -91,11 +92,17 @@ selection, and deployment frequency.
 Completed:
 
 - Changed `webconsulting-website` from Turbo to Standard builds.
-- Removed the periodic Camino deep warm-up from `vercel.pro.json`.
+- Fixed `typo3-camino-vercel` to the Standard build machine.
+- Removed the periodic Camino deep warm-up from `vercel.pro.json` and deployed
+  the change to production.
 - Added regression tests that prevent reintroducing the scheduled warmer.
 - Added an always-on deployment profile with TYPO3, MariaDB, Redis, persistent
   Solr, Scheduler, and automatic TLS.
 - Recorded the hosting decision in ADR-013.
+
+Live verification on July 24, 2026 confirmed the production deployment was
+`READY`, the build machine was Standard (4 vCPU and 8 GB RAM), and the only
+remaining Vercel cron was the bounded TYPO3 Scheduler call every 15 minutes.
 
 Pending production cutover:
 
@@ -104,7 +111,6 @@ Pending production cutover:
 - Validate TYPO3, backend login, Scheduler, and Solr.
 - Change DNS.
 - Confirm external monitoring and backups.
-- Remove the live Vercel warm-up only after the new origin is serving traffic.
 
 ## Forecast
 
