@@ -116,13 +116,17 @@ Pending production cutover:
 
 If Vercel remains for previews and low-traffic demonstrations:
 
-- Platform baseline: $30/month while Pro and Analytics Plus remain enabled.
-- Camino compute after removing the warmer: expected low single digits per
-  month at the observed visitor traffic.
-- Standard build usage: approximately $5–10/month at the current deployment
-  frequency.
-- Expected Vercel total: approximately $35–45/month, excluding marketplace
-  databases or other external services.
+- Fixed platform fees: $20/month for Pro and $10/month for Web Analytics Plus.
+- Camino compute after removing the warmer: expected $1–5/month at the
+  observed visitor traffic.
+- Standard builds: $0 when ordinary Pro build concurrency is used; budget up
+  to $5–10/month if on-demand concurrent builds are enabled.
+- Registry storage and origin transfer: approximately $4–5/month if current
+  storage and traffic remain unchanged.
+- Expected infrastructure usage: approximately $5–20/month. The Pro plan's
+  included $20 monthly usage credit should normally cover this.
+- **Expected Vercel invoice: approximately $30/month before tax**, with a
+  conservative $30–40/month range for unusually high build or compute usage.
 
 The tested self-managed Hetzner baseline costs €19.69/month excluding VAT,
 including one CX43 server, provider backups, IPv4, and Solr on the same host.
