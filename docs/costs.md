@@ -1,4 +1,4 @@
-# Costs For Testing
+# Hosting Costs
 
 Pricing changes often. Check the linked provider pages before promising a cost
 to a client.
@@ -23,20 +23,66 @@ not duplicated here because values, regions, and billing units can change.
 
 For commercial/client work, expect Vercel Pro or higher.
 
-### Pro Warm-Up Cost
+### July 2026 Billing Analysis
 
-The three-minute Pro warm-up runs 20 times per hour, 480 times per day, or
-about 14,400 times in a 30-day month. A warm invocation checks DB/Redis, primes
-frontend and backend through local loopback, and pings Solr.
+The July 7–23 infrastructure invoice was $120.03 before the Pro plan's $20
+usage credit and $100.04 after it. The separate platform invoice was $30:
+$20 Pro plus $10 Web Analytics Plus.
 
-Those invocations consume normal Function resources. Duration, memory/CPU
-class, Solr activation, concurrency, transfer, regional pricing, and plan
-credits determine the bill. Use Vercel Observability and the current `fra1`
-rates for a forecast instead of treating the invocation count as a cost
-estimate. The Pro subscription is a prerequisite for this schedule.
+| Invoice line | Usage | Cost |
+| --- | ---: | ---: |
+| Fluid provisioned memory | 4,000.073 GB-hours | $60.79 |
+| Fluid active CPU | 87h 46m 30.5s | $16.12 |
+| Build CPU | 224h 38m | $38.12 |
+| Vercel Container Registry storage | 37.02 GB | $3.70 |
+| Fast origin transfer | 4.69 GB | $0.29 |
+| Fast data transfer | 8.99 GB | $0.00 |
 
-Hobby cannot use this schedule because its cron limit is once per day. A free
-demo can be durable, but it cannot use the built-in frequent cold-start warmer.
+The `typo3-camino-vercel` project produced 99.8% of provisioned memory and
+97.6% of active CPU. Its scheduled one-minute deep probe called TYPO3
+frontend, backend, database, Redis, and the independently scaling Solr service.
+It tried to keep roughly 10.2 GB resident on average and sometimes waited
+10–13 seconds for Solr. Platform restarts still occurred, so the probe was
+neither a cost-efficient monitor nor an availability guarantee.
+
+Traffic did not cause this bill. Camino transferred about 328 MB from CDN to
+visitors and 288 MB from CDN to compute in the selected period. Across the
+whole team, the invoice's only traffic charge was $0.29 for 4.69 GB of origin
+transfer, or about $0.062/GB. User-facing transfer was within the plan
+allowance and cost $0.
+
+Build cost was independent of Camino runtime cost. The
+`webconsulting-website` project used 178h 30m of Turbo build CPU across 79
+deployments, accounting for nearly all of the $38.12 build line.
+
+ADR-013 removes the scheduled warmer. If Vercel is retained for low-traffic
+demos, forecast low-single-digit monthly Camino compute rather than the
+observed roughly $77 per 16 days. The remaining Vercel baseline is still $30
+per month while Pro and Analytics Plus remain enabled, and Turbo builds remain
+a separate cost until that project uses a smaller build machine or deploys
+less frequently.
+
+## Predictable Always-On Cost
+
+The tested Hetzner baseline runs TYPO3, MariaDB, Redis, and durable Solr on one
+CX43:
+
+| Component | Monthly cost excluding VAT |
+| --- | ---: |
+| CX43 (8 vCPU, 16 GB RAM, 160 GB SSD) | €15.99 |
+| Seven-slot provider backup option (20%) | €3.20 |
+| Primary IPv4 | €0.50 |
+| **Total** | **€19.69** |
+
+EU CX servers include 20 TB outbound traffic. At the measured team-wide
+13.68 GB, traffic would use about 0.07% of that allowance and add €0. Solr has
+no separate line item because it runs privately on the same host.
+
+This is infrastructure pricing, not managed operations or high availability.
+For provider-owned TYPO3 operations, jweiland Cloud PREMIUM currently costs
+€36/month including German VAT and includes MariaDB, Solr, backups, monitoring,
+and a published 99.9% availability target. Cloud BASIC is €24 but does not
+include Solr.
 
 ## Database Options
 
@@ -91,11 +137,11 @@ Practical production choices:
 
 - hosted Solr provider with TYPO3 support, for example hosted-solr.com,
   OpenSolr, SearchStax, or a TYPO3 host that offers Solr
-- self-managed Solr 10 on always-on infrastructure with backups and monitoring
+- the included self-managed persistent Solr 10 service on the Hetzner profile
+- a managed TYPO3 plan that explicitly includes Solr
 
-Expect production Solr to add a separate cost. Provider plans, storage,
-retention, replicas, traffic, backups, support, and region change the price;
-check a current provider quote before committing to a budget.
+Self-managed Solr does not add a provider line item, but it consumes the host's
+RAM, storage, backup capacity, monitoring, and operator time.
 
 ## Practical Recommendation
 
@@ -139,6 +185,11 @@ Blob, a durable database, and Redis cache as a working example.
 - [Vercel Blob pricing](https://vercel.com/docs/vercel-blob/usage-and-pricing)
 - [Vercel Functions limits](https://vercel.com/docs/functions/limitations)
 - [Vercel Cron usage and pricing](https://vercel.com/docs/cron-jobs/usage-and-pricing)
+- [Vercel Functions usage and pricing](https://vercel.com/docs/functions/usage-and-pricing)
+- [Hetzner June 2026 prices](https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/)
+- [Hetzner backup billing](https://docs.hetzner.com/cloud/billing/faq/)
+- [Hetzner included traffic](https://docs.hetzner.com/robot/general/traffic/)
+- [jweiland TYPO3 hosting](https://jweiland.net/typo3-hosting.html)
 - Vercel Redis docs: https://vercel.com/docs/redis
 - Vercel Redis Marketplace listing: https://vercel.com/marketplace/redis
 - Vercel Upstash Marketplace listing: https://vercel.com/marketplace/upstash

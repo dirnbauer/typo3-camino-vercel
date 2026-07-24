@@ -175,9 +175,10 @@ budget, configurable with
 `TYPO3_SOLR_DEMO_STARTUP_TIMEOUT` and clamped to 5-30 seconds. External managed
 Solr keeps its shorter normal request behavior.
 
-The Pro warm-up cron pings Solr every three minutes, but it is not an instance
+The former Pro warm-up cron pinged Solr frequently, but it was not an instance
 reservation: after 13 hours on that schedule, consecutive invocations still
-found Solr cold (14.6-17.0 seconds of startup). Production acceptance on
+found Solr cold (14.6-17.0 seconds of startup). That schedule is now removed.
+Production acceptance on
 2026-07-11 confirmed the intended behavior: a cold search waited and returned
 HTTP 200 with all six documents in 16.4 seconds, and the immediate repeat took
 0.96 seconds. Telemetry also showed that cURL handle reuse does not guarantee
@@ -206,7 +207,9 @@ CRON_SECRET=<long-random-secret>
 ```
 
 Do not set `TYPO3_SOLR_URL` for this mode. Vercel injects
-`TYPO3_SOLR_SERVICE_URL` from the service binding.
+`TYPO3_SOLR_SERVICE_URL` from the service binding. The binding enables Solr
+site configuration automatically; `TYPO3_SOLR_ENABLED=1` remains supported
+for explicit configuration, while `TYPO3_SOLR_ENABLED=0` is the kill switch.
 `TYPO3_SOLR_APPLY_SITE_SET=1` is required for the EXT:solr frontend plugin;
 the local `webconsulting/typo3-vercel-solr-demo` site set is used instead of
 the official EXT:solr set so Camino is not broken by that set's Fluid Styled
@@ -421,7 +424,8 @@ connection counts. Several attempts with one connection are expected during a
 cold activation. Several new connections indicate that the platform or upstream
 closed the connection and may have selected more than one instance.
 
-Verify `TYPO3_SOLR_ENABLED=1` and redeploy after any environment change.
+Verify that the Solr service binding or direct endpoint is present, that
+`TYPO3_SOLR_ENABLED` is not `0`, and redeploy after any environment change.
 
 ### URL Contains `/solr/solr/core_en/`
 
@@ -443,8 +447,9 @@ page and `vercel_solr_demo_results` content element.
 
 Current service images do not advertise readiness before the startup seed is
 committed. If zero results still appear, inspect the structured `ready` record
-for `demo_documents: 30`, `demo_cores: 5`, and run the protected select probe. Do not assume the
-Pro warm-up reached the same service instance a visitor receives.
+for `demo_documents: 30`, `demo_cores: 5`, and run the protected select probe.
+Do not assume a manual warm-up reached the same service instance a visitor
+receives.
 
 ### Scheduler Returns A Safe Skip
 

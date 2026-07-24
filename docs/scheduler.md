@@ -78,16 +78,11 @@ SQLite state and does not need background processing. Vercel Hobby permits only
 daily cron, with execution occurring within the selected hour; a user may add a
 daily task for an experiment, but this starter does not register one by default.
 
-`vercel.pro.json` is the supported Pro profile. It adds a three-minute warm-up
-and runs Scheduler every 15 minutes:
+`vercel.pro.json` runs Scheduler every 15 minutes:
 
 ```json
 {
   "crons": [
-    {
-      "path": "/api/cron/typo3-warmup.php",
-      "schedule": "* * * * *"
-    },
     {
       "path": "/api/cron/typo3-scheduler.php",
       "schedule": "*/15 * * * *"
@@ -132,21 +127,15 @@ Do not:
 - Leave the cron endpoint without `CRON_SECRET`.
 - Use frontend page requests to trigger maintenance tasks.
 
-## Pro Warm-Up
+## Manual Deep Probe
 
-The protected `/api/cron/typo3-warmup.php` endpoint checks database and Redis,
-performs local loopback requests to `/` and `/typo3/`, and pings Solr. This
-warms the real TYPO3 frontend/backend code paths before Vercel's documented
-five-minute production idle scale-down window.
+The protected `/api/cron/typo3-warmup.php` endpoint checks database, Redis,
+local frontend/backend paths, and Solr. It is retained for on-demand
+diagnostics, but no Vercel profile schedules it. Repeated probes generated the
+dominant Camino compute charge without providing an instance guarantee.
 
-Deploy it with:
-
-```bash
-scripts/deploy-pro.sh
-```
-
-Do not copy this schedule into `vercel.json`. Hobby permits cron only once per
-day, so the public one-click profile must remain free of frequent jobs.
+The always-on profile runs Scheduler in its own restartable container rather
+than through an HTTP cron invocation.
 
 ## Sources
 

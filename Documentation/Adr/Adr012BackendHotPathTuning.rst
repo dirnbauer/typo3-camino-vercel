@@ -70,9 +70,10 @@ paths or persistent state:
    100-continue round trip, bounds connects, and speaks HTTP/2 where
    available. Processed derivatives in every processing folder receive the
    long-lived cache policy.
-5. The warmup cron prunes the previous deployment's page-cache prefix and
-   reports the connection count. Production Redis runs with eviction
-   disabled and quota monitoring, because the cache and session data now
+5. The protected warmup operation prunes the previous deployment's page-cache
+   prefix and reports the connection count. ADR-013 removed its periodic cron
+   invocation; it remains a manual diagnostic. Production Redis runs with
+   eviction disabled and quota monitoring, because the cache and session data
    depend on keys not vanishing underneath a live deployment.
 
 Consequences

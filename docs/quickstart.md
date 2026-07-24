@@ -107,17 +107,12 @@ Redis can improve warm backend cache behavior, but it does not make SQLite
 durable, does not store uploads, and does not remove Vercel container cold
 starts. See [Redis cache on Vercel](redis-cache.md).
 
-## Pro Cold-Start Mitigation
+## Predictable First Requests
 
-The Hobby-safe config cannot run frequent cron. On Pro, configure
-`CRON_SECRET` and deploy the three-minute frontend/backend/Solr warmer:
-
-```bash
-scripts/deploy-pro.sh
-```
-
-This normally prevents the five-minute idle scale-down path. It is not a
-minimum-instance guarantee; see [Performance](performance.md).
+Vercel exposes no minimum-instance control for this container service. The
+previous cron warmer was costly and still allowed restarts. Use the
+[always-on Hetzner profile](hetzner.md) when backend and search latency must be
+predictable; keep Vercel for evaluation or cache-friendly public delivery.
 
 ## Backend Login
 

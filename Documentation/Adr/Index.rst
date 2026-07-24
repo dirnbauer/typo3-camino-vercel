@@ -103,6 +103,13 @@ State and delivery
       .. card-footer:: :ref:`Read <adr-012>`
          :button-style: btn btn-secondary stretched-link
 
+   .. card:: ADR-013: Always-on production origin
+
+      Use resident TYPO3 and durable Solr for predictable first requests.
+
+      .. card-footer:: :ref:`Read <adr-013>`
+         :button-style: btn btn-secondary stretched-link
+
 Services and operations
 -----------------------
 
@@ -156,3 +163,4 @@ Services and operations
    Adr010DurableProcessedImages
    Adr011AuditedRequestPathTuning
    Adr012BackendHotPathTuning
+   Adr013AlwaysOnProductionOrigin

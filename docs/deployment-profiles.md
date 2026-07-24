@@ -7,13 +7,13 @@ production architecture.
 | | Solution 1: one-click test | Solution 2: professional hosting |
 |---|---|---|
 | Goal | Evaluate TYPO3 and Camino quickly | Run a durable editorial site |
-| Vercel plan | Hobby is enough for personal testing | Pro or Enterprise |
-| Configuration | `vercel.json` | `vercel.pro.json` through `scripts/deploy-pro.sh` |
-| Database | Temporary pre-seeded SQLite | External PostgreSQL or MySQL-compatible SQL |
-| Files | Bundled demo media; optional durable Blob uploads | Vercel Blob or S3/R2 through TYPO3 FAL |
-| Search | No Solr service | Managed external Solr 10; internal Solr only for demos |
-| Scheduler | None | TYPO3 Scheduler every 15 minutes, plus external workers for long jobs |
-| Cold-start mitigation | Automatic five-minute CDN cache for eligible public pages | Three-minute Pro warmer plus optional CDN cache |
+| Hosting | Vercel Hobby is enough for personal testing | Always-on host or managed TYPO3 provider |
+| Configuration | `vercel.json` | `compose.hetzner.yaml` |
+| Database | Temporary pre-seeded SQLite | Private persistent MariaDB |
+| Files | Bundled demo media; optional durable Blob uploads | Persistent `fileadmin` volume plus external backups |
+| Search | No Solr service | Private persistent Solr 10 |
+| Scheduler | None | Dedicated always-on Scheduler container |
+| Residency | Scale-to-zero; edge cache for eligible pages | Resident processes; no scale-to-zero |
 | Editing | Safe only for disposable experiments | Durable backend sessions and content |
 
 ## Solution 1: One-Click Test
@@ -56,42 +56,26 @@ for client content or anything that must be retained.
 
 Use this profile for durable content and real editorial work:
 
-1. Use Vercel Pro or Enterprise with the container Service pinned to one
-   region close to the database.
-2. Add a pooled external PostgreSQL or MySQL-compatible `DATABASE_URL`.
-3. Connect Vercel Blob or S3/R2 and keep all editor uploads in that FAL storage.
-4. Configure stable TYPO3 secrets, trusted hosts, SMTP, and production logging.
-5. Run automatic database/bootstrap setup once, then disable all setup-on-boot
-   flags.
-6. Add Redis when shared multi-instance caches justify another dependency.
-7. Use managed external Solr 10 for durable production search. The internal
-   Vercel Solr service is a self-seeded demonstration, not production storage.
-8. Set `CRON_SECRET` and deploy with `scripts/deploy-pro.sh`.
-9. Confirm `vercel crons ls` shows the three-minute warmer and 15-minute
-   Scheduler job.
-10. Add database/object-storage backups, restore tests, monitoring, firewall
-    rules, and the GDPR controls required for the project.
+1. Provision an always-on host; the tested baseline is a Hetzner CX43.
+2. Copy `.env.hetzner.example` to `.env.hetzner` and replace every secret.
+3. Point DNS to the host and deploy `compose.hetzner.yaml`.
+4. Run database/bootstrap setup once, then disable all setup-on-boot flags.
+5. Confirm app, database, Redis, Solr, Scheduler, and Caddy are healthy.
+6. Enable provider backups and keep an independent database/file export.
+7. Add external uptime monitoring, firewall rules, restore tests, SMTP, and
+   the GDPR controls required for the project.
 
-For read-heavy public sites, Vercel's CDN can absorb substantial traffic while
-SQL, files, Redis, and Solr remain durable external services. Capacity must be
-proved with a load test using the site's real extensions, templates, cache
-policy, database, and traffic mix; this starter cannot assign a universal page
-view limit.
-
-Vercel's current Dockerfile deployment guide documents production scale-in
-after five idle minutes and does not document a minimum always-warm instance
-for this container path. The three-minute warmer makes normal use much faster
-but cannot guarantee zero cold starts during deployments, scale-out, eviction,
-or cron delays. If a large site's backend or first request has a hard latency
-SLA, run the TYPO3 origin on always-on infrastructure and use Vercel for CDN,
-public delivery, assets, and preview deployments.
+Capacity must be proved with a load test using the site's real extensions,
+templates, cache policy, database, and traffic mix. The single-host profile is
+resident and predictable, but it is not high availability. Use a managed TYPO3
+provider or redundant design for a formal availability SLA.
 
 ## Decision Rule
 
 - Choose **Solution 1** when losing every edit is acceptable.
 - Choose **Solution 2** before editors create content that matters.
-- Use an always-on TYPO3 origin within Solution 2 when predictable first-hit
-  latency is a contractual requirement.
+- Choose managed hosting instead of self-managed Hetzner when the provider
+  should own patching, monitoring, and recovery.
 
 Continue with [Quickstart](quickstart.md) for the test or
 [Production hardening](production-hardening.md) for the professional setup.

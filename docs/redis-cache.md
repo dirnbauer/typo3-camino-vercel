@@ -123,8 +123,8 @@ fallback stage may evict cache tag sets (silently breaking
 invalidation-by-tag until TTLs expire) and session keys (random backend
 logouts). At quota with eviction off, cache writes degrade to misses and
 new logins fail loudly — prefer that failure mode, or pair eviction with
-`TYPO3_REDIS_SESSIONS=0`. The warmup probe prunes the previous deployment's
-page-cache keys automatically and reports the connection count against the
+`TYPO3_REDIS_SESSIONS=0`. The manual warmup probe can prune the previous
+deployment's page-cache keys and reports the connection count against the
 provider's limit.
 
 ## Important Upstash Note

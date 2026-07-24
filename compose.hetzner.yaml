@@ -1,0 +1,176 @@
+x-app-environment: &app-environment
+  TYPO3_CONTEXT: Production/Hetzner
+  TYPO3_SERVERLESS_FILESYSTEM: "0"
+  TYPO3_AUTO_SETUP: ${TYPO3_AUTO_SETUP:-0}
+  TYPO3_BOOTSTRAP_EMPTY_DATABASE: ${TYPO3_BOOTSTRAP_EMPTY_DATABASE:-0}
+  TYPO3_EXTENSION_SETUP_ON_BOOT: ${TYPO3_EXTENSION_SETUP_ON_BOOT:-0}
+  TYPO3_SETUP_DISTRIBUTION: ${TYPO3_SETUP_DISTRIBUTION:-theme_camino}
+  TYPO3_SETUP_ADMIN_USERNAME: ${TYPO3_SETUP_ADMIN_USERNAME:-admin}
+  TYPO3_SETUP_ADMIN_PASSWORD: ${TYPO3_SETUP_ADMIN_PASSWORD:?Set TYPO3_SETUP_ADMIN_PASSWORD}
+  TYPO3_SETUP_ADMIN_EMAIL: ${TYPO3_SETUP_ADMIN_EMAIL:?Set TYPO3_SETUP_ADMIN_EMAIL}
+  TYPO3_PROJECT_NAME: ${TYPO3_PROJECT_NAME:-TYPO3 Camino}
+  TYPO3_ENCRYPTION_KEY: ${TYPO3_ENCRYPTION_KEY:?Set a stable 96-character TYPO3_ENCRYPTION_KEY}
+  TYPO3_TRUSTED_HOSTS_PATTERN: ${TYPO3_TRUSTED_HOSTS_PATTERN:?Set TYPO3_TRUSTED_HOSTS_PATTERN}
+  TYPO3_DB_DRIVER: mysqli
+  TYPO3_DB_HOST: db
+  TYPO3_DB_PORT: "3306"
+  TYPO3_DB_DBNAME: ${TYPO3_DB_DBNAME:-typo3}
+  TYPO3_DB_USERNAME: ${TYPO3_DB_USERNAME:-typo3}
+  TYPO3_DB_PASSWORD: ${TYPO3_DB_PASSWORD:?Set TYPO3_DB_PASSWORD}
+  TYPO3_CACHE_BACKEND: redis
+  TYPO3_REDIS_REQUIRED: "1"
+  TYPO3_REDIS_HOST: redis
+  TYPO3_REDIS_PORT: "6379"
+  TYPO3_REDIS_PASSWORD: ${TYPO3_REDIS_PASSWORD:?Set TYPO3_REDIS_PASSWORD}
+  TYPO3_REDIS_SESSIONS: "1"
+  TYPO3_SOLR_ENABLED: "1"
+  TYPO3_SOLR_URL: http://solr:8983/solr/core_en
+  TYPO3_SOLR_SITE_BASE: ${TYPO3_SOLR_SITE_BASE:?Set the public TYPO3_SOLR_SITE_BASE}
+  TYPO3_SOLR_SITE_IDENTIFIER: ${TYPO3_SOLR_SITE_IDENTIFIER:-camino}
+  TYPO3_SOLR_APPLY_SITE_SET: "1"
+  TYPO3_SOLR_INDEX_ON_SETUP: "1"
+  TYPO3_SOLR_SCHEDULER_TASK: "1"
+  TYPO3_SOLR_SCHEDULER_INTERVAL: ${TYPO3_SOLR_SCHEDULER_INTERVAL:-300}
+  TYPO3_MAIL_TRANSPORT: ${TYPO3_MAIL_TRANSPORT:-smtp}
+  TYPO3_MAIL_SMTP_SERVER: ${TYPO3_MAIL_SMTP_SERVER:-}
+  TYPO3_MAIL_SMTP_ENCRYPT: ${TYPO3_MAIL_SMTP_ENCRYPT:-tls}
+  TYPO3_MAIL_SMTP_USERNAME: ${TYPO3_MAIL_SMTP_USERNAME:-}
+  TYPO3_MAIL_SMTP_PASSWORD: ${TYPO3_MAIL_SMTP_PASSWORD:-}
+  CRON_SECRET: ${CRON_SECRET:?Set CRON_SECRET}
+
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: 20m
+    max-file: "5"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.vercel
+    image: ${TYPO3_APP_IMAGE:-typo3-camino:hetzner}
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      solr:
+        condition: service_healthy
+    environment: *app-environment
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--show-error", "http://127.0.0.1/api/health.php"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 90s
+    volumes:
+      - typo3-fileadmin:/var/www/html/public/fileadmin
+      - typo3-var:/tmp/typo3/var
+
+  scheduler:
+    image: ${TYPO3_APP_IMAGE:-typo3-camino:hetzner}
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      <<: *app-environment
+      TYPO3_AUTO_SETUP: "0"
+      TYPO3_BOOTSTRAP_EMPTY_DATABASE: "0"
+      TYPO3_EXTENSION_SETUP_ON_BOOT: "0"
+      TYPO3_SCHEDULER_LOOP_INTERVAL: ${TYPO3_SCHEDULER_LOOP_INTERVAL:-60}
+    command: ["docker/run-scheduler-loop.sh"]
+    volumes:
+      - typo3-fileadmin:/var/www/html/public/fileadmin
+
+  db:
+    image: mariadb:10.11
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      MARIADB_DATABASE: ${TYPO3_DB_DBNAME:-typo3}
+      MARIADB_USER: ${TYPO3_DB_USERNAME:-typo3}
+      MARIADB_PASSWORD: ${TYPO3_DB_PASSWORD:?Set TYPO3_DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Set MARIADB_ROOT_PASSWORD}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb-buffer-pool-size=2G
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    volumes:
+      - typo3-db:/var/lib/mysql
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    logging: *default-logging
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${TYPO3_REDIS_PASSWORD:?Set TYPO3_REDIS_PASSWORD}
+      - --maxmemory
+      - 1gb
+      - --maxmemory-policy
+      - volatile-lru
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${TYPO3_REDIS_PASSWORD}\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    environment:
+      TYPO3_REDIS_PASSWORD: ${TYPO3_REDIS_PASSWORD:?Set TYPO3_REDIS_PASSWORD}
+    volumes:
+      - typo3-redis:/data
+
+  solr:
+    image: typo3solr/ext-solr:14.0.0-beta3
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      SOLR_JAVA_MEM: -Xms1g -Xmx2g
+    healthcheck:
+      test: ["CMD-SHELL", "/usr/local/bin/healthcheck.sh"]
+      interval: 20s
+      timeout: 10s
+      retries: 12
+      start_period: 90s
+    volumes:
+      - typo3-solr:/var/solr
+
+  proxy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?Set SITE_ADDRESS to the production hostname}
+    ports:
+      - ${HTTP_PORT:-80}:80
+      - ${HTTPS_PORT:-443}:443
+      - ${HTTPS_PORT:-443}:443/udp
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  caddy-config:
+  caddy-data:
+  typo3-db:
+  typo3-fileadmin:
+  typo3-redis:
+  typo3-solr:
+  typo3-var:

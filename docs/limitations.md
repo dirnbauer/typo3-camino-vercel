@@ -113,14 +113,14 @@ cache behavior, but it is not an always-on runtime control.
 
 ## Cold Starts
 
-The Pro warmer and the small image reduce activation work, but Vercel offers
-no minimum-instance guarantee: cold starts remain possible during deploys,
-scale-out, eviction, or delayed cron. Production validation observed one
+The small image reduces activation work, but Vercel offers no minimum-instance
+guarantee: cold starts remain possible during deploys, scale-out, or eviction.
+Production validation observed one
 `/typo3/` request at 8.85 seconds even after the warmer had succeeded, with
 0.2-second repeats. Public pages can use edge caching; a backend with a hard
 latency SLO needs an always-on host. Cron is also not a reliable residency
 control for the separate Solr service, which repeatedly spent 15-17 seconds in
-startup despite the three-minute schedule. Details in
+startup despite the former warm-up schedule. Details in
 [performance](performance.md).
 
 ## Solr

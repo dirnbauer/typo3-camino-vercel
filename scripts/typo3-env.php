@@ -1054,9 +1054,34 @@ function typo3_vercel_solr_service_url(): ?string
     return null;
 }
 
+/**
+ * Whether any supported Solr connection or service binding is available.
+ */
+function typo3_vercel_solr_connection_available(): bool
+{
+    return typo3_vercel_solr_service_url() !== null
+        || typo3_vercel_env('TYPO3_SOLR_URL') !== null
+        || typo3_vercel_env('SOLR_URL') !== null
+        || typo3_vercel_env('TYPO3_SOLR_HOST') !== null
+        || typo3_vercel_env('SOLR_HOST') !== null;
+}
+
+/**
+ * Resolve the Solr feature flag while treating a Vercel service binding as an
+ * enabled connection by default. An explicit TYPO3_SOLR_ENABLED=0 remains the
+ * kill switch for every Solr integration path.
+ */
+function typo3_vercel_solr_enabled(): bool
+{
+    return typo3_vercel_bool_env(
+        'TYPO3_SOLR_ENABLED',
+        typo3_vercel_solr_connection_available(),
+    );
+}
+
 function typo3_vercel_internal_solr_proxy_enabled(): bool
 {
-    if (!typo3_vercel_bool_env('TYPO3_SOLR_ENABLED', false)) {
+    if (!typo3_vercel_solr_enabled()) {
         return false;
     }
 

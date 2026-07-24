@@ -9,7 +9,8 @@ ADR-002: Maintain two deployment profiles
 Status
 ======
 
-**Accepted.** Retrospectively recorded on 2026-07-15.
+**Superseded by ADR-013.** Retrospectively recorded on 2026-07-15 and
+superseded on 2026-07-24 when production moved to an always-on origin.
 
 Context
 =======

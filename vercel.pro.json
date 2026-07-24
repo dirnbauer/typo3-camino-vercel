@@ -23,10 +23,6 @@
   },
   "crons": [
     {
-      "path": "/api/cron/typo3-warmup.php",
-      "schedule": "* * * * *"
-    },
-    {
       "path": "/api/cron/typo3-scheduler.php",
       "schedule": "*/15 * * * *"
     }

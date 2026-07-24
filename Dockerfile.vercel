@@ -124,7 +124,7 @@ RUN set -eu; \
     php scripts/restore-project-files.php; \
     php scripts/restore-project-files.php --check
 
-RUN chmod +x docker/entrypoint.sh docker/serve.sh scripts/bootstrap-typo3.php scripts/apply-admin-password.php scripts/apply-object-storage.php scripts/apply-solr-config.php scripts/frontend-edge-cache-policy.php scripts/resolve-system-maintainers.php \
+RUN chmod +x docker/entrypoint.sh docker/serve.sh docker/run-scheduler-loop.sh scripts/bootstrap-typo3.php scripts/apply-admin-password.php scripts/apply-object-storage.php scripts/apply-solr-config.php scripts/frontend-edge-cache-policy.php scripts/resolve-system-maintainers.php \
     && mkdir -p var public/fileadmin/_temp_ public/fileadmin/user_upload public/typo3temp config/system \
     && chown -R www-data:www-data var public/fileadmin public/typo3temp config \
     && chmod -R a+rwX var public/fileadmin public/typo3temp

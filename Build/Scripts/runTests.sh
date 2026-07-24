@@ -57,6 +57,7 @@ run_lint() {
   "${root}/vendor/bin/typo3" setup --help >/dev/null
   bash -n \
     "${root}/docker/entrypoint.sh" \
+    "${root}/docker/run-scheduler-loop.sh" \
     "${root}/docker/serve.sh" \
     "${root}/scripts/deploy-pro.sh" \
     "${root}/services/solr/start-vercel-solr.sh"

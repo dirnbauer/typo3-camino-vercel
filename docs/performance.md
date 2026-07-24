@@ -72,23 +72,15 @@ After publishing durable content, invalidate and warm the eligible routes:
 VERCEL_SCOPE=your-team scripts/invalidate-frontend-cache.sh
 ```
 
-### Pro Warm-Up
+### Residency
 
-`vercel.pro.json` calls `/api/cron/typo3-warmup.php` every minute. The
-protected request checks frontend, backend, database, Redis, and Solr paths that
-are enabled for the deployment. It is a best-effort latency mitigation, not an
-instance reservation or service-affinity mechanism.
+The former one-minute Pro warm-up was removed after billing analysis. It kept
+TYPO3 and the separate Solr service active enough to generate sustained
+provisioned-memory and CPU charges, but Vercel still restarted instances.
+`/api/cron/typo3-warmup.php` remains a protected manual diagnostic only.
 
-Hobby Cron cannot run this cadence. Deploy the Pro profile explicitly:
-
-```bash
-VERCEL_SCOPE=your-team scripts/deploy-pro.sh
-vercel crons ls --scope your-team
-```
-
-The expected schedules are the three-minute warmer and the 15-minute TYPO3
-Scheduler invocation. Pushes to `main` deploy the Pro profile through CI;
-verify the schedules after every production release.
+`vercel.pro.json` now schedules only the 15-minute TYPO3 Scheduler invocation.
+Use `compose.hetzner.yaml` when the origin must remain resident.
 
 ## Historical Measurements
 

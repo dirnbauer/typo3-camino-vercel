@@ -135,7 +135,7 @@ final class EnvironmentTest extends TestCase
         $session = \typo3_vercel_session_configuration();
 
         self::assertSame(
-            'TYPO3\\CMS\\Core\\Session\\Backend\\RedisSessionBackend',
+            'Webconsulting\\Typo3VercelStorage\\Session\\Backend\\VercelRedisSessionBackend',
             $session['BE']['backend'],
         );
         self::assertSame('tls://redis.example.test', $session['BE']['options']['hostname']);
@@ -224,6 +224,33 @@ final class EnvironmentTest extends TestCase
 
         $this->setEnv('TYPO3_SOLR_SERVICE_URL', 'http://service.example.test');
         self::assertSame('http://service.example.test', \typo3_vercel_solr_service_url());
+    }
+
+    public function testSolrServiceBindingEnablesSiteConfigurationAndProxyByDefault(): void
+    {
+        self::assertFalse(\typo3_vercel_solr_connection_available());
+        self::assertFalse(\typo3_vercel_solr_enabled());
+        self::assertFalse(\typo3_vercel_internal_solr_proxy_enabled());
+
+        $this->setEnv('TYPO3_SOLR_SERVICE_URL', 'http://service.example.test');
+
+        self::assertTrue(\typo3_vercel_solr_connection_available());
+        self::assertTrue(\typo3_vercel_solr_enabled());
+        self::assertTrue(\typo3_vercel_internal_solr_proxy_enabled());
+
+        $this->setEnv('TYPO3_SOLR_ENABLED', '0');
+
+        self::assertFalse(\typo3_vercel_solr_enabled());
+        self::assertFalse(\typo3_vercel_internal_solr_proxy_enabled());
+    }
+
+    public function testDirectSolrEndpointEnablesSiteConfigurationByDefault(): void
+    {
+        $this->setEnv('TYPO3_SOLR_URL', 'https://solr.example.test/solr/core_en');
+
+        self::assertTrue(\typo3_vercel_solr_connection_available());
+        self::assertTrue(\typo3_vercel_solr_enabled());
+        self::assertFalse(\typo3_vercel_internal_solr_proxy_enabled());
     }
 
     public function testInstallToolAllowsOnlyBackendContextOrExplicitOptIn(): void
@@ -361,6 +388,12 @@ final class EnvironmentTest extends TestCase
             'SOLR_SERVICE_URL',
             'TYPO3_SOLR_INTERNAL_URL',
             'SOLR_INTERNAL_URL',
+            'TYPO3_SOLR_URL',
+            'SOLR_URL',
+            'TYPO3_SOLR_HOST',
+            'SOLR_HOST',
+            'TYPO3_SOLR_ENABLED',
+            'TYPO3_SOLR_APP_PROXY_ENABLED',
             'TYPO3_SYSTEM_MAINTAINERS',
             'TYPO3_INSTALL_TOOL_ENABLED',
             'TYPO3_INSTALL_TOOL_PASSWORD_HASH',

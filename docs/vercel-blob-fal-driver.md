@@ -193,8 +193,8 @@ Add a real database; Blob does not persist `be_sessions`.
 ### The Backend Is Still Slow On First Hit
 
 That is a cold start, not a Blob problem. Keep one-shot setup flags disabled
-after setup, and use the Pro warm-up profile if needed
-(see [performance](performance.md)).
+after setup. Use the always-on profile if predictable first-request latency is
+required (see [performance](performance.md)).
 
 ## Security Notes
 

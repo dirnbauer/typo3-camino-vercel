@@ -114,27 +114,10 @@ apply_object_storage() {
   fi
 }
 
-should_apply_solr_config() {
-  case "${TYPO3_SOLR_ENABLED:-}" in
-    1|true|TRUE|yes|YES|on|ON)
-      return 0
-      ;;
-    0|false|FALSE|no|NO|off|OFF)
-      return 1
-      ;;
-  esac
-
-  if [ -n "${TYPO3_SOLR_URL:-}" ] || [ -n "${SOLR_URL:-}" ] || [ -n "${TYPO3_SOLR_HOST:-}" ] || [ -n "${SOLR_HOST:-}" ]; then
-    return 0
-  fi
-
-  return 1
-}
-
 apply_solr_config() {
-  if should_apply_solr_config; then
-    php scripts/apply-solr-config.php
-  fi
+  # The PHP helper owns feature detection so direct endpoints and Vercel
+  # service bindings cannot drift into different startup behavior.
+  php scripts/apply-solr-config.php
 }
 
 apply_database_defaults() {

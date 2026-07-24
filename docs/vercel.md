@@ -114,13 +114,9 @@ deploy, and use external managed Solr for production search.
 
 ## Pro Cold-Start Profile
 
-`vercel.pro.json` adds the internal Solr demonstration service and:
-
-- `/api/cron/typo3-warmup.php` every minute
-- `/api/cron/typo3-scheduler.php` every 15 minutes
-
-The warm-up performs local loopback requests to `/` and `/typo3/`, then
-checks database, Redis, and Solr. Configure `CRON_SECRET` and deploy with:
+`vercel.pro.json` adds the internal Solr demonstration service and
+`/api/cron/typo3-scheduler.php` every 15 minutes. Configure `CRON_SECRET` and
+deploy with:
 
 ```bash
 VERCEL_SCOPE=webconsulting scripts/deploy-pro.sh
@@ -199,12 +195,12 @@ These are the technical changes Vercel could ship to remove them
 
 | Workaround in this starter | Vercel change that would remove it |
 |---|---|
-| One-minute cron warmer, baked DI/Fluid caches, bounded Solr retry proxy — and cold requests still reach ~10 s | Minimum-instances / keep-warm option for container Services |
+| Always-on production moved outside Vercel; baked DI/Fluid caches and a bounded Solr retry proxy remain for the demo | Minimum-instances / keep-warm option for container Services |
 | Custom browser-to-Blob large-upload module; normal uploads capped at 4 MB | Raise or stream the 4.5 MB request-body limit for container Services |
 | Internal Solr is a self-seeding demo; production search must be external managed Solr | Attachable persistent volumes for container Services |
 | Blob boot verification is deferred unless a read/write token exists (request OIDC only exists per request) | Workload OIDC available to the container process at boot |
 | `scripts/deploy-pro.sh` + CI deploys because Git deployments read only `vercel.json` (ADR-009); the project is not Git-connected | Per-environment configuration file selection for Git deployments |
-| Two deployment profiles, because Hobby cron is daily-only and cannot warm the free demo (ADR-002) | A modest keep-warm or hourly cron allowance on Hobby |
+| Separate Vercel demo profiles because Hobby cron is daily-only (ADR-002) | More flexible Hobby scheduling |
 | The warm-up script treats `x-vercel-mitigated: challenge` as "skip" because managed bot protection challenges the project's own automation | A first-party bypass (scoped token) for a project's own probes across bot protection |
 | Incident forensics raced the 1-day Pro runtime-log retention | Longer retention or included log drains on Pro |
 | The Redis page cache is scoped by a custom `TYPO3_DEPLOYMENT_REVISION` env because CLI deployments get no `VERCEL_GIT_COMMIT_SHA` | A deployment-identity runtime variable that exists for every deployment, Git or CLI |

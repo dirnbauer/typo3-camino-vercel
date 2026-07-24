@@ -16,7 +16,7 @@ if (!is_file($autoload)) {
 
 require $autoload;
 
-if (!typo3_vercel_bool_env('TYPO3_SOLR_ENABLED', solr_has_connection_env())) {
+if (!typo3_vercel_solr_enabled()) {
     fwrite(STDOUT, "TYPO3 Solr is not enabled; skipping Solr site config.\n");
     exit(0);
 }
@@ -67,14 +67,6 @@ foreach ($siteConfigPaths as $siteConfigPath) {
         $siteConfigPath,
         $applySiteSet ? ' Solr site set dependencies are enabled.' : ' Solr site set dependencies are disabled.'
     ));
-}
-
-function solr_has_connection_env(): bool
-{
-    return typo3_vercel_env('TYPO3_SOLR_URL') !== null
-        || typo3_vercel_env('SOLR_URL') !== null
-        || typo3_vercel_env('TYPO3_SOLR_HOST') !== null
-        || typo3_vercel_env('SOLR_HOST') !== null;
 }
 
 function solr_connection_from_env(string $prefix, string $fallbackPrefix, ?array $fallback = null): array

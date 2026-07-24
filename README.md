@@ -80,7 +80,9 @@ For production, review:
 service, no cron, and no Solr service.
 
 `vercel.pro.json` adds the private demonstration Solr service and registers a
-three-minute warm-up plus a 15-minute Scheduler invocation. Deploy it with:
+15-minute Scheduler invocation. The former periodic deep warmer was removed
+after it caused sustained compute billing without reserving an instance.
+Deploy the profile with:
 
 ```bash
 VERCEL_SCOPE=your-team scripts/deploy-pro.sh
@@ -91,9 +93,9 @@ runs the same script after all checks pass (it needs the `VERCEL_TOKEN`
 repository secret). Set a strong `CRON_SECRET` first and verify the
 registered schedules after deployment.
 
-The warmer reduces ordinary cold-start exposure but does not reserve an
-instance. Use always-on TYPO3 and managed Solr infrastructure when predictable
-first-request latency is contractual.
+Use the [always-on Hetzner profile](docs/hetzner.md) when backend and search
+must have predictable first-request latency. It runs TYPO3, MariaDB, Redis,
+and durable Solr behind automatic TLS.
 
 ## Included Integrations
 
@@ -126,6 +128,13 @@ Docker Compose provides a smaller application-and-MariaDB smoke environment:
 
 ```bash
 docker compose up --build
+```
+
+The production-style always-on profile includes MariaDB, Redis, durable Solr,
+Caddy TLS, and a Scheduler worker:
+
+```bash
+docker compose --env-file .env.hetzner -f compose.hetzner.yaml up --build -d
 ```
 
 TYPO3's Composer installer generates `public/index.php`. Composer hooks in this
