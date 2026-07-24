@@ -110,9 +110,9 @@ starts. See [Redis cache on Vercel](redis-cache.md).
 ## Predictable First Requests
 
 Vercel exposes no minimum-instance control for this container service. The
-previous cron warmer was costly and still allowed restarts. Use the
-[always-on Hetzner profile](hetzner.md) when backend and search latency must be
-predictable; keep Vercel for evaluation or cache-friendly public delivery.
+previous cron warmer was costly and still allowed restarts. The selected
+production decision keeps Vercel and accepts occasional uncached activation.
+The [Hetzner profile](hetzner.md) is retained for price comparison only.
 
 ## Backend Login
 

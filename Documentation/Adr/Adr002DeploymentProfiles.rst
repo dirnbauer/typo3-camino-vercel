@@ -9,8 +9,9 @@ ADR-002: Maintain two deployment profiles
 Status
 ======
 
-**Superseded by ADR-013.** Retrospectively recorded on 2026-07-15 and
-superseded on 2026-07-24 when production moved to an always-on origin.
+**Superseded by ADR-014.** Retrospectively recorded on 2026-07-15 and
+superseded on 2026-07-24 when the Pro profile retained Vercel but removed the
+scheduled warmer.
 
 Context
 =======

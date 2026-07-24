@@ -18,8 +18,9 @@ control for this deployment path. A cron request, smaller image, or warmed
 framework cache reduces exposure but cannot guarantee that every user reaches
 an already active instance.
 
-Use an always-on TYPO3 origin when a contractual first-request latency cannot
-tolerate activation. Use managed, always-on Solr for production search.
+The selected production decision retains Vercel and accepts occasional
+activation. A future contractual first-request requirement would require a new
+hosting decision; it does not authorize a current migration.
 
 ## Implemented Strategy
 
@@ -213,10 +214,9 @@ Track at least:
 
 ## Decision Rule
 
-Use Vercel-native TYPO3 when public traffic is mostly cacheable, state is
-external, and occasional uncached activation is acceptable. Use an always-on
-origin when editorial, personalized, or search traffic requires predictable
-first-request latency.
+Use Vercel-native TYPO3 because public traffic is mostly cacheable, state is
+external, and occasional uncached activation is acceptable. Hetzner remains a
+price comparison, not the selected origin.
 
 Sources: [Vercel Docker deployments](https://vercel.com/kb/guide/does-vercel-support-docker-deployments),
 [Vercel Services](https://vercel.com/docs/services),

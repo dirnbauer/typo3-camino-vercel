@@ -55,14 +55,12 @@ Build cost was independent of Camino runtime cost. The
 `webconsulting-website` project used 178h 30m of Turbo build CPU across 79
 deployments, accounting for nearly all of the $38.12 build line.
 
-ADR-013 removes the scheduled warmer. If Vercel is retained for low-traffic
-demos, forecast low-single-digit monthly Camino compute rather than the
-observed roughly $77 per 16 days. The remaining Vercel baseline is still $30
-per month while Pro and Analytics Plus remain enabled, and Turbo builds remain
-a separate cost until that project uses a smaller build machine or deploys
-less frequently.
+ADR-014 retains Vercel and removes the scheduled warmer. Forecast
+low-single-digit monthly Camino compute rather than the observed roughly $77
+per 16 days. The remaining Vercel baseline is $30 per month while Pro and
+Analytics Plus remain enabled. Both relevant projects now use Standard builds.
 
-## Predictable Always-On Cost
+## Hetzner Price Comparison
 
 The tested Hetzner baseline runs TYPO3, MariaDB, Redis, and durable Solr on one
 CX43:
@@ -78,7 +76,8 @@ EU CX servers include 20 TB outbound traffic. At the measured team-wide
 13.68 GB, traffic would use about 0.07% of that allowance and add €0. Solr has
 no separate line item because it runs privately on the same host.
 
-This is infrastructure pricing, not managed operations or high availability.
+This is a price comparison, not the selected hosting plan. It represents
+infrastructure pricing, not managed operations or high availability.
 For provider-owned TYPO3 operations, jweiland Cloud PREMIUM currently costs
 €36/month including German VAT and includes MariaDB, Solr, backups, monitoring,
 and a published 99.9% availability target. Cloud BASIC is €24 but does not

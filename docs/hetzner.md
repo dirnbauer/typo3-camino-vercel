@@ -1,7 +1,8 @@
-# Always-On Hetzner Deployment
+# Hetzner Price Comparison And Reference Stack
 
-Use this profile when backend, personalized, or search requests must not wait
-for a scale-to-zero activation. It runs TYPO3, MariaDB, Redis, and Solr on one
+Vercel remains the selected production platform. This profile exists to make
+the Hetzner price and capability comparison reproducible; it is not a planned
+migration or DNS-cutover target. It runs TYPO3, MariaDB, Redis, and Solr on one
 always-on host; only Caddy publishes ports to the internet.
 
 ## Recommended Baseline

@@ -42,7 +42,7 @@ when the deployment becomes more than a disposable demo.
 |---|---|
 | [Production hardening](production-hardening.md) | Required services and safe settings |
 | [Security](security.md) | Secrets, firewall, trusted hosts, and health endpoints |
-| [Always-on Hetzner](hetzner.md) | Predictable TYPO3, MariaDB, Redis, and Solr hosting |
+| [Hetzner comparison](hetzner.md) | Price and capability comparison including persistent Solr |
 | [Vercel billing review](vercel-billing-review.md) | Internal invoice analysis, corrective actions, and forecast |
 | [GDPR](gdpr.md) | Privacy and data-processing checklist |
 | [Limitations](limitations.md) | Unsupported or conditional behavior |
@@ -62,8 +62,9 @@ when the deployment becomes more than a disposable demo.
   service and no cron jobs; eligible SQLite demo pages use automatic edge cache.
 - `vercel.pro.json` is the paid Vercel demo profile. It adds private demo Solr
   and runs Scheduler every 15 minutes; it does not promise resident compute.
-- `compose.hetzner.yaml` is the always-on production profile with MariaDB,
-  Redis, durable Solr, Scheduler, and Caddy TLS.
+- `compose.hetzner.yaml` is a non-selected comparison profile with MariaDB,
+  Redis, durable Solr, Scheduler, and Caddy TLS. It supports reproducible
+  pricing and capability evaluation; Vercel remains production.
 - Pushes to `main` deploy the Pro profile through the CI `deploy` job
   (requires the `VERCEL_TOKEN` secret); `scripts/deploy-pro.sh` remains the
   manual path.

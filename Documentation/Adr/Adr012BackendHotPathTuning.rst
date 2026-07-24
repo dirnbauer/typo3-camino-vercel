@@ -71,7 +71,7 @@ paths or persistent state:
    available. Processed derivatives in every processing folder receive the
    long-lived cache policy.
 5. The protected warmup operation prunes the previous deployment's page-cache
-   prefix and reports the connection count. ADR-013 removed its periodic cron
+   prefix and reports the connection count. ADR-014 removed its periodic cron
    invocation; it remains a manual diagnostic. Production Redis runs with
    eviction disabled and quota monitoring, because the cache and session data
    depend on keys not vanishing underneath a live deployment.

@@ -195,7 +195,7 @@ These are the technical changes Vercel could ship to remove them
 
 | Workaround in this starter | Vercel change that would remove it |
 |---|---|
-| Always-on production moved outside Vercel; baked DI/Fluid caches and a bounded Solr retry proxy remain for the demo | Minimum-instances / keep-warm option for container Services |
+| Production remains on Vercel and accepts occasional activation; baked DI/Fluid caches, edge caching, and a bounded Solr retry proxy reduce its impact | Minimum-instances / keep-warm option for container Services |
 | Custom browser-to-Blob large-upload module; normal uploads capped at 4 MB | Raise or stream the 4.5 MB request-body limit for container Services |
 | Internal Solr is a self-seeding demo; production search must be external managed Solr | Attachable persistent volumes for container Services |
 | Blob boot verification is deferred unless a read/write token exists (request OIDC only exists per request) | Workload OIDC available to the container process at boot |

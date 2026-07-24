@@ -9,9 +9,10 @@ ADR-013: Use an always-on origin for production
 Status
 ======
 
-**Accepted.** Recorded on 2026-07-24 after billing analysis and a full
-container-stack acceptance test. This record supersedes the scheduled warmer
-part of :ref:`ADR-002 <adr-002>` and :ref:`ADR-012 <adr-012>`.
+**Superseded by ADR-014.** Recorded on 2026-07-24 after billing analysis and a
+full container-stack acceptance test, then superseded the same day when the
+final hosting decision retained Vercel. The tested Hetzner stack remains a
+price and capability comparison only.
 
 Context
 =======

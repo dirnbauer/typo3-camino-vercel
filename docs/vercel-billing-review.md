@@ -69,10 +69,11 @@ was not the billing problem.
 
 ## Speed: Old Version Compared With New Version
 
-The new version in this table is the live, cost-optimized Vercel deployment.
-It is not the future always-on Hetzner profile. Measurements use different
-dates and request classes, so they should be read as operational evidence,
-not as a controlled before-and-after laboratory benchmark.
+The new version in this table is the selected live, cost-optimized Vercel
+deployment. Hetzner is included elsewhere for price comparison only.
+Measurements use different dates and request classes, so they should be read
+as operational evidence, not as a controlled before-and-after laboratory
+benchmark.
 
 | Request class | Old version | New live Vercel version |
 | --- | ---: | ---: |
@@ -98,8 +99,8 @@ historical probes still observed 14.6–17.0-second Solr activation while it was
 enabled.
 
 Uncached backend, personalized, and first search requests can still encounter
-Vercel activation. The always-on Hetzner profile is the recommended next step
-when those request classes also need predictable latency.
+Vercel activation. This limitation is accepted for the current production
+decision and will be monitored; it does not trigger a Hetzner migration.
 
 ## Cost Breakdown
 
@@ -178,25 +179,19 @@ Completed:
 - Removed the periodic Camino deep warm-up from `vercel.pro.json` and deployed
   the change to production.
 - Added regression tests that prevent reintroducing the scheduled warmer.
-- Added an always-on deployment profile with TYPO3, MariaDB, Redis, persistent
-  Solr, Scheduler, and automatic TLS.
-- Recorded the hosting decision in ADR-013.
+- Added a tested Hetzner reference profile so its price and capabilities can
+  be compared with Vercel, including persistent Solr.
+- Recorded the final decision to retain Vercel in ADR-014.
 
 Live verification on July 24, 2026 confirmed the production deployment was
 `READY`, the build machine was Standard (4 vCPU and 8 GB RAM), and the only
 remaining Vercel cron was the bounded TYPO3 Scheduler call every 15 minutes.
 
-Pending production cutover:
-
-- Provision the always-on host or managed TYPO3 package.
-- Restore/synchronize the production database and files.
-- Validate TYPO3, backend login, Scheduler, and Solr.
-- Change DNS.
-- Confirm external monitoring and backups.
+No Hetzner provisioning, data migration, or DNS cutover is planned.
 
 ## Forecast
 
-If Vercel remains for previews and low-traffic demonstrations:
+For the selected Vercel production deployment:
 
 - Fixed platform fees: $20/month for Pro and $10/month for Web Analytics Plus.
 - Camino compute after removing the warmer: expected $1–5/month at the
@@ -210,11 +205,12 @@ If Vercel remains for previews and low-traffic demonstrations:
 - **Expected Vercel invoice: approximately $30/month before tax**, with a
   conservative $30–40/month range for unusually high build or compute usage.
 
-The tested self-managed Hetzner baseline costs €19.69/month excluding VAT,
-including one CX43 server, provider backups, IPv4, and Solr on the same host.
-The managed jweiland Cloud PREMIUM alternative costs €36/month including VAT
-and includes Solr.
+For price comparison only, the tested self-managed Hetzner baseline costs
+€19.69/month excluding VAT, including one CX43 server, provider backups, IPv4,
+and Solr on the same host. The managed jweiland Cloud PREMIUM comparison costs
+€36/month including VAT and includes Solr. Neither option is the selected
+hosting target.
 
 See [hosting costs](costs.md), the
-[always-on deployment guide](hetzner.md), and
-[ADR-013](../Documentation/Adr/Adr013AlwaysOnProductionOrigin.rst).
+[Hetzner price comparison](hetzner.md), and
+[ADR-014](../Documentation/Adr/Adr014RetainVercelProduction.rst).

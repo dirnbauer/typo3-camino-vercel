@@ -103,11 +103,18 @@ State and delivery
       .. card-footer:: :ref:`Read <adr-012>`
          :button-style: btn btn-secondary stretched-link
 
-   .. card:: ADR-013: Always-on production origin
+   .. card:: ADR-013: Always-on production origin (superseded)
 
-      Use resident TYPO3 and durable Solr for predictable first requests.
+      Preserve the evaluated alternative that ADR-014 superseded.
 
       .. card-footer:: :ref:`Read <adr-013>`
+         :button-style: btn btn-secondary stretched-link
+
+   .. card:: ADR-014: Retain Vercel production
+
+      Remove artificial residency cost and keep Vercel as the selected host.
+
+      .. card-footer:: :ref:`Read <adr-014>`
          :button-style: btn btn-secondary stretched-link
 
 Services and operations
@@ -164,3 +171,4 @@ Services and operations
    Adr011AuditedRequestPathTuning
    Adr012BackendHotPathTuning
    Adr013AlwaysOnProductionOrigin
+   Adr014RetainVercelProduction

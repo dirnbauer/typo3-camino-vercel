@@ -29,8 +29,8 @@ Required pieces:
 6. **Frontend cache:** optional Vercel CDN cache for anonymous public HTML only.
 7. **Search:** external managed Apache Solr 10 when EXT:solr search is needed.
    Do not keep production Solr index state inside the TYPO3 Vercel container.
-8. **Cold starts:** accept occasional activation or move the production origin
-   to the always-on profile. Do not schedule residency probes.
+8. **Cold starts:** accept occasional activation and do not schedule residency
+   probes.
 9. **Scheduler:** TYPO3 Scheduler runs through the protected HTTP cron endpoint,
    not a Linux daemon inside the container.
 
@@ -38,23 +38,22 @@ This is the shape used by the public demo. The default `vercel.json` remains a
 Hobby-compatible no-cron test, so Pro projects must deploy with
 `scripts/deploy-pro.sh`.
 
-## Target Architecture B: Strict Production
+## Non-Selected Hetzner Comparison
 
-Use this when the requirement is predictable first-hit latency, heavy backend
-editing, heavy image processing, high concurrency, or classic always-on hosting
-behavior.
+The repository also contains a Hetzner profile so the cost and operational
+differences can be tested rather than estimated. It is not the selected target
+and no migration or DNS cutover is planned.
 
-Recommended shape:
+Comparison shape:
 
 1. Deploy `compose.hetzner.yaml` on an always-on host.
 2. Keep MariaDB, Redis, and Solr private and persistent.
 3. Publish only Caddy on ports 80/443 and use automatic TLS.
 4. Enable provider backups plus an independent database/file export.
-5. Keep Vercel for evaluation, previews, or a separately justified CDN layer.
+5. Account for operator time, monitoring, patching, and restore ownership.
 
-This is not a failure of TYPO3. It is the honest boundary while the current
-Dockerfile deployment documentation exposes no minimum-instances or always-warm
-control for this use case.
+The profile demonstrates an always-on technical alternative. ADR-014 records
+the decision to retain Vercel despite its lack of a minimum-instance control.
 
 ## Concrete Settings For Architecture A
 
@@ -126,13 +125,13 @@ The previous one-minute warm-up consumed sustained memory and CPU while still
 allowing platform restarts. It is removed from `vercel.pro.json`. The protected
 endpoint remains available for manual diagnostics only.
 
-If strict first-hit latency is required, use Architecture B. Fluid Compute
-reduces cold-start frequency; it does not expose a minimum-instance guarantee
-for this container Service.
+Fluid Compute reduces cold-start frequency; it does not expose a
+minimum-instance guarantee for this container Service. The selected Vercel
+architecture accepts this tradeoff and monitors real request latency.
 
 ## Remaining Engineering Work
 
-The runtime image, always-on profile, protected deep health endpoint, Blob
+The runtime image, comparison profile, protected deep health endpoint, Blob
 write probe, direct large-upload flow, and benchmark documentation are
 implemented. Remaining useful work is:
 
@@ -145,20 +144,17 @@ implemented. Remaining useful work is:
 4. **Stable EXT:solr 14:** remove beta compatibility fallbacks after the stable
    PostgreSQL-safe release is verified.
 
-## Decision Rule
+## Selected Decision
 
-Use Vercel-native TYPO3 when:
+Retain Vercel-native TYPO3 because:
 
 - public pages matter more than backend first-hit latency
 - editors can tolerate the occasional cold backend hit
 - content lives in a real DB
 - uploads live in Blob/S3
 - occasional scale-to-zero activation is acceptable
+- edge-cached public routes remain fast
+- the optimized usage should fit within the Pro credit
 
-Use hybrid/always-on TYPO3 when:
-
-- the backend must feel instant after inactivity
-- image processing is heavy
-- traffic/concurrency is high
-- regulatory or operational requirements demand predictable process behavior
-- the team expects classic VM/container hosting semantics
+Hetzner remains a price and capability comparison. Changing this hosting
+decision requires a new ADR and explicit authorization.

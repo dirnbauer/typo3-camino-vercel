@@ -93,9 +93,9 @@ runs the same script after all checks pass (it needs the `VERCEL_TOKEN`
 repository secret). Set a strong `CRON_SECRET` first and verify the
 registered schedules after deployment.
 
-Use the [always-on Hetzner profile](docs/hetzner.md) when backend and search
-must have predictable first-request latency. It runs TYPO3, MariaDB, Redis,
-and durable Solr behind automatic TLS.
+Vercel remains the selected production platform. The
+[Hetzner comparison](docs/hetzner.md) documents the price of an always-on
+TYPO3, MariaDB, Redis, and Solr stack; it is not a migration plan.
 
 ## Included Integrations
 
@@ -130,8 +130,9 @@ Docker Compose provides a smaller application-and-MariaDB smoke environment:
 docker compose up --build
 ```
 
-The production-style always-on profile includes MariaDB, Redis, durable Solr,
-Caddy TLS, and a Scheduler worker:
+The non-selected Hetzner comparison profile includes MariaDB, Redis, durable
+Solr, Caddy TLS, and a Scheduler worker for reproducible cost and capability
+testing:
 
 ```bash
 docker compose --env-file .env.hetzner -f compose.hetzner.yaml up --build -d
