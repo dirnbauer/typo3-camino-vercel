@@ -19,6 +19,32 @@ The two material cost drivers were:
 
 Traffic contributed only $0.29 to the infrastructure invoice.
 
+## Old Version Compared With New Version
+
+The old actual charge and the new forecast cover different lengths of time.
+The reviewed old usage window was 16.33 days; the new figure is a complete
+30-day forecast. Normalizing the old usage to 30 days gives a fair comparison:
+
+| Cost or setting | Old version | New version |
+| --- | ---: | ---: |
+| Camino deep warm-up | Every minute | Removed |
+| TYPO3 Scheduler | Every 15 minutes | Every 15 minutes |
+| Dominant build machine | Turbo, 30 vCPU | Standard, 4 vCPU |
+| Infrastructure before credit | Approximately $220.50/month | Approximately $5–20/month |
+| Pro infrastructure credit | −$20/month | Up to −$20/month |
+| Pro and Analytics Plus | $30/month | $30/month |
+| **Expected monthly invoice** | **Approximately $230.50** | **Approximately $30; allow $30–40** |
+
+The old configuration actually incurred $130.04 during the reviewed 16.33-day
+window. If that compute and deployment pattern had continued for 30 days, the
+normalized invoice would have been approximately $230.50 before tax. The new
+configuration is expected to reduce the monthly invoice by approximately
+$190–200, or 83–87%.
+
+This comparison does not assign the saving to traffic. Visitor transfer was
+already within the included allowance, and origin transfer contributed only
+$0.29 to the reviewed invoice.
+
 ## Cost Breakdown
 
 | Invoice line | Usage | Cost |
