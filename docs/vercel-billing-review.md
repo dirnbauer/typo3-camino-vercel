@@ -45,6 +45,62 @@ This comparison does not assign the saving to traffic. Visitor transfer was
 already within the included allowance, and origin transfer contributed only
 $0.29 to the reviewed invoice.
 
+## The Biggest Wins
+
+1. **Approximately $190–200 less per month.** The normalized monthly invoice
+   falls from approximately $230.50 to about $30, with a conservative upper
+   forecast of $40. This is an expected reduction of 83–87%.
+2. **Approximately $141/month of unnecessary runtime compute is eliminated.**
+   The old one-minute warm-up generated $76.91 of provisioned-memory and CPU
+   charges in only 16.33 days. It did not guarantee that an instance remained
+   available.
+3. **Build-machine spending is reduced by approximately $60–70/month.** The
+   old build charge normalizes to about $70/month. Standard builds should cost
+   $0 with ordinary Pro concurrency; even the conservative on-demand allowance
+   is only $5–10/month.
+4. **The savings do not depend on reducing visitor traffic.** Fast Data
+   Transfer was already $0, and origin transfer cost only $0.29. Public pages
+   remain edge-cached; the production verification returned cached pages in
+   approximately 0.1–0.3 seconds.
+
+The main win is therefore structural: stop manufacturing continuous compute
+load and stop paying for an oversized build machine. Normal visitor traffic
+was not the billing problem.
+
+## Speed: Old Version Compared With New Version
+
+The new version in this table is the live, cost-optimized Vercel deployment.
+It is not the future always-on Hetzner profile. Measurements use different
+dates and request classes, so they should be read as operational evidence,
+not as a controlled before-and-after laboratory benchmark.
+
+| Request class | Old version | New live Vercel version |
+| --- | ---: | ---: |
+| Public frontend after deployment | 12.57s for `/` | 0.714–10.847s across 13 cache-fill requests |
+| Public frontend repeat | 0.046s median for 10 warm `/` requests | 0.103s median across 13 edge-cached routes |
+| Cached public-page mean | Not recorded across the route set | 0.149s |
+| Cached public-page p95 | Not recorded across the route set | 0.323s |
+| First measured search | 14.6–17.0s for confirmed cold activation despite the old warmer | 5.611s during the post-deploy cache-fill pass |
+| Search repeat | 0.35–0.96s | 0.293s |
+| Backend warm | 0.125s median | Not re-benchmarked |
+| Backend cold | 10.151s, then 0.206–0.238s | Still exposed to the 10–12s Vercel cold-start class |
+| Post-deploy public checks | Not recorded as one route set | 26/26 HTTP 200 responses |
+
+The new cache-fill pass covered 13 routes. Its first pass had a 1.436s median,
+3.843s mean, and 10.847s maximum while TYPO3, Solr, and the edge cache were
+being populated. The immediate cached pass had a 0.103s median, 0.149s mean,
+0.323s p95, and 0.323s maximum.
+
+**The speed win is that the large cost reduction did not make normal cached
+page delivery slow:** every measured cached route stayed below 0.33 seconds.
+The old one-minute warmer was not providing an equivalent reliability win;
+historical probes still observed 14.6–17.0-second Solr activation while it was
+enabled.
+
+Uncached backend, personalized, and first search requests can still encounter
+Vercel activation. The always-on Hetzner profile is the recommended next step
+when those request classes also need predictable latency.
+
 ## Cost Breakdown
 
 | Invoice line | Usage | Cost |
