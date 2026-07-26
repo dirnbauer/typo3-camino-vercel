@@ -1,0 +1,5 @@
+FROM curlimages/curl:8.15.0
+
+COPY --chmod=755 docker/run-remote-scheduler.sh /usr/local/bin/run-remote-scheduler
+
+ENTRYPOINT ["/usr/local/bin/run-remote-scheduler"]

@@ -1,5 +1,6 @@
 # Alpine keeps the runtime image small, which lowers registry cost and
-# activation work. Build tools remain in this discarded stage.
+# activation work. Build tools remain in this discarded stage. The same image
+# is used on Vercel, Railway, Sliplane, and Coolify.
 FROM php:8.5-fpm-alpine AS php-extensions
 
 RUN apk add --no-cache --virtual .build-deps \

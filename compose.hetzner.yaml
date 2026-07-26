@@ -48,7 +48,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile.vercel
+      dockerfile: Dockerfile
     image: ${TYPO3_APP_IMAGE:-typo3-camino:hetzner}
     restart: unless-stopped
     logging: *default-logging

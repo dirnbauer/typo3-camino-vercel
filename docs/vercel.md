@@ -17,7 +17,7 @@
 
 ## How This Project Runs
 
-Vercel builds `Dockerfile.vercel` as an OCI image for a Dockerfile-backed
+Vercel builds the root `Dockerfile` as an OCI image for a Dockerfile-backed
 container Service and routes traffic according to `vercel.json`.
 
 The one-click `vercel.json` deploys only TYPO3. The Pro profile adds an

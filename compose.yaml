@@ -2,7 +2,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile.vercel
+      dockerfile: Dockerfile
     depends_on:
       db:
         condition: service_healthy

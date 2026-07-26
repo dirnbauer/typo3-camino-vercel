@@ -97,6 +97,12 @@ Vercel remains the selected production platform. The
 [Hetzner comparison](docs/hetzner.md) documents the price of an always-on
 TYPO3, MariaDB, Redis, and Solr stack; it is not a migration plan.
 
+The reproducible alternative-hosting study covers
+[Railway](docs/railway.md), [Sliplane](docs/sliplane.md), and
+[Coolify on Hetzner](docs/coolify.md). See the
+[four-platform comparison](docs/platform-comparison.md) for installation
+status, benchmark rules, and current price assumptions.
+
 ## Included Integrations
 
 - German, Spanish, Simplified Chinese, and Hungarian Camino content with

@@ -12,6 +12,11 @@ when the deployment becomes more than a disposable demo.
 | [Quickstart](quickstart.md) | One-click and first durable deployment |
 | [Configuration](configuration.md) | Canonical environment and profile reference |
 | [Vercel deployment](vercel.md) | Install steps, CLI, regions, and open platform requests |
+| [Railway deployment](railway.md) | Managed container, MySQL, volume/S3, and cron setup |
+| [Sliplane deployment](sliplane.md) | Managed European Docker deployment |
+| [Coolify deployment](coolify.md) | Self-hosted PaaS on Hetzner |
+| [Four-platform comparison](platform-comparison.md) | Install status, benchmark method, and current prices |
+| [Benchmark results](benchmarks/README.md) | Repeatable runner and timestamped raw samples |
 | [Costs](costs.md) | Hobby, Pro, databases, Blob, Redis, and Solr cost shape |
 | [Free demo](free-demo.md) | Exactly what can remain free and what is temporary |
 
@@ -65,6 +70,10 @@ when the deployment becomes more than a disposable demo.
 - `compose.hetzner.yaml` is a non-selected comparison profile with MariaDB,
   Redis, durable Solr, Scheduler, and Caddy TLS. It supports reproducible
   pricing and capability evaluation; Vercel remains production.
+- `railway.json` and `platforms/railway/cron.json` configure the Railway app
+  and Scheduler services.
+- `compose.coolify.yaml` is the smaller MariaDB/application/Scheduler profile
+  used for the self-hosted PaaS comparison.
 - Pushes to `main` deploy the Pro profile through the CI `deploy` job
   (requires the `VERCEL_TOKEN` secret); `scripts/deploy-pro.sh` remains the
   manual path.

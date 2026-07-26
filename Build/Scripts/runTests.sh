@@ -57,6 +57,7 @@ run_lint() {
   "${root}/vendor/bin/typo3" setup --help >/dev/null
   bash -n \
     "${root}/docker/entrypoint.sh" \
+    "${root}/docker/run-remote-scheduler.sh" \
     "${root}/docker/run-scheduler-loop.sh" \
     "${root}/docker/serve.sh" \
     "${root}/scripts/deploy-pro.sh" \
@@ -82,7 +83,7 @@ run_lint() {
 }
 
 run_containers() {
-  docker build -f "${root}/Dockerfile.vercel" -t typo3-camino-vercel:test "${root}"
+  docker build -f "${root}/Dockerfile" -t typo3-camino-vercel:test "${root}"
   docker build -f "${root}/services/solr/Dockerfile.vercel" -t typo3-camino-solr:test "${root}/services/solr"
 }
 
