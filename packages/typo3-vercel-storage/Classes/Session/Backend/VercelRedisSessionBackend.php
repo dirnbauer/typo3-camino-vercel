@@ -31,7 +31,7 @@ final class VercelRedisSessionBackend extends RedisSessionBackend
                 $this->identifier
             );
         } catch (\RedisException $e) {
-            $this->logger->alert('Could not connect to redis server.', ['exception' => $e]);
+            $this->logger?->alert('Could not connect to redis server.', ['exception' => $e]);
         }
 
         if (!$this->connected) {
@@ -70,6 +70,10 @@ final class VercelRedisSessionBackend extends RedisSessionBackend
         }
     }
 
+/**
+ * @param array<string, mixed> $sessionData
+ * @return array<string, mixed>
+ */
     public function set(string $sessionId, array $sessionData): array
     {
         $sessionData = parent::set($sessionId, $sessionData);
@@ -78,6 +82,10 @@ final class VercelRedisSessionBackend extends RedisSessionBackend
         return $sessionData;
     }
 
+/**
+ * @param array<string, mixed> $sessionData
+ * @return array<string, mixed>
+ */
     public function update(string $sessionId, array $sessionData): array
     {
         $sessionData = parent::update($sessionId, $sessionData);

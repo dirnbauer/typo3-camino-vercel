@@ -363,7 +363,7 @@ final readonly class DirectUploadService
 
     private function backendUserUid(): int
     {
-        return (int)$this->backendUser()->user['uid'];
+        return (int)($this->backendUser()->user['uid'] ?? 0);
     }
 
     /** @param array<string, mixed> $input */

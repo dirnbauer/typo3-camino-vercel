@@ -55,7 +55,7 @@ final class VercelRedisBackend extends RedisBackend
                 ? $this->redis->pconnect($this->hostname, $this->port, $this->connectionTimeout, (string)$this->database, 0, $this->readTimeout)
                 : $this->redis->connect($this->hostname, $this->port, $this->connectionTimeout, null, 0, $this->readTimeout);
         } catch (\Exception $e) {
-            $this->logger->alert('Could not connect to redis server.', ['exception' => $e]);
+            $this->logger?->alert('Could not connect to redis server.', ['exception' => $e]);
         }
 
         if (!$this->connected) {

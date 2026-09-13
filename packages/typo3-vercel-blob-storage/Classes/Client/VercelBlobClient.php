@@ -32,7 +32,7 @@ final class VercelBlobClient
             // Never wait on a 100-continue answer before sending PUT bodies;
             // retries already rewind the body on failure.
             'expect' => false,
-            'version' => (\curl_version()['features'] & \CURL_VERSION_HTTP2) !== 0 ? '2.0' : '1.1',
+            'version' => self::supportsHttp2() ? '2.0' : '1.1',
         ];
         if (\function_exists('curl_share_init_persistent') && !self::envProxyConfigured()) {
             // Persistent curl share (PHP 8.5+): DNS entries, TLS sessions,
@@ -56,6 +56,17 @@ final class VercelBlobClient
      * Guzzle rejects request-level CURLOPT_SHARE combined with an effective
      * https proxy tunnel, and it consults all four environment spellings.
      */
+    /**
+     * curl_version() reports false when the extension cannot describe itself,
+     * so an unknown build is treated as HTTP/1.1 rather than indexed into.
+     */
+    private static function supportsHttp2(): bool
+    {
+        $version = \curl_version();
+
+        return is_array($version) && (((int)($version['features'] ?? 0)) & \CURL_VERSION_HTTP2) !== 0;
+    }
+
     private static function envProxyConfigured(): bool
     {
         foreach (['https_proxy', 'HTTPS_PROXY', 'all_proxy', 'ALL_PROXY'] as $name) {
@@ -96,6 +107,13 @@ final class VercelBlobClient
 
     /**
      * @return array<int, array{pathname: string, size: int, uploadedAt: string, url?: string, etag?: string}>
+ * @return list<array{
+ *     pathname: non-empty-string,
+ *     size: int,
+ *     uploadedAt: string,
+ *     url: string|null,
+ *     etag: string|null
+ * }>
      */
     public function listPathnames(string $prefix, ?int $limit = null): array
     {
@@ -117,7 +135,7 @@ final class VercelBlobClient
             ]);
 
             foreach (($response['blobs'] ?? []) as $blob) {
-                if (is_array($blob) && isset($blob['pathname']) && is_string($blob['pathname'])) {
+                if (is_array($blob) && isset($blob['pathname']) && is_string($blob['pathname']) && $blob['pathname'] !== '') {
                     $items[] = [
                         'pathname' => $blob['pathname'],
                         'size' => (int)($blob['size'] ?? 0),
@@ -268,6 +286,8 @@ final class VercelBlobClient
 
     /**
      * @return array<string, mixed>
+ * @param array<string, mixed> $options
+ * @return array<string, mixed>
      */
     private function apiRequest(string $method, string $path, array $options = []): array
     {
@@ -302,6 +322,9 @@ final class VercelBlobClient
         return $decoded;
     }
 
+/**
+ * @param array<string, mixed> $options
+ */
     private function requestWithRetries(string $method, string $url, array $options): ResponseInterface
     {
         $attempt = 0;

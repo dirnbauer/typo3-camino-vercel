@@ -818,7 +818,11 @@ final class SetupSolrDemoCommand extends Command
         $query->createFilterQuery('type')->setQuery('type:pages');
 
         $response = $solrConnection->getReadService()->search($query);
-        $rawResponse = json_decode($response->getRawResponse(), true);
+        $rawBody = $response->getRawResponse();
+        if ($rawBody === null) {
+            throw new \RuntimeException('Solr returned an empty response.', 1783529460);
+        }
+        $rawResponse = json_decode($rawBody, true);
         if (!is_array($rawResponse)) {
             throw new \RuntimeException('Solr returned a non-JSON response.', 1783529461);
         }
@@ -1355,6 +1359,8 @@ final class SetupSolrDemoCommand extends Command
 
     /**
      * @return string[]
+ * @param list<string> $default
+ * @return list<string>
      */
     private function stringArrayOption(InputInterface $input, string $name, array $default): array
     {
