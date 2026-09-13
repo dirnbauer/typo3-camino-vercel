@@ -14,8 +14,9 @@
         "sort-packages": true
     },
     "require": {
-        "apache-solr-for-typo3/solr": "^14.0@beta",
-        "friendsoftypo3/visual-editor": "^1.8",
+        "php": "^8.4",
+    "apache-solr-for-typo3/solr": "^14.0.1",
+        "friendsoftypo3/visual-editor": "^1.10.2",
         "lochmueller/staticfilecache": "^16.1",
         "typo3/cms-backend": "^14.3",
         "typo3/cms-belog": "^14.3",
