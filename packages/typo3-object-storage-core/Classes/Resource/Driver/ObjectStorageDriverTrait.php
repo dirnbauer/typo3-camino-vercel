@@ -38,6 +38,14 @@ use TYPO3\CMS\Core\Utility\PathUtility;
  * round-trip to the storage backend.
  *
  * @phpstan-require-extends AbstractHierarchicalFilesystemDriver
+ *
+ * @phpstan-type DirectoryEntry array{
+ *     identifier: non-empty-string,
+ *     name: string,
+ *     type: string,
+ *     size: int,
+ *     tstamp: int
+ * }
  */
 trait ObjectStorageDriverTrait
 {
@@ -50,6 +58,7 @@ trait ObjectStorageDriverTrait
 
     private string $prefix = '';
     private ?string $publicBaseUrl = null;
+    /** @var non-empty-string */
     private string $defaultFolder = '/user_upload/';
 
     /**
@@ -82,6 +91,7 @@ trait ObjectStorageDriverTrait
         'user_upload' => FolderInterface::ROLE_USERUPLOAD,
     ];
 
+    /** @param array<string, mixed> $configuration */
     public function __construct(array $configuration = [])
     {
         parent::__construct($configuration);
@@ -118,7 +128,7 @@ trait ObjectStorageDriverTrait
     public function getDefaultFolder(): string
     {
         if (!$this->folderExists($this->defaultFolder)) {
-            $this->createFolder(trim($this->defaultFolder, '/'), '/', true);
+            $this->createFolder($this->requireNonEmpty(trim($this->defaultFolder, '/'), 'Default folder name'), '/', true);
         }
         return $this->defaultFolder;
     }
@@ -219,7 +229,10 @@ trait ObjectStorageDriverTrait
     public function addFile(string $localFilePath, string $targetFolderIdentifier, string $newFileName = '', bool $removeOriginal = true): string
     {
         $localFilePath = $this->canonicalizeAndCheckFilePath($localFilePath);
-        $newFileName = $this->sanitizeFileName($newFileName !== '' ? $newFileName : PathUtility::basename($localFilePath));
+        $newFileName = $this->sanitizeFileName($this->requireNonEmpty(
+            $newFileName !== '' ? $newFileName : PathUtility::basename($localFilePath),
+            'File name',
+        ));
         $newIdentifier = $this->canonicalizeAndCheckFileIdentifier(
             $this->canonicalizeAndCheckFolderIdentifier($targetFolderIdentifier) . $newFileName
         );
@@ -236,7 +249,8 @@ trait ObjectStorageDriverTrait
     public function createFile(string $fileName, string $parentFolderIdentifier): string
     {
         $fileIdentifier = $this->canonicalizeAndCheckFileIdentifier(
-            $this->canonicalizeAndCheckFolderIdentifier($parentFolderIdentifier) . $this->sanitizeFileName(ltrim($fileName, '/'))
+            $this->canonicalizeAndCheckFolderIdentifier($parentFolderIdentifier)
+            . $this->sanitizeFileName($this->requireNonEmpty(ltrim($fileName, '/'), 'File name'))
         );
         $this->putObject($fileIdentifier, '');
         $this->invalidateStatCache($this->keyFromFileIdentifier($fileIdentifier));
@@ -422,7 +436,12 @@ trait ObjectStorageDriverTrait
         string $sort = '',
         bool $sortRev = false
     ): array {
-        return $this->getDirectoryItemList($folderIdentifier, $start, $numberOfItems, $filenameFilterCallbacks, true, false, $recursive, $sort, $sortRev);
+        // The identifier-keyed map the listing builds is handed back as a
+        // list, which is what DriverInterface declares. ResourceStorage
+        // iterates the values, so no caller loses anything.
+        return array_values(
+            $this->getDirectoryItemList($folderIdentifier, $start, $numberOfItems, $filenameFilterCallbacks, true, false, $recursive, $sort, $sortRev)
+        );
     }
 
     public function getFolderInFolder(string $folderName, string $folderIdentifier): string
@@ -476,8 +495,10 @@ trait ObjectStorageDriverTrait
         return $cleanFileName;
     }
 
+    /** @param array<string, mixed> $properties */
     public function streamFile(string $identifier, array $properties): ResponseInterface
     {
+        $identifier = $this->requireNonEmpty($identifier, 'File identifier');
         $fileInfo = $this->getFileInfoByIdentifier($identifier, ['name', 'mimetype', 'mtime', 'size']);
         $downloadName = (string)($properties['filename_overwrite'] ?? $fileInfo['name'] ?? '');
         $mimeType = (string)($properties['mimetype_overwrite'] ?? $fileInfo['mimetype'] ?? 'application/octet-stream');
@@ -503,6 +524,10 @@ trait ObjectStorageDriverTrait
         return $this->mappingFolderNameToRole[$name] ?? FolderInterface::ROLE_DEFAULT;
     }
 
+    /**
+     * @param list<callable|array{0: object|string, 1: string}> $filterMethods
+     * @return array<string, string> identifier => identifier
+     */
     private function getDirectoryItemList(
         string $folderIdentifier,
         int $start,
@@ -514,7 +539,9 @@ trait ObjectStorageDriverTrait
         string $sort,
         bool $sortRev
     ): array {
-        $folderIdentifier = $this->canonicalizeAndCheckFolderIdentifier($folderIdentifier);
+        $folderIdentifier = $this->canonicalizeAndCheckFolderIdentifier(
+            $this->requireNonEmpty($folderIdentifier, 'Folder identifier')
+        );
         if (!$this->folderExists($folderIdentifier)) {
             throw new FolderDoesNotExistException('Folder "' . $folderIdentifier . '" does not exist.', 1720010012);
         }
@@ -550,6 +577,7 @@ trait ObjectStorageDriverTrait
         return $result;
     }
 
+    /** @param list<callable|array{0: object|string, 1: string}> $filterMethods */
     private function applyFilterMethodsToDirectoryItem(array $filterMethods, string $itemName, string $itemIdentifier, string $parentIdentifier): bool
     {
         foreach ($filterMethods as $filter) {
@@ -567,11 +595,15 @@ trait ObjectStorageDriverTrait
         return true;
     }
 
+    /**
+     * @param array<string, DirectoryEntry> $entries
+     * @param non-empty-string $fileIdentifier
+     */
     private function addAncestorFolders(array &$entries, string $fileIdentifier, string $rootFolderIdentifier): void
     {
         $parent = $this->getParentFolderIdentifierOfIdentifier($fileIdentifier);
         $folders = [];
-        while ($parent !== '/' && $parent !== $rootFolderIdentifier) {
+        while ($parent !== '' && $parent !== '/' && $parent !== $rootFolderIdentifier) {
             $folders[] = $parent;
             $parent = $this->parentFolderIdentifierOfFolderIdentifier($parent);
         }
@@ -580,6 +612,10 @@ trait ObjectStorageDriverTrait
         }
     }
 
+    /**
+     * @param non-empty-string $identifier
+     * @return DirectoryEntry
+     */
     private function directoryEntry(string $identifier, string $type, int $size, int $tstamp): array
     {
         return [
@@ -591,6 +627,10 @@ trait ObjectStorageDriverTrait
         ];
     }
 
+    /**
+     * @param array<string, DirectoryEntry> $entries
+     * @return array<string, DirectoryEntry>
+     */
     private function sortDirectoryEntries(array $entries, string $sort, bool $sortRev): array
     {
         $sortMultiplier = $sortRev ? -1 : 1;
@@ -621,6 +661,11 @@ trait ObjectStorageDriverTrait
         $this->invalidateStatCache($targetKey);
     }
 
+    /**
+     * @param non-empty-string $sourceFolderIdentifier
+     * @param non-empty-string $targetFolderIdentifier
+     * @return array<non-empty-string, non-empty-string> old identifier => new identifier
+     */
     private function moveFolderObjects(string $sourceFolderIdentifier, string $targetFolderIdentifier, bool $deleteSource): array
     {
         if ($sourceFolderIdentifier === '/') {
@@ -666,13 +711,16 @@ trait ObjectStorageDriverTrait
 
     private function keyFromFolderIdentifier(string $identifier): string
     {
-        $identifier = trim($this->canonicalizeAndCheckFolderIdentifier($identifier), '/');
+        $identifier = trim($this->canonicalizeAndCheckFolderIdentifier(
+            $this->requireNonEmpty($identifier, 'Folder identifier')
+        ), '/');
         if ($identifier === '') {
             return $this->prefix;
         }
         return $this->prefix . $identifier . '/';
     }
 
+    /** @return non-empty-string */
     private function identifierFromKey(string $key, bool $isFolder): string
     {
         if ($this->prefix !== '' && str_starts_with($key, $this->prefix)) {
@@ -707,6 +755,23 @@ trait ObjectStorageDriverTrait
         return 'application/octet-stream';
     }
 
+    /**
+     * Identifiers and names that reach the object store must not be empty. An
+     * empty value would address the bucket root or write a key that cannot be
+     * resolved again, and core's driver contract types these as
+     * non-empty-string, so the guard both documents and enforces it.
+     *
+     * @return non-empty-string
+     */
+    private function requireNonEmpty(string $value, string $subject): string
+    {
+        if ($value === '') {
+            throw new \InvalidArgumentException($subject . ' must not be empty.', 1720010020);
+        }
+
+        return $value;
+    }
+
     private function encodeKeyForUrl(string $key): string
     {
         return implode('/', array_map(rawurlencode(...), explode('/', ltrim($key, '/'))));
@@ -714,7 +779,9 @@ trait ObjectStorageDriverTrait
 
     private function parentFolderIdentifierOfFolderIdentifier(string $folderIdentifier): string
     {
-        $folderIdentifier = $this->canonicalizeAndCheckFolderIdentifier($folderIdentifier);
+        $folderIdentifier = $this->canonicalizeAndCheckFolderIdentifier(
+            $this->requireNonEmpty($folderIdentifier, 'Folder identifier')
+        );
         if ($folderIdentifier === '/') {
             return '/';
         }
@@ -783,8 +850,12 @@ trait ObjectStorageDriverTrait
         $cache = $this->statCacheBackend();
         $cacheIdentifier = $this->statCacheIdentifier($key);
         if ($cache !== null) {
-            $cached = $cache->get($cacheIdentifier);
-            if (is_array($cached)) {
+            // Whatever the shared cache holds was written by an earlier
+            // release and survives deployments, so its shape is checked
+            // rather than assumed. An entry that no longer matches is
+            // treated as a miss and replaced by a fresh HEAD.
+            $cached = $this->asHeadInfo($cache->get($cacheIdentifier));
+            if ($cached !== null) {
                 return $this->headInfoRequestCache[$key] = $cached;
             }
         }
@@ -795,6 +866,26 @@ trait ObjectStorageDriverTrait
             $cache->set($cacheIdentifier, $info, [], self::STAT_CACHE_LIFETIME);
         }
         return $info;
+    }
+
+    /**
+     * @return array{size: int, mimetype: string, mtime: int}|null
+     */
+    private function asHeadInfo(mixed $candidate): ?array
+    {
+        if (!is_array($candidate)
+            || !is_int($candidate['size'] ?? null)
+            || !is_string($candidate['mimetype'] ?? null)
+            || !is_int($candidate['mtime'] ?? null)
+        ) {
+            return null;
+        }
+
+        return [
+            'size' => $candidate['size'],
+            'mimetype' => $candidate['mimetype'],
+            'mtime' => $candidate['mtime'],
+        ];
     }
 
     /**

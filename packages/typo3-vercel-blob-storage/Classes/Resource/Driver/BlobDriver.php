@@ -74,11 +74,15 @@ final class BlobDriver extends AbstractHierarchicalFilesystemDriver implements S
         $key = $this->keyFromFileIdentifier($identifier);
 
         if ($this->publicBaseUrl !== null) {
-            return $this->publicBaseUrl . $this->encodeKeyForUrl($key);
+            $url = $this->publicBaseUrl . $this->encodeKeyForUrl($key);
+
+            return $url === '' ? null : $url;
         }
 
         if ($this->access === 'public') {
-            return $this->client()->publicUrl($key);
+            $url = $this->client()->publicUrl($key);
+
+            return $url === '' ? null : $url;
         }
 
         return null;
@@ -177,6 +181,9 @@ final class BlobDriver extends AbstractHierarchicalFilesystemDriver implements S
         return $this->client;
     }
 
+/**
+ * @return array<string, array{identifier: non-empty-string, name: string, type: string, size: int, tstamp: int}>
+ */
     private function listDirectoryEntries(string $folderIdentifier, bool $recursive, bool $includeFiles, bool $includeDirs): array
     {
         $folderKey = $this->keyFromFolderIdentifier($folderIdentifier);
@@ -184,7 +191,7 @@ final class BlobDriver extends AbstractHierarchicalFilesystemDriver implements S
 
         foreach ($this->client()->listPathnames($folderKey) as $object) {
             $key = $object['pathname'];
-            if ($key === '' || $key === $folderKey) {
+            if ($key === $folderKey) {
                 continue;
             }
 
@@ -266,10 +273,7 @@ final class BlobDriver extends AbstractHierarchicalFilesystemDriver implements S
     {
         $keys = [];
         foreach ($this->client()->listPathnames($prefix, $limit) as $object) {
-            $key = $object['pathname'];
-            if ($key !== '') {
-                $keys[] = $key;
-            }
+            $keys[] = $object['pathname'];
             if ($limit !== null && count($keys) >= $limit) {
                 break;
             }
@@ -289,6 +293,7 @@ final class BlobDriver extends AbstractHierarchicalFilesystemDriver implements S
      * that the normalized headInfo() intentionally drops.
      *
      * @return array<string, mixed>|null
+ * @return array<string, mixed>|null
      */
     private function headObject(string $key): ?array
     {
@@ -321,6 +326,7 @@ final class BlobDriver extends AbstractHierarchicalFilesystemDriver implements S
         return $relative !== '' && !str_contains($relative, '/');
     }
 
+    /** @return non-empty-string|null */
     private function firstChildFolderIdentifier(string $folderKey, string $key): ?string
     {
         if ($folderKey !== '' && !str_starts_with($key, $folderKey)) {

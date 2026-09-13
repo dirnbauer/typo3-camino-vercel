@@ -63,7 +63,9 @@ final class S3Driver extends AbstractHierarchicalFilesystemDriver implements Str
         $key = $this->keyFromFileIdentifier($identifier);
 
         if ($this->publicBaseUrl !== null) {
-            return $this->publicBaseUrl . $this->encodeKeyForUrl($key);
+            $url = $this->publicBaseUrl . $this->encodeKeyForUrl($key);
+
+            return $url === '' ? null : $url;
         }
 
         if ($this->signedUrlTtl > 0) {
@@ -71,7 +73,9 @@ final class S3Driver extends AbstractHierarchicalFilesystemDriver implements Str
                 'Bucket' => $this->bucket,
                 'Key' => $key,
             ]);
-            return (string)$this->client()->createPresignedRequest($command, '+' . $this->signedUrlTtl . ' seconds')->getUri();
+            $url = (string)$this->client()->createPresignedRequest($command, '+' . $this->signedUrlTtl . ' seconds')->getUri();
+
+            return $url === '' ? null : $url;
         }
 
         return null;
@@ -164,6 +168,9 @@ final class S3Driver extends AbstractHierarchicalFilesystemDriver implements Str
         return $this->client;
     }
 
+/**
+ * @return array<string, array{identifier: non-empty-string, name: string, type: string, size: int, tstamp: int}>
+ */
     private function listDirectoryEntries(string $folderIdentifier, bool $recursive, bool $includeFiles, bool $includeDirs): array
     {
         $folderKey = $this->keyFromFolderIdentifier($folderIdentifier);
@@ -321,6 +328,7 @@ final class S3Driver extends AbstractHierarchicalFilesystemDriver implements Str
         }
     }
 
+    /** @return Result<string, mixed>|null */
     private function headObject(string $key): ?Result
     {
         try {
