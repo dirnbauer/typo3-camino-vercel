@@ -10,22 +10,13 @@ Camino distribution.
 - Text content can be selected and edited in its real frontend context.
 - Spotlight mode identifies editable areas.
 - Single-language and side-by-side language modes are available.
-- `/visual-editor` contains a short captioned demonstration of the workflow.
 
-The video is deliberately committed to
-`public/fileadmin/camino/visual-editor-demo.mp4`. It shows the complete basic
-workflow recorded in the real TYPO3 backend: open the page, select the headline,
-change it from "Walk the Camino de Compostela" to "100 Kilometers of Fun",
-click TYPO3's real save button, and see the persisted frontend result. It uses
-H.264 at 1280 x 720, has no audio, and includes English WebVTT captions. It
-therefore works without an external video account or a runtime upload.
-
-The page delivers the committed MP4 through
-`/api/media/visual-editor-demo.php`. That endpoint supports single HTTP byte
-ranges, preserves `206 Partial Content`, and disables Vercel edge caching while
-the content-hashed browser URL remains immutable. Serving the MP4 directly from
-the container's static-file route is unsafe here: a cached partial response was
-observed returning status `200`, which made Chromium stop with a decode error.
+The workflow used to be shown by a committed demo video on `/visual-editor`,
+served through a byte-range endpoint. The recording, its captions and poster,
+the `typo3_camino_visual_editor_demo` content element and the endpoint have all
+been removed: a 1280 x 720 MP4 in the repository cost more to carry than the
+short clip was worth, and it went stale with every backend redesign. Try the
+editor on the page itself instead.
 
 ## Included Languages
 
