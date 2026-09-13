@@ -60,7 +60,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile.vercel
+          file: Dockerfile
           push: false
           cache-from: type=gha,scope=typo3
           cache-to: type=gha,mode=max,scope=typo3
