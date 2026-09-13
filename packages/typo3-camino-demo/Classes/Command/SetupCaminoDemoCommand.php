@@ -257,7 +257,7 @@ final class SetupCaminoDemoCommand extends Command
         $output->writeln(sprintf('Language %d: %d nested list-item translations are ready.', $languageId, count($listItems)));
     }
 
-    /** @param array<int, array<string, string>> $catalog */
+    /** @param array<int, array<string, int|string>> $catalog */
     private function assertCatalogCoverage(string $table, array $catalog, int $languageId): void
     {
         $queryBuilder = $this->connectionPool->getConnectionForTable($table)->createQueryBuilder();

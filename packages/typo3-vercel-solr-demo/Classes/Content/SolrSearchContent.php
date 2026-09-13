@@ -293,13 +293,26 @@ final class SolrSearchContent
             ],
         };
 
-        return array_map(function (array $document): array {
-            $document['url'] = $this->demoResultUrl($document['url']);
-            return $document;
-        }, $documents);
+        // array_values keeps the result a list, which is what the caller and
+        // the declared return type both expect.
+        return array_values(array_map(
+            /**
+             * @param array{id: string, title: string, url: string, content: string, keywords: string} $document
+             * @return array{id: string, title: string, url: string, content: string, keywords: string}
+             */
+            function (array $document): array {
+                $document['url'] = $this->demoResultUrl($document['url']);
+
+                return $document;
+            },
+            $documents,
+        ));
     }
 
-    /** @param array<string, string> $document @param list<string> $tokens */
+    /**
+     * @param array{id: string, title: string, url: string, content: string, keywords: string} $document
+     * @param list<string> $tokens
+     */
     private function demoSuggestionScore(array $document, array $tokens): int
     {
         $title = mb_strtolower($document['title']);
@@ -334,6 +347,7 @@ final class SolrSearchContent
 
     /**
      * @return array{ok:bool,documents:array<int,array<string,mixed>>,total:int,queryTimeMs:int}
+ * @param array<string, mixed> $additionalParameters
      */
     private function querySolr(
         string $query,

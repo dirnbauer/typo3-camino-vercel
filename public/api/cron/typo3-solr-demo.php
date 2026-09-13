@@ -375,6 +375,10 @@ function typo3_solr_benchmark_document(string $siteHash, string $runId, int $uid
 /**
  * @return array{status:int|string,time:float,error:string,body:string}
  */
+/**
+ * @param non-empty-string $method
+ * @return array{status: int|string, time: float, error: string, body: string}
+ */
 function typo3_solr_benchmark_request(string $url, string $method, ?string $body, float $timeout): array
 {
     $headers = ['Connection: close'];

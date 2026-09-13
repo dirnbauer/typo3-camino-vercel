@@ -32,6 +32,7 @@ $deadline = $startedAt + typo3_solr_proxy_float_env('TYPO3_SOLR_APP_PROXY_TOTAL_
 $retryDelay = typo3_solr_proxy_float_env('TYPO3_SOLR_APP_PROXY_RETRY_DELAY', 0.25, 0.05, 2.0);
 $body = file_get_contents('php://input');
 $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+$method = $method === '' ? 'GET' : $method;
 $headers = typo3_solr_proxy_request_headers($targetUrl);
 $last = ['status' => 0, 'headers' => [], 'body' => '', 'error' => 'not requested'];
 $attempts = 0;
@@ -152,6 +153,7 @@ function typo3_solr_proxy_request_headers(string $targetUrl): array
 }
 
 /**
+ * @param non-empty-string $method
  * @param array<string, string> $headers
  * @return CurlHandle|null
  */

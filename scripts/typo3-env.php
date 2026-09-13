@@ -47,6 +47,11 @@ function typo3_vercel_int_env(string $name, int $default, int $min, int $max): i
     return max($min, min($max, (int)$value));
 }
 
+/**
+ * @param array<string, mixed> $query
+ * @param array<string, mixed> $cookies
+ * @param array<string, mixed> $body
+ */
 function typo3_vercel_install_tool_direct_access(
     array $query,
     array $cookies = [],
@@ -104,7 +109,10 @@ function typo3_vercel_system_maintainers(): array
     return array_values(array_unique($maintainers));
 }
 
-/** @return list<int> */
+/**
+ * @param array<string, mixed> $database
+ * @return list<int>
+ */
 function typo3_vercel_resolve_system_maintainers(array $database, string $username): array
 {
     $pdo = typo3_vercel_pdo($database);
@@ -271,6 +279,7 @@ function typo3_vercel_local_storage_processing_target(int $objectStorageUid): ?s
  * Folder part of a "storageUid:/folder/" combined identifier when it points
  * at the given storage; null for other storages or plain folder names.
  */
+/** @return non-empty-string|null */
 function typo3_vercel_combined_folder_on_storage(?string $target, int $storageUid): ?string
 {
     if ($target === null || preg_match('/^(\d+):(.+)$/', $target, $match) !== 1) {
@@ -315,6 +324,9 @@ function typo3_vercel_object_storage_driver(): string
     return 'vercel_s3';
 }
 
+/**
+ * @return array<string, mixed>
+ */
 function typo3_vercel_object_storage_setup(): array
 {
     $driverName = typo3_vercel_object_storage_driver();
@@ -343,6 +355,9 @@ function typo3_vercel_object_storage_setup(): array
     ];
 }
 
+/**
+ * @return array<string, mixed>
+ */
 function typo3_vercel_s3_object_storage_configuration(): array
 {
     $bucket = typo3_vercel_env('TYPO3_S3_BUCKET');
@@ -382,6 +397,9 @@ function typo3_vercel_s3_object_storage_configuration(): array
     ];
 }
 
+/**
+ * @return array<string, mixed>
+ */
 function typo3_vercel_blob_object_storage_configuration(): array
 {
     $access = strtolower((string)typo3_vercel_env('TYPO3_BLOB_ACCESS', 'public'));
@@ -408,6 +426,9 @@ function typo3_vercel_blob_object_storage_configuration(): array
     ];
 }
 
+/**
+ * @return array<string, mixed>
+ */
 function typo3_vercel_database_config(): array
 {
     $url = typo3_vercel_env('DATABASE_URL')
@@ -469,6 +490,9 @@ function typo3_vercel_database_config(): array
     ];
 }
 
+/**
+ * @return array<string, mixed>
+ */
 function typo3_vercel_database_config_from_url(string $url): array
 {
     // Canonical SQLite URLs (sqlite:///abs/path, sqlite://rel/path, sqlite:/abs/path)
@@ -545,6 +569,9 @@ function typo3_vercel_database_config_from_url(string $url): array
     throw new RuntimeException(sprintf('Unsupported database URL scheme "%s".', $scheme));
 }
 
+/**
+ * @param array<string, mixed> $database
+ */
 function typo3_vercel_setup_driver(array $database): string
 {
     return match ($database['driver'] ?? '') {
@@ -554,6 +581,9 @@ function typo3_vercel_setup_driver(array $database): string
     };
 }
 
+/**
+ * @param array<string, mixed> $database
+ */
 function typo3_vercel_pdo_dsn(array $database): string
 {
     return match ($database['driver'] ?? '') {
@@ -569,6 +599,9 @@ function typo3_vercel_pdo_dsn(array $database): string
     };
 }
 
+/**
+ * @param array<string, mixed> $database
+ */
 function typo3_vercel_pgsql_dsn(array $database): string
 {
     $dsn = sprintf(
@@ -590,6 +623,7 @@ function typo3_vercel_pgsql_dsn(array $database): string
  * directories are created first because the runtime /tmp tree may not exist
  * yet on a fresh instance.
  *
+ * @param array<string, mixed> $database
  * @param array<int, mixed> $options
  */
 function typo3_vercel_pdo(array $database, array $options = []): PDO
@@ -656,6 +690,9 @@ function typo3_vercel_redis_url(): ?string
         ?? typo3_vercel_env('KV_URL');
 }
 
+/**
+ * @return array<string, mixed>|null
+ */
 function typo3_vercel_redis_cache_base_options(): ?array
 {
     $url = typo3_vercel_redis_url();
@@ -701,6 +738,9 @@ function typo3_vercel_redis_cache_base_options(): ?array
     return $options;
 }
 
+/**
+ * @return array<string, mixed>|null
+ */
 function typo3_vercel_install_tool_session_handler_configuration(): ?array
 {
     if (!extension_loaded('redis')) {
@@ -731,6 +771,9 @@ function typo3_vercel_install_tool_session_handler_configuration(): ?array
     ];
 }
 
+/**
+ * @return array<string, mixed>|null
+ */
 function typo3_vercel_redis_component_options(): ?array
 {
     $host = typo3_vercel_env('TYPO3_REDIS_HOST')
@@ -842,6 +885,10 @@ function typo3_vercel_deployment_segment(): ?string
     return substr($deployment, 0, 32);
 }
 
+/**
+ * @param array<string, mixed> $extraOptions
+ * @return array<string, mixed>
+ */
 function typo3_vercel_redis_cache_configuration(
     string $cacheName,
     bool $compression = false,
@@ -871,6 +918,9 @@ function typo3_vercel_redis_cache_configuration(
     ];
 }
 
+/**
+ * @return array<string, mixed>
+ */
 function typo3_vercel_cache_configurations(): array
 {
     if (typo3_vercel_cache_backend() === 'redis') {
@@ -924,6 +974,7 @@ function typo3_vercel_cache_configurations(): array
  * backend can never use the page or edge caches, so every click otherwise
  * pays the session read/write round trips to the remote SQL database; the
  * shared Redis keeps sessions durable across instance replacement too.
+ * @return array<string, mixed>
  */
 function typo3_vercel_session_configuration(): array
 {
@@ -966,6 +1017,7 @@ function typo3_vercel_session_configuration(): array
  * Connection config for the long-lived FPM runtime: network PDO drivers
  * keep one connection per worker instead of re-connecting to the pooler on
  * every request. CLI boot scripts keep plain connections.
+ * @return array<string, mixed>
  */
 function typo3_vercel_database_runtime_config(): array
 {
@@ -980,6 +1032,9 @@ function typo3_vercel_database_runtime_config(): array
     return $database;
 }
 
+/**
+ * @return array<string, mixed>
+ */
 function typo3_vercel_log_configuration(): array
 {
     $phpErrorLogWriter = 'TYPO3\\CMS\\Core\\Log\\Writer\\PhpErrorLogWriter';
@@ -1015,6 +1070,9 @@ function typo3_vercel_log_configuration(): array
     return $configuration;
 }
 
+/**
+ * @return array<string, mixed>
+ */
 function typo3_vercel_locking_configuration(bool $isVercelRuntime): array
 {
     $runtimeLockDir = typo3_vercel_env('TYPO3_RUNTIME_LOCK_DIR');
@@ -1092,6 +1150,9 @@ function typo3_vercel_internal_solr_proxy_enabled(): bool
     return typo3_vercel_solr_service_url() !== null;
 }
 
+/**
+ * @return array<string, mixed>
+ */
 function typo3_vercel_http_configuration(): array
 {
     if (!typo3_vercel_internal_solr_proxy_enabled()) {
@@ -1106,6 +1167,9 @@ function typo3_vercel_http_configuration(): array
     ];
 }
 
+/**
+ * @return array<string, mixed>
+ */
 function typo3_vercel_settings(): array
 {
     $database = typo3_vercel_database_runtime_config();

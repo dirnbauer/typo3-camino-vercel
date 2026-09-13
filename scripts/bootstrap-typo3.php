@@ -171,6 +171,7 @@ function typo3_vercel_restore_project_templates(
  *
  * Returns the PDO connection that holds the lock (keep it referenced so the lock
  * is not released early), or null when locking is not applicable/possible.
+ * @param array<string, mixed> $database
  */
 function typo3_vercel_acquire_bootstrap_lock(array $database): ?PDO
 {
@@ -219,6 +220,9 @@ function typo3_vercel_acquire_bootstrap_lock(array $database): ?PDO
     return $pdo;
 }
 
+/**
+ * @param array<string, mixed> $database
+ */
 function typo3_vercel_has_backend_admin_user(array $database): bool
 {
     $retries = typo3_vercel_int_env('TYPO3_DB_CONNECT_RETRIES', 20, 1, 200);
@@ -263,6 +267,10 @@ function typo3_vercel_is_empty_database_error(string $message): bool
     return false;
 }
 
+/**
+ * @param list<string> $command
+ * @param array<string, string> $env
+ */
 function typo3_vercel_run(array $command, array $env): int
 {
     $process = proc_open(
@@ -285,6 +293,9 @@ function typo3_vercel_run(array $command, array $env): int
     return proc_close($process);
 }
 
+/**
+ * @param array<string, mixed> $database
+ */
 function typo3_vercel_copy_generated_sqlite_database(array $database): void
 {
     $files = glob(dirname(__DIR__) . '/var/sqlite/cms-*.sqlite') ?: [];

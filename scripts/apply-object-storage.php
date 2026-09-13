@@ -145,6 +145,9 @@ fwrite(STDOUT, sprintf(
     $makeDefault ? ' It is the default upload storage.' : ''
 ));
 
+/**
+ * @param array<string, mixed> $configuration
+ */
 function typo3_vercel_blob_boot_token_available(array $configuration): bool
 {
     $tokenEnvName = (string)($configuration['tokenEnvName'] ?? 'BLOB_READ_WRITE_TOKEN');
@@ -276,6 +279,9 @@ function typo3_vercel_purge_processed_files(PDO $pdo, array $localStorageUids, ?
     }
 }
 
+/**
+ * @param array<string, mixed> $configuration
+ */
 function typo3_vercel_verify_object_storage(string $driverName, array $configuration, int $storageUid, string $processingFolder, ?string $localProcessingTarget = null): void
 {
     try {
@@ -292,7 +298,11 @@ function typo3_vercel_verify_object_storage(string $driverName, array $configura
 
         foreach (typo3_vercel_required_object_storage_folders($configuration, $processingFolder, $storageUid, $localProcessingTarget) as $folderIdentifier) {
             if (!$driver->folderExists($folderIdentifier)) {
-                $driver->createFolder(trim($folderIdentifier, '/'), '/', true);
+                $folderName = trim($folderIdentifier, '/');
+                if ($folderName === '') {
+                    continue;
+                }
+                $driver->createFolder($folderName, '/', true);
             }
         }
     } catch (Throwable $exception) {
@@ -303,6 +313,10 @@ function typo3_vercel_verify_object_storage(string $driverName, array $configura
     fwrite(STDOUT, "TYPO3 object storage verified and required folders exist.\n");
 }
 
+/**
+ * @param array<string, mixed> $configuration
+ * @return list<non-empty-string>
+ */
 function typo3_vercel_required_object_storage_folders(
     array $configuration,
     string $processingFolder,
@@ -329,6 +343,9 @@ function typo3_vercel_required_object_storage_folders(
     )));
 }
 
+/**
+ * @param array<string, mixed> $database
+ */
 function typo3_vercel_object_storage_pdo(array $database): PDO
 {
     $retries = (int)typo3_vercel_env('TYPO3_DB_CONNECT_RETRIES', '20');
@@ -362,6 +379,9 @@ function typo3_vercel_object_storage_table_exists(PDO $pdo): bool
     }
 }
 
+/**
+ * @return list<string>
+ */
 function typo3_vercel_table_columns(PDO $pdo, string $table): array
 {
     $statement = $pdo->query('SELECT * FROM ' . $table . ' WHERE 1 = 0');
@@ -445,6 +465,9 @@ function typo3_vercel_is_duplicate_key_error(PDOException $exception): bool
     return str_contains($message, 'duplicate') || str_contains($message, 'unique constraint');
 }
 
+/**
+ * @param array<string, mixed> $configuration
+ */
 function typo3_vercel_flexform_xml(array $configuration): string
 {
     $fields = '';

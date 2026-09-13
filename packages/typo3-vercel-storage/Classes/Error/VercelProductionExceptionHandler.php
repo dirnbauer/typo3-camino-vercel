@@ -8,13 +8,13 @@ use TYPO3\CMS\Core\Error\ProductionExceptionHandler;
 
 final class VercelProductionExceptionHandler extends ProductionExceptionHandler
 {
-    public function echoExceptionWeb(\Throwable $exception)
+    public function echoExceptionWeb(\Throwable $exception): void
     {
         $this->logToPhpErrorLog($exception);
         parent::echoExceptionWeb($exception);
     }
 
-    public function echoExceptionCLI(\Throwable $exception)
+    public function echoExceptionCLI(\Throwable $exception): void
     {
         $this->logToPhpErrorLog($exception);
         parent::echoExceptionCLI($exception);

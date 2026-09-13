@@ -69,6 +69,10 @@ foreach ($siteConfigPaths as $siteConfigPath) {
     ));
 }
 
+/**
+ * @param array<string, mixed> $fallback
+ * @return array<string, mixed>
+ */
 function solr_connection_from_env(string $prefix, string $fallbackPrefix, ?array $fallback = null): array
 {
     $url = typo3_vercel_env($prefix . '_URL') ?? typo3_vercel_env($fallbackPrefix . '_URL');
@@ -141,6 +145,9 @@ function solr_service_url_from_env(string $prefix, string $fallbackPrefix): ?str
     return rtrim($serviceUrl, '/') . solr_normalize_path($path) . rawurlencode($core);
 }
 
+/**
+ * @return array<string, mixed>
+ */
 function solr_parse_url(string $url): array
 {
     $parts = parse_url($url);
@@ -199,6 +206,9 @@ function solr_normalize_site_path(string $path): string
     return $path;
 }
 
+/**
+ * @return list<string>
+ */
 function solr_site_config_paths(string $root): array
 {
     $identifier = typo3_vercel_env('TYPO3_SOLR_SITE_IDENTIFIER', 'camino');
@@ -208,6 +218,9 @@ function solr_site_config_paths(string $root): array
     return [$root . '/config/sites/' . $identifier . '/config.yaml'];
 }
 
+/**
+ * @param array<string, mixed> $site
+ */
 function solr_apply_site_dependencies(array &$site): void
 {
     $siteSet = typo3_vercel_env('TYPO3_SOLR_SITE_SET', 'webconsulting/typo3-vercel-solr-demo');
@@ -226,6 +239,9 @@ function solr_apply_site_dependencies(array &$site): void
     $site['dependencies'] = array_values(array_unique(array_filter($dependencies, static fn (mixed $dependency): bool => (string)$dependency !== '')));
 }
 
+/**
+ * @param array<string, mixed> $site
+ */
 function solr_apply_site_base(array &$site): void
 {
     $base = typo3_vercel_env('TYPO3_SOLR_SITE_BASE');
@@ -234,6 +250,10 @@ function solr_apply_site_base(array &$site): void
     }
 }
 
+/**
+ * @param array<string, mixed> $site
+ * @param array<string, mixed> $connection
+ */
 function solr_apply_credentials(array &$site, array $connection, string $scope): void
 {
     if (($connection['username'] ?? null) !== null) {
@@ -244,6 +264,10 @@ function solr_apply_credentials(array &$site, array $connection, string $scope):
     }
 }
 
+/**
+ * @param array<int|string, mixed> $languages
+ * @return array<int|string, mixed>
+ */
 function solr_apply_language_cores(array $languages, string $defaultCore): array
 {
     $internalService = typo3_vercel_solr_service_url() !== null;

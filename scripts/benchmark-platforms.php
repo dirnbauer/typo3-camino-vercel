@@ -15,6 +15,8 @@ const DEFAULT_RUNS = 10;
 
 /**
  * @return array{runs: int, output: ?string, targets: array<string, string>}
+ * @param list<string> $arguments
+ * @return array<string, mixed>
  */
 function parseArguments(array $arguments): array
 {
